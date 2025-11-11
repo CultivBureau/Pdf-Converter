@@ -136,6 +136,10 @@ export default function CodePage() {
     filename?: string;
     uploadedAt?: string;
   } | null>(null);
+  const [processedTables, setProcessedTables] = useState<Array<{
+    tableId: string;
+    jsx: string;
+  }>>([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -143,6 +147,7 @@ export default function CodePage() {
     const storedCode = sessionStorage.getItem("codePreview.initialCode");
     const storedWarnings = sessionStorage.getItem("codePreview.warnings");
     const storedMetadata = sessionStorage.getItem("codePreview.metadata");
+    const storedTables = sessionStorage.getItem("codePreview.processedTables");
 
     if (storedCode) {
       setCode(storedCode);
@@ -169,6 +174,18 @@ export default function CodePage() {
         // ignore parse errors
       }
       sessionStorage.removeItem("codePreview.metadata");
+    }
+
+    if (storedTables) {
+      try {
+        const parsed = JSON.parse(storedTables);
+        if (Array.isArray(parsed)) {
+          setProcessedTables(parsed);
+        }
+      } catch {
+        // ignore parse errors
+      }
+      sessionStorage.removeItem("codePreview.processedTables");
     }
   }, []);
 
@@ -333,6 +350,36 @@ export default function CodePage() {
                 <li key={index}>{warning}</li>
               ))}
             </ul>
+          </div>
+        )}
+        {processedTables.length > 0 && (
+          <div className="mb-6 rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
+            <h2 className="text-sm font-semibold text-green-900 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Processed Tables ({processedTables.length})
+            </h2>
+            <p className="mt-2 text-green-700">
+              {processedTables.length} table(s) were automatically extracted, repaired, and converted to JSX during processing.
+            </p>
+            <details className="mt-3">
+              <summary className="cursor-pointer text-green-800 font-medium hover:text-green-900">
+                View processed table details
+              </summary>
+              <div className="mt-2 space-y-2">
+                {processedTables.map((table, index) => (
+                  <div key={index} className="bg-white rounded p-3 border border-green-200">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-green-900">{table.tableId}</span>
+                      <span className="text-xs text-green-600">
+                        {table.jsx.length} chars JSX
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
           </div>
         )}
         {mode === "code" ? (

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { LiveProvider, LivePreview, LiveError } from "react-live";
 import EditableText from "./EditableText";
+import { fixJsx, validateJsxSyntax } from "../services/PdfApi";
 
 type PreviewRendererProps = {
   code: string;
@@ -13,6 +14,10 @@ type PreviewRendererProps = {
 export default function PreviewRenderer({ code, values, setValue }: PreviewRendererProps) {
   // Keep a stable reference for `values` to avoid remounting preview on each keystroke
   const stableValuesRef = useRef<Record<string, string>>({});
+  const [fixedCode, setFixedCode] = useState<string | null>(null);
+  const [isFixing, setIsFixing] = useState(false);
+  const lastCodeRef = useRef<string>("");
+  
   useEffect(() => {
     const target = stableValuesRef.current;
     // copy/merge keys
@@ -24,6 +29,108 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
       if (!(k in values)) delete target[k];
     }
   }, [values]);
+
+  // Auto-fix code if it has syntax errors (only for AI-generated code, not user edits)
+  useEffect(() => {
+    // Only auto-fix if code changed and it's likely AI-generated (contains export default)
+    if (code === lastCodeRef.current || isFixing) return;
+    
+    // Check if this looks like AI-generated code (has export default)
+    const isAiGenerated = code.includes('export default function Template');
+    
+    if (isAiGenerated && code !== lastCodeRef.current) {
+      lastCodeRef.current = code;
+      
+      // Validate the code
+      const validation = validateJsxSyntax(code);
+      
+      if (!validation.isValid) {
+        console.log('⚠️ Detected syntax errors in AI-generated code, attempting auto-fix...');
+        console.log('Validation errors:', validation.errors);
+        setIsFixing(true);
+        
+        // Extract just the JSX content (inner part) for fixing
+        // Find return statement and extract content between parentheses (handling nested parentheses)
+        const returnIndex = code.indexOf('return (');
+        let jsxContent = code;
+        let extractedStartIndex = 0;
+        let extractedEndIndex = code.length;
+        let foundClosing = false;
+        
+        if (returnIndex !== -1) {
+          // Find the matching closing parenthesis for return (
+          let parenDepth = 0;
+          const startIndex = returnIndex + 'return ('.length;
+          let endIndex = startIndex;
+          
+          for (let i = startIndex; i < code.length; i++) {
+            const char = code[i];
+            const prevChar = i > 0 ? code[i - 1] : '';
+            
+            // Skip escaped characters
+            if (prevChar === '\\') continue;
+            
+            if (char === '(') {
+              parenDepth++;
+            } else if (char === ')') {
+              if (parenDepth === 0) {
+                // Found the matching closing parenthesis
+                endIndex = i;
+                foundClosing = true;
+                extractedStartIndex = startIndex;
+                extractedEndIndex = endIndex;
+                break;
+              }
+              parenDepth--;
+            }
+          }
+          
+          if (foundClosing) {
+            // Extract JSX content between return ( and closing )
+            jsxContent = code.substring(extractedStartIndex, extractedEndIndex);
+          }
+        }
+        
+        // Call fix-jsx endpoint with JSX fragment
+        fixJsx(jsxContent)
+          .then((response) => {
+            if (response.jsx) {
+              // Reconstruct the full component with fixed JSX
+              let fixedFullCode = code;
+              
+              if (returnIndex !== -1 && foundClosing) {
+                // Replace the JSX content in return statement
+                const beforeReturn = code.substring(0, returnIndex + 'return ('.length);
+                const afterReturn = code.substring(extractedEndIndex);
+                fixedFullCode = beforeReturn + '\n' + response.jsx + '\n  ' + afterReturn;
+              } else {
+                // Fallback: try to replace in function body
+                fixedFullCode = code.replace(
+                  /return\s*\([\s\S]*\)/,
+                  `return (\n${response.jsx}\n  )`
+                );
+              }
+              
+              setFixedCode(fixedFullCode);
+              console.log('✅ Code auto-fixed successfully');
+            } else {
+              setFixedCode(null);
+            }
+          })
+          .catch((error) => {
+            console.error('Failed to auto-fix code:', error);
+            setFixedCode(null);
+          })
+          .finally(() => {
+            setIsFixing(false);
+          });
+      } else {
+        setFixedCode(null);
+      }
+    } else {
+      setFixedCode(null);
+    }
+  }, [code, isFixing]);
 
   const scope = useMemo(() => ({
     React,
@@ -38,7 +145,9 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
   // 2) Append explicit render call.
   // 3) Clean up any syntax issues
   const transformed = useMemo(() => {
-    let src = code.trim();
+    // Use fixed code if available, otherwise use original code
+    const codeToTransform = fixedCode || code;
+    let src = codeToTransform.trim();
     let componentName = "Template";
 
     if (!/export\s+default\s+function\s+/m.test(src)) {
@@ -617,7 +726,7 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
     }
 
     return `${src}\n\nrender(<${componentName} values={values} setValue={setValue} />);`;
-  }, [code]);
+  }, [code, fixedCode]);
 
   // Debug: Log transformed code and check for syntax errors
   useEffect(() => {
@@ -661,6 +770,27 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
 
   return (
     <div className="w-full">
+      {isFixing && (
+        <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
+          <div className="flex items-center gap-2">
+            <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span className="text-sm font-medium text-blue-800">Auto-fixing syntax errors...</span>
+          </div>
+        </div>
+      )}
+      {fixedCode && !isFixing && (
+        <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-400 rounded">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm font-medium text-green-800">Code auto-fixed successfully!</span>
+          </div>
+        </div>
+      )}
       {(hasOrphanClosingBrace || hasIncompleteJSX) && (
         <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
           <div className="flex items-start">

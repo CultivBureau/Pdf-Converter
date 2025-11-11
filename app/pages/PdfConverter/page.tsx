@@ -2,7 +2,136 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { uploadFile, generateNextJs } from "../../services/PdfApi";
+import { 
+  uploadFile, 
+  generateNextJs, 
+  repairTable, 
+  tableToJsx, 
+  validateAndFixJsx 
+} from "../../services/PdfApi";
+
+/**
+ * Extract table data from extracted text
+ * Looks for TABLE_START markers and extracts table structure
+ */
+function extractTablesFromText(text: string): Array<{
+  tableId: string;
+  metadata: { rows: number; columns: number };
+  header: string[];
+  rows: string[][];
+}> {
+  const tables: Array<{
+    tableId: string;
+    metadata: { rows: number; columns: number };
+    header: string[];
+    rows: string[][];
+  }> = [];
+
+  // Find all table start markers
+  const tableStartRegex = /--- TABLE START (\d+) ---/g;
+  const tableEndRegex = /--- TABLE END (\d+) ---/g;
+  
+  let match;
+  const tableStarts: Array<{ num: number; index: number }> = [];
+  const tableEnds: Array<{ num: number; index: number }> = [];
+
+  while ((match = tableStartRegex.exec(text)) !== null) {
+    tableStarts.push({ num: parseInt(match[1]), index: match.index });
+  }
+
+  while ((match = tableEndRegex.exec(text)) !== null) {
+    tableEnds.push({ num: parseInt(match[1]), index: match.index });
+  }
+
+  // Process each table
+  for (const start of tableStarts) {
+    const end = tableEnds.find(e => e.num === start.num);
+    if (!end) continue;
+
+    const tableText = text.substring(start.index, end.index + end.num.toString().length + 15);
+    
+    // Extract metadata
+    const metadataMatch = tableText.match(/TABLE_METADATA:\s*rows=(\d+),\s*columns=(\d+)/);
+    if (!metadataMatch) continue;
+
+    const rows = parseInt(metadataMatch[1]);
+    const columns = parseInt(metadataMatch[2]);
+
+    // Extract header
+    const headerMatch = tableText.match(/TABLE_HEADER:\s*([\s\S]+?)(?:\n|TABLE_ROW|TABLE_END)/);
+    if (!headerMatch) continue;
+
+    const header = headerMatch[1]
+      .split('|')
+      .map(cell => cell.trim())
+      .filter(cell => cell.length > 0);
+
+    // Extract rows
+    const rowRegex = /TABLE_ROW\s+(\d+):\s*([\s\S]+?)(?:\n|TABLE_ROW|TABLE_END)/g;
+    const tableRows: string[][] = [];
+    let rowMatch;
+    
+    while ((rowMatch = rowRegex.exec(tableText)) !== null) {
+      const rowData = rowMatch[2]
+        .split('|')
+        .map(cell => cell.trim())
+        .filter(cell => cell.length > 0);
+      
+      if (rowData.length > 0) {
+        tableRows.push(rowData);
+      }
+    }
+
+    if (header.length > 0 && tableRows.length > 0) {
+      tables.push({
+        tableId: `table_${start.num}`,
+        metadata: { rows, columns },
+        header,
+        rows: tableRows,
+      });
+    }
+  }
+
+  return tables;
+}
+
+/**
+ * Convert extracted table to raw_cells format for repairTable API
+ */
+function tableToRawCells(
+  table: {
+    tableId: string;
+    metadata: { rows: number; columns: number };
+    header: string[];
+    rows: string[][];
+  }
+): Array<{ row: number; col: number; text: string; confidence?: number }> {
+  const cells: Array<{ row: number; col: number; text: string; confidence?: number }> = [];
+
+  // Add header row (row 0)
+  table.header.forEach((text, col) => {
+    cells.push({
+      row: 0,
+      col,
+      text,
+      confidence: 0.95,
+    });
+  });
+
+  // Add data rows
+  table.rows.forEach((rowData, rowIndex) => {
+    rowData.forEach((text, col) => {
+      cells.push({
+        row: rowIndex + 1,
+        col,
+        text,
+        confidence: 0.90,
+      });
+    });
+  });
+
+  return cells;
+}
 
 const PdfConverter: React.FC = () => {
   const router = useRouter();
@@ -33,11 +162,96 @@ const PdfConverter: React.FC = () => {
         throw new Error("Extraction returned empty text.");
       }
 
+      // Extract and process tables if present
+      const extractedTables = extractTablesFromText(extractedText);
+      const processedTables: Array<{ tableId: string; jsx: string }> = [];
+
+      if (extractedTables.length > 0) {
+        setStatus(`Processing ${extractedTables.length} table(s)…`);
+        
+        for (const table of extractedTables) {
+          try {
+            // Convert to raw_cells format
+            const rawCells = tableToRawCells(table);
+            
+            // Repair the table
+            const repairData = {
+              table_id: table.tableId,
+              page: 1,
+              detected_columns: table.metadata.columns,
+              raw_cells: rawCells,
+              notes: `Extracted from PDF with ${table.metadata.rows} rows and ${table.metadata.columns} columns`,
+              max_retries: 2,
+            };
+
+            setStatus(`Repairing table ${table.tableId}…`);
+            const repaired = await repairTable(repairData) as {
+              success: boolean;
+              table_id: string;
+              columns: number;
+              header_row_index: number;
+              rows: Array<Array<{
+                text: string;
+                colspan: number;
+                rowspan: number;
+                confidence: number;
+              }>>;
+              issues: Array<{ type: string; description: string }>;
+            };
+            
+            if (repaired.success && repaired.rows.length > 0) {
+              // Convert to JSX
+              setStatus(`Converting table ${table.tableId} to JSX…`);
+              const jsxResponse = await tableToJsx({
+                table_id: repaired.table_id,
+                columns: repaired.columns,
+                header_row_index: repaired.header_row_index,
+                rows: repaired.rows.map((row: Array<{ text: string; colspan: number; rowspan: number; confidence: number }>) => 
+                  row.map((cell: { text: string; colspan: number; rowspan: number; confidence: number }) => ({
+                    text: cell.text,
+                    colspan: cell.colspan,
+                    rowspan: cell.rowspan,
+                    confidence: cell.confidence,
+                  }))
+                ),
+                issues: repaired.issues,
+              }) as { success: boolean; jsx: string; warnings: string[] };
+
+              if (jsxResponse.jsx) {
+                // Validate and fix JSX if needed
+                const validated = await validateAndFixJsx(jsxResponse.jsx) as {
+                  jsx: string;
+                  warnings: string[];
+                  fixed: boolean;
+                };
+                processedTables.push({
+                  tableId: table.tableId,
+                  jsx: validated.jsx,
+                });
+              }
+            }
+          } catch (tableError) {
+            console.warn(`Failed to process table ${table.tableId}:`, tableError);
+            // Continue with other tables
+          }
+        }
+      }
+
       setStatus("Generating component from extracted text…");
       const nextJsResponse = await generateNextJs(extractedText);
-      const generatedCode = nextJsResponse.code?.code;
+      let generatedCode = nextJsResponse.code?.code;
       if (!generatedCode) {
         throw new Error("Generation returned empty code.");
+      }
+
+      // If we have processed tables, we could merge them into the code
+      // For now, the backend should handle tables in the extracted text
+      // But we store processed tables in sessionStorage for potential future use
+      if (processedTables.length > 0 && typeof window !== "undefined") {
+        sessionStorage.setItem(
+          "codePreview.processedTables",
+          JSON.stringify(processedTables)
+        );
       }
 
       if (typeof window !== "undefined") {
