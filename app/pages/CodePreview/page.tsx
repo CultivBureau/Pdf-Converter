@@ -360,8 +360,8 @@ export default function CodePage() {
             <CodeEditor code={code} onChange={setCode} />
           </div>
         ) : (
-          <div className="min-h-[70vh] bg-white rounded-xl shadow-lg p-8">
-            <div className="preview-content">
+          <div className="min-h-[70vh] bg-white rounded-xl shadow-lg p-8 max-w-full overflow-hidden">
+            <div className="preview-content max-w-full">
               <PreviewRenderer code={code} values={values} setValue={setValue} />
             </div>
           </div>

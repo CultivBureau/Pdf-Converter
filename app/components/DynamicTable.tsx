@@ -31,13 +31,13 @@ const DynamicTable: React.FC<DynamicTableProps> = ({
   headerClassName = '',
 }) => {
   return (
-    <div className={`w-full overflow-x-auto ${className}`}>
+    <div className={`w-full max-w-full overflow-x-auto ${className}`}>
       {title && (
         <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
           {title}
         </h3>
       )}
-      <table className="w-full border-collapse border border-gray-400">
+      <table className="w-full max-w-full border-collapse border border-gray-400 table-auto">
         {headers && headers.length > 0 && (
           <thead>
             <tr className="bg-green-100">

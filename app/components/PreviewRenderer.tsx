@@ -825,8 +825,10 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
         </div>
       )}
       <LiveProvider code={transformed} scope={scope} noInline>
-        <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
-          <LivePreview />
+        <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm max-w-full overflow-hidden">
+          <div className="max-w-full overflow-x-auto">
+            <LivePreview />
+          </div>
         </div>
         <div className="mt-3 min-h-[60px]">
           <LiveError className="text-sm text-red-600 font-mono bg-red-50 p-3 rounded border border-red-200 whitespace-pre-wrap" />
