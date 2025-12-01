@@ -132,42 +132,43 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
     }
   }, [code, isFixing]);
 
-  // Import template components for complete components
+  // Import template components - preload them eagerly so they're always available in scope
   // These will be available in react-live scope (react-live doesn't support ES6 imports)
   const [templateComponents, setTemplateComponents] = useState<any>(null);
+  const [componentsLoading, setComponentsLoading] = useState(true);
   
+  // Eagerly load template components on mount (not dependent on code)
+  // This ensures they're always available when code tries to use them
   useEffect(() => {
-    // Check if code uses template components (check for imports or component usage)
-    const usesTemplates = code.includes('BaseTemplate') || 
-                         code.includes('SectionTemplate') || 
-                         code.includes('DynamicTableTemplate') ||
-                         code.includes('@/app/Templates/') ||
-                         code.includes('./Templates/');
+    let isMounted = true;
     
-    if (usesTemplates) {
-      // Dynamically import template components
-      Promise.all([
-        import('../Templates/baseTemplate').then(m => m.default).catch(() => null),
-        import('../Templates/sectionTemplate').then(m => m.default).catch(() => null),
-        import('../Templates/dynamicTableTemplate').then(m => m.default).catch(() => null),
-      ]).then(([BaseTemplate, SectionTemplate, DynamicTableTemplate]) => {
-        const components: any = {};
-        if (BaseTemplate) components.BaseTemplate = BaseTemplate;
-        if (SectionTemplate) components.SectionTemplate = SectionTemplate;
-        if (DynamicTableTemplate) components.DynamicTableTemplate = DynamicTableTemplate;
-        
-        if (Object.keys(components).length > 0) {
-          setTemplateComponents(components);
-        }
-      }).catch(err => {
-        console.warn('Failed to load template components:', err);
+    // Load all template components immediately
+    Promise.all([
+      import('../Templates/baseTemplate').then(m => m.default).catch(() => null),
+      import('../Templates/sectionTemplate').then(m => m.default).catch(() => null),
+      import('../Templates/dynamicTableTemplate').then(m => m.default).catch(() => null),
+    ]).then(([BaseTemplate, SectionTemplate, DynamicTableTemplate]) => {
+      if (!isMounted) return;
+      
+      const components: any = {};
+      if (BaseTemplate) components.BaseTemplate = BaseTemplate;
+      if (SectionTemplate) components.SectionTemplate = SectionTemplate;
+      if (DynamicTableTemplate) components.DynamicTableTemplate = DynamicTableTemplate;
+      
+      setTemplateComponents(components);
+      setComponentsLoading(false);
+    }).catch(err => {
+      console.warn('Failed to load template components:', err);
+      if (isMounted) {
         setTemplateComponents(null);
-      });
-    } else {
-      // Clear template components if not needed
-      setTemplateComponents(null);
-    }
-  }, [code]);
+        setComponentsLoading(false);
+      }
+    });
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Only run once on mount
 
   const scope = useMemo(() => ({
     React,
@@ -915,16 +916,24 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
           </div>
         </div>
       )}
-      <LiveProvider code={transformed} scope={scope} noInline>
+      {componentsLoading ? (
         <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm max-w-full overflow-hidden">
-          <div className="max-w-full overflow-x-auto">
-            <LivePreview />
+          <div className="flex items-center justify-center py-8">
+            <div className="text-gray-500 text-sm">Loading template components...</div>
           </div>
         </div>
-        <div className="mt-3 min-h-[60px]">
-          <LiveError className="text-sm text-red-600 font-mono bg-red-50 p-3 rounded border border-red-200 whitespace-pre-wrap" />
-        </div>
-      </LiveProvider>
+      ) : (
+        <LiveProvider code={transformed} scope={scope} noInline>
+          <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm max-w-full overflow-hidden">
+            <div className="max-w-full overflow-x-auto">
+              <LivePreview />
+            </div>
+          </div>
+          <div className="mt-3 min-h-[60px]">
+            <LiveError className="text-sm text-red-600 font-mono bg-red-50 p-3 rounded border border-red-200 whitespace-pre-wrap" />
+          </div>
+        </LiveProvider>
+      )}
       {process.env.NODE_ENV === 'development' && (
         <details className="mt-4 text-xs">
           <summary className="cursor-pointer text-gray-500 hover:text-gray-700 font-medium">
