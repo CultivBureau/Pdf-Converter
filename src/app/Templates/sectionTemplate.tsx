@@ -17,6 +17,11 @@ export interface SectionTemplateProps {
   content: string | React.ReactNode;
   type?: 'section' | 'day' | 'included' | 'excluded' | 'notes';
   
+  // Editable Configuration
+  editable?: boolean;
+  onContentChange?: (newContent: string) => void;
+  onTitleChange?: (newTitle: string) => void;
+  
   // Title Configuration
   titleLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   titleClassName?: string;
@@ -67,6 +72,10 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
   title,
   content,
   type = 'section',
+  // Editable
+  editable = true,
+  onContentChange,
+  onTitleChange,
   // Title
   titleLevel = 2,
   titleClassName = "",
@@ -228,7 +237,23 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                   if (!cleanItem) return null;
                   
                   return (
-                    <li key={index} className="text-sm leading-snug" style={{ fontSize: '11px', lineHeight: '1.4' }}>
+                    <li 
+                      key={index} 
+                      className="text-sm leading-snug" 
+                      style={{ fontSize: '11px', lineHeight: '1.4' }}
+                      contentEditable={editable}
+                      suppressContentEditableWarning={true}
+                      onBlur={(e) => {
+                        if (editable && onContentChange) {
+                          // Get all list items and reconstruct content
+                          const ul = e.currentTarget.parentElement;
+                          if (ul) {
+                            const items = Array.from(ul.children).map((li) => `• ${li.textContent}`).join('\n');
+                            onContentChange(items);
+                          }
+                        }
+                      }}
+                    >
                       {cleanItem}
                     </li>
                   );
@@ -253,7 +278,18 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                   return (
                     <div key={pIndex} className="mb-2 last:mb-0">
                       {trimmed.split(/\n/).filter(p => p.trim()).map((p, idx) => (
-                        <p key={idx} className="mb-1 last:mb-0 text-sm leading-snug text-gray-700" style={{ fontSize: '11px', lineHeight: '1.4' }}>
+                        <p 
+                          key={idx} 
+                          className="mb-1 last:mb-0 text-sm leading-snug text-gray-700" 
+                          style={{ fontSize: '11px', lineHeight: '1.4' }}
+                          contentEditable={editable}
+                          suppressContentEditableWarning={true}
+                          onBlur={(e) => {
+                            if (editable && onContentChange) {
+                              onContentChange(e.currentTarget.textContent || '');
+                            }
+                          }}
+                        >
                           {p.trim()}
                         </p>
                       ))}
@@ -267,6 +303,13 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                     key={pIndex}
                     className="mb-2 last:mb-0 text-sm leading-snug text-gray-700"
                     style={{ fontSize: '11px', lineHeight: '1.4' }}
+                    contentEditable={editable}
+                    suppressContentEditableWarning={true}
+                    onBlur={(e) => {
+                      if (editable && onContentChange) {
+                        onContentChange(e.currentTarget.textContent || '');
+                      }
+                    }}
                   >
                     {trimmed}
                   </p>
@@ -277,9 +320,36 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
         }
       }
       // If parseParagraphs is false, preserve whitespace
-      return <div className={preserveWhitespace ? "whitespace-pre-wrap leading-snug" : ""} style={{ fontSize: '11px', lineHeight: '1.4' }}>{content}</div>;
+      return (
+        <div 
+          className={preserveWhitespace ? "whitespace-pre-wrap leading-snug" : ""} 
+          style={{ fontSize: '11px', lineHeight: '1.4' }}
+          contentEditable={editable}
+          suppressContentEditableWarning={true}
+          onBlur={(e) => {
+            if (editable && onContentChange) {
+              onContentChange(e.currentTarget.textContent || '');
+            }
+          }}
+        >
+          {content}
+        </div>
+      );
     }
-    return <div className="content">{content}</div>;
+    return (
+      <div 
+        className="content"
+        contentEditable={editable}
+        suppressContentEditableWarning={true}
+        onBlur={(e) => {
+          if (editable && onContentChange) {
+            onContentChange(e.currentTarget.textContent || '');
+          }
+        }}
+      >
+        {content}
+      </div>
+    );
   };
 
   const containerStyle: React.CSSProperties = {
@@ -297,7 +367,17 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
       {/* Section Title */}
       {showTitle && title && (
         <div className="mb-3">
-          <h2 className={titleClasses} style={{ fontSize: '13px', lineHeight: '1.3' }}>
+          <h2 
+            className={titleClasses} 
+            style={{ fontSize: '13px', lineHeight: '1.3' }}
+            contentEditable={editable}
+            suppressContentEditableWarning={true}
+            onBlur={(e) => {
+              if (editable && onTitleChange) {
+                onTitleChange(e.currentTarget.textContent || '');
+              }
+            }}
+          >
             {title}
           </h2>
           {/* Thin decorative line matching the design */}

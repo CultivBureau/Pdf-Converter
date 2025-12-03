@@ -18,6 +18,12 @@ export interface DynamicTableTemplateProps {
   columns?: string[]; // Support 'columns' prop from our JSON structure
   rows: (string | number | React.ReactNode)[][];
   
+  // Editable Configuration
+  editable?: boolean;
+  onCellChange?: (rowIndex: number, cellIndex: number, newValue: string) => void;
+  onHeaderChange?: (headerIndex: number, newValue: string) => void;
+  onTitleChange?: (newTitle: string) => void;
+  
   // Table Title
   title?: string;
   titleClassName?: string;
@@ -82,6 +88,11 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
   headers,
   columns, // Use 'columns' from JSON or fallback to 'headers'
   rows,
+  // Editable
+  editable = true,
+  onCellChange,
+  onHeaderChange,
+  onTitleChange,
   // Title
   title,
   titleClassName = "",
@@ -226,7 +237,16 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
       {/* Table Title - Compact */}
       {showTitle && title && (
         <div className="mb-3">
-          <h3 className="text-base font-bold text-gray-900">
+          <h3 
+            className="text-base font-bold text-gray-900"
+            contentEditable={editable}
+            suppressContentEditableWarning={true}
+            onBlur={(e) => {
+              if (editable && onTitleChange) {
+                onTitleChange(e.currentTarget.textContent || '');
+              }
+            }}
+          >
             {title}
           </h3>
         </div>
@@ -239,8 +259,8 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
           <thead>
             <tr className="bg-linear-to-r from-[#A4C639] to-[#8FB02E]">
               {cleanHeaders.map((header, index) => (
-                <th
-                  key={index}
+                  <th
+                    key={index}
                   className={headerClasses}
                   style={{ 
                     fontSize: '9px',
@@ -249,11 +269,21 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                     verticalAlign: 'middle'
                   }}
                 >
-                  <div className="wrap-break-word hyphens-auto" style={{ wordBreak: 'break-word' }}>
+                  <div 
+                    className="wrap-break-word hyphens-auto" 
+                    style={{ wordBreak: 'break-word' }}
+                    contentEditable={editable}
+                    suppressContentEditableWarning={true}
+                    onBlur={(e) => {
+                      if (editable && onHeaderChange) {
+                        onHeaderChange(index, e.currentTarget.textContent || '');
+                      }
+                    }}
+                  >
                     {header || `Col ${index + 1}`}
                   </div>
-                </th>
-              ))}
+                  </th>
+                ))}
             </tr>
           </thead>
 
@@ -280,7 +310,17 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                           verticalAlign: 'middle'
                         }}
                       >
-                        <div className="wrap-break-word font-medium" style={{ wordBreak: 'break-word' }}>
+                        <div 
+                          className="wrap-break-word font-medium" 
+                          style={{ wordBreak: 'break-word' }}
+                          contentEditable={editable}
+                          suppressContentEditableWarning={true}
+                          onBlur={(e) => {
+                            if (editable && onCellChange) {
+                              onCellChange(rowIndex, cellIndex, e.currentTarget.textContent || '');
+                            }
+                          }}
+                        >
                           {cellValue || '—'}
                         </div>
                       </td>
