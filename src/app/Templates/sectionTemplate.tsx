@@ -15,6 +15,7 @@ import React from "react";
 export interface SectionTemplateProps {
   title?: string;
   content: string | React.ReactNode;
+  type?: 'section' | 'day' | 'included' | 'excluded' | 'notes';
   
   // Title Configuration
   titleLevel?: 1 | 2 | 3 | 4 | 5 | 6;
@@ -65,6 +66,7 @@ export interface SectionTemplateProps {
 const SectionTemplate: React.FC<SectionTemplateProps> = ({
   title,
   content,
+  type = 'section',
   // Title
   titleLevel = 2,
   titleClassName = "",
@@ -126,19 +128,36 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     contentMarginTop,
   ].filter(Boolean).join(" ");
 
-  // Build container classes
-  const containerClasses = [
-    "section-template",
-    marginBottom,
-    "last:mb-0",
-    padding,
-    backgroundColor && `bg-[${backgroundColor}]`,
-    border && `border ${borderColor}`,
-    rounded && "rounded-lg",
-    shadow && "shadow-md",
-    containerClassName,
-    className,
-  ].filter(Boolean).join(" ");
+  // Build container classes with type-based styling
+  const getSectionClasses = () => {
+    const baseClasses = [
+      "section-template",
+      marginBottom,
+      "last:mb-0",
+      padding,
+      containerClassName,
+      className,
+    ];
+
+    // Type-specific styling
+    if (type === 'day') {
+      baseClasses.push("bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border-l-4 border-[#A4C639]");
+    } else if (type === 'included' || type === 'excluded') {
+      baseClasses.push("bg-blue-50 p-6 rounded-lg border-l-4 border-blue-500");
+    } else if (backgroundColor && !backgroundColor.startsWith("bg-")) {
+      // Custom background color
+    } else if (backgroundColor) {
+      baseClasses.push(backgroundColor);
+    }
+
+    if (border) baseClasses.push(`border ${borderColor}`);
+    if (rounded) baseClasses.push("rounded-lg");
+    if (shadow) baseClasses.push("shadow-md");
+
+    return baseClasses.filter(Boolean).join(" ");
+  };
+
+  const containerClasses = getSectionClasses();
 
   // Build underline classes
   const underlineClasses = [
@@ -152,28 +171,111 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
       : "bg-gradient-to-r from-[#A4C639] to-[#8FB02E]",
   ].filter(Boolean).join(" ");
 
-  // Format content
+  // Format content with bullet points and line breaks - Enhanced for our JSON structure
   const renderContent = () => {
     if (typeof content === "string") {
       if (parseParagraphs) {
-        return (
-          <div className="prose prose-lg max-w-none">
-            {content.split("\n\n").map((paragraph, index) =>
-              paragraph.trim() ? (
-                <p
-                  key={index}
-                  className={`mb-4 last:mb-0 ${preserveWhitespace ? "whitespace-pre-wrap" : ""}`}
-                >
-                  {paragraph.trim()}
-                </p>
-              ) : null
-            )}
-          </div>
-        );
+        // First, check if content has bullet points (•, -, *, or numbered lists)
+        const hasBullets = content.includes('•') || /^[\s]*[\-\*]|^\d+\./m.test(content);
+        
+        if (hasBullets) {
+          // For bullet content, split by single newlines to get individual items
+          const lines = content.split(/\n/).filter(line => line.trim());
+          
+          if (lines.length === 0) return null;
+          
+          // Group consecutive bullet items together
+          const items: string[] = [];
+          let currentItem = '';
+          
+          for (const line of lines) {
+            const trimmed = line.trim();
+            // Check if this line starts a new bullet item
+            if (/^[\s]*[•\-\*]|^\d+\./.test(trimmed)) {
+              // Save previous item if exists
+              if (currentItem) {
+                items.push(currentItem);
+              }
+              // Start new item
+              currentItem = trimmed;
+            } else if (trimmed && currentItem) {
+              // Continue current item (wrapped text)
+              currentItem += ' ' + trimmed;
+            } else if (trimmed) {
+              // Standalone line without bullet
+              items.push(trimmed);
+            }
+          }
+          
+          // Add last item
+          if (currentItem) {
+            items.push(currentItem);
+          }
+          
+          return (
+            <div className="prose prose-lg max-w-none">
+              <ul className="mb-4 last:mb-0 list-disc list-inside space-y-2 text-gray-700">
+                {items.map((item, index) => {
+                  // Remove bullet markers and clean
+                  const cleanItem = item
+                    .replace(/^[\s]*[•\-\*]\s*/, "")
+                    .replace(/^\d+\.\s*/, "")
+                    .trim();
+                  
+                  if (!cleanItem) return null;
+                  
+                  return (
+                    <li key={index} className="text-justify leading-relaxed">
+                      {cleanItem}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        } else {
+          // For non-bullet content, split by double newlines for paragraphs
+          const paragraphs = content.split(/\n\n+/).filter(p => p.trim());
+          
+          if (paragraphs.length === 0) return null;
+          
+          return (
+            <div className="prose prose-lg max-w-none">
+              {paragraphs.map((paragraph, pIndex) => {
+                const trimmed = paragraph.trim();
+                if (!trimmed) return null;
+                
+                // If paragraph has single newlines, split into multiple paragraphs
+                if (trimmed.includes('\n') && !hasBullets) {
+                  return (
+                    <div key={pIndex} className="mb-4 last:mb-0">
+                      {trimmed.split(/\n/).filter(p => p.trim()).map((p, idx) => (
+                        <p key={idx} className="mb-2 last:mb-0 text-justify leading-relaxed text-gray-700">
+                          {p.trim()}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                }
+                
+                // Regular paragraph
+                return (
+                  <p
+                    key={pIndex}
+                    className="mb-4 last:mb-0 text-justify leading-relaxed text-gray-700"
+                  >
+                    {trimmed}
+                  </p>
+                );
+              })}
+            </div>
+          );
+        }
       }
-      return content;
+      // If parseParagraphs is false, preserve whitespace
+      return <div className={preserveWhitespace ? "whitespace-pre-wrap" : ""}>{content}</div>;
     }
-    return content;
+    return <div className="content">{content}</div>;
   };
 
   const containerStyle: React.CSSProperties = {

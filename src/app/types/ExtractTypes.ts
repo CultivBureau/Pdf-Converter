@@ -38,9 +38,19 @@ export interface UploadResponse {
   original_filename: string;
 }
 
+export interface Image {
+  page: number;
+  path: string;
+  width: number;
+  height: number;
+  format: string;
+  size_bytes: number;
+}
+
 export interface ExtractResponse {
   sections: Section[];
   tables: Table[];
+  images?: Image[];
   meta: Record<string, any>;
 }
 

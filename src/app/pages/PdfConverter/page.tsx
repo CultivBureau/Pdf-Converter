@@ -57,9 +57,15 @@ const PdfConverter: React.FC = () => {
       let cleanedStructure: ExtractResponse = extractResponse;
       try {
         cleanedStructure = await cleanStructure(extractResponse);
-      } catch (cleanError) {
-        console.warn("Structure cleaning failed, using original:", cleanError);
-        // Continue with original structure
+        // Check if cleaning actually failed (backend returns original with warning)
+        if (cleanedStructure.meta?.cleaning_failed) {
+          console.warn("Claude cleaning unavailable, using original structure:", cleanedStructure.meta.cleaning_error);
+          // Continue with original structure - this is expected when Claude API has issues
+        }
+      } catch (cleanError: any) {
+        // Network or other errors - continue with original structure
+        console.warn("Structure cleaning failed, using original:", cleanError?.message || cleanError);
+        // Continue with original structure - this is fine, cleaning is optional
       }
 
       // Step 4: Generate JSX from structure

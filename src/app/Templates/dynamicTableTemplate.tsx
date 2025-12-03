@@ -14,7 +14,8 @@ import React from "react";
  * - Responsive behavior
  */
 export interface DynamicTableTemplateProps {
-  headers: string[];
+  headers?: string[];
+  columns?: string[]; // Support 'columns' prop from our JSON structure
   rows: (string | number | React.ReactNode)[][];
   
   // Table Title
@@ -79,6 +80,7 @@ export interface DynamicTableTemplateProps {
 
 const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
   headers,
+  columns, // Use 'columns' from JSON or fallback to 'headers'
   rows,
   // Title
   title,
@@ -131,8 +133,11 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
   className = "",
   style,
 }) => {
+  // Use 'columns' from JSON or fallback to 'headers'
+  const tableHeaders = columns || headers || [];
+
   // Handle empty state
-  if (!headers || headers.length === 0) {
+  if (!tableHeaders || tableHeaders.length === 0) {
     if (!showEmptyState) return null;
     
     return (
@@ -147,13 +152,16 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
 
   // Normalize rows to match headers length
   const normalizedRows = rows?.map((row) => {
-    const normalizedRow = [...row];
+    const normalizedRow = Array.isArray(row) ? [...row] : [];
     // Pad or truncate to match headers length
-    while (normalizedRow.length < headers.length) {
+    while (normalizedRow.length < tableHeaders.length) {
       normalizedRow.push("");
     }
-    return normalizedRow.slice(0, headers.length);
+    return normalizedRow.slice(0, tableHeaders.length);
   }) || [];
+
+  // Clean empty headers
+  const cleanHeaders = tableHeaders.filter(h => h && String(h).trim());
 
   // Build header background classes
   const getHeaderBackgroundClasses = () => {
@@ -213,15 +221,11 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
     }
   };
 
-  // Build wrapper classes
+  // Build wrapper classes - Always 100% width
   const wrapperClasses = [
     "dynamic-table-wrapper",
-    fullWidth && "w-full",
-    overflowX && "overflow-x-auto",
+    "w-full", // Always full width
     marginBottom,
-    rounded && "rounded-lg",
-    shadow && "shadow-lg",
-    border && `border ${borderColor}`,
     tableWrapperClassName,
     className,
   ].filter(Boolean).join(" ");
@@ -240,26 +244,26 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
       {/* Table Title */}
       {showTitle && title && (
         <div className="mb-4">
-          <h3 className={`text-${titleSize} font-bold text-gray-900 text-center ${titleClassName}`}>
+          <h3 className={`text-${titleSize} font-bold text-gray-900 ${titleClassName}`}>
             {title}
           </h3>
+          <div className="h-1 w-16 bg-gradient-to-r from-[#A4C639] to-[#8FB02E] rounded-full mt-2"></div>
         </div>
       )}
 
-      {/* Responsive Table Container */}
-      <div className={overflowX ? "overflow-x-auto -mx-4 sm:mx-0" : ""}>
-        <div className={`${overflowX ? "inline-block min-w-full align-middle px-4 sm:px-0" : ""}`}>
-          <div className={overflowX ? "overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg" : ""}>
-            <table className={`${tableClasses} ${overflowX ? "min-w-[640px] sm:min-w-0" : ""}`}>
+      {/* Table Container - 100% width with horizontal scroll for very wide tables */}
+      <div className={`w-full ${overflowX ? "overflow-x-auto" : ""} rounded-lg ${shadow ? "shadow-lg" : ""} ${border ? `border ${borderColor}` : ""} ${backgroundColor}`}>
+        <div className="min-w-full inline-block align-middle">
+          <table className={`${tableClasses} ${overflowX ? "min-w-[640px] sm:min-w-0" : ""}`}>
             {/* Table Header */}
             <thead>
               <tr>
-                {headers.map((header, index) => (
+                {cleanHeaders.map((header, index) => (
                   <th
                     key={index}
-                    className={`${headerClasses} whitespace-nowrap`}
+                    className={`${headerClasses} ${overflowX ? "whitespace-nowrap" : ""}`}
                   >
-                    {header || ""}
+                    {header || `Column ${index + 1}`}
                   </th>
                 ))}
               </tr>
@@ -270,19 +274,24 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
               {normalizedRows.length > 0 ? (
                 normalizedRows.map((row, rowIndex) => (
                   <tr key={rowIndex} className={getRowClasses(rowIndex)}>
-                    {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className={cellClasses}>
-                        <div className="font-medium">
-                          {cell || <span className="text-gray-400">—</span>}
-                        </div>
-                      </td>
-                    ))}
+                    {cleanHeaders.map((_, cellIndex) => {
+                      const cell = row[cellIndex];
+                      const cellValue = cell !== null && cell !== undefined ? String(cell) : '';
+                      
+                      return (
+                        <td key={cellIndex} className={cellClasses}>
+                          <div className="font-medium break-words">
+                            {cellValue || <span className="text-gray-400">—</span>}
+                          </div>
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td
-                    colSpan={headers.length}
+                    colSpan={cleanHeaders.length}
                     className={`${cellClasses} text-center text-gray-500 bg-gray-50`}
                   >
                     <div className="flex flex-col items-center justify-center py-8">
@@ -306,7 +315,6 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
               )}
             </tbody>
           </table>
-          </div>
         </div>
       </div>
       

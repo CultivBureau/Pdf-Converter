@@ -19,6 +19,11 @@ interface SectionBlockProps {
  * 
  * Displays a section with title and content
  */
+// Helper function to detect Arabic text
+function hasArabic(text: string): boolean {
+  return /[\u0600-\u06FF]/.test(text);
+}
+
 export default function SectionBlock({
   section,
   level = 0,
@@ -28,6 +33,10 @@ export default function SectionBlock({
   onEdit,
 }: SectionBlockProps) {
   const formatted = formatSection(section);
+  
+  // Detect Arabic content for RTL support
+  const isArabic = hasArabic(section.title + section.content);
+  const textDirection = isArabic ? 'rtl' : 'ltr';
   
   // Determine heading level based on hierarchy level
   const HeadingTag = level === 0 ? "h2" : level === 1 ? "h3" : level === 2 ? "h4" : "h5";
@@ -41,7 +50,7 @@ export default function SectionBlock({
     >
       {/* Section Title */}
       {formatted.displayTitle && (
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4" dir={textDirection}>
           <HeadingTag
             className={`${headingSize} font-bold text-gray-900 mb-2`}
             style={{ marginLeft: `${level * 1.5}rem` }}
@@ -68,6 +77,7 @@ export default function SectionBlock({
         <div
           className="section-content text-gray-700 leading-relaxed whitespace-pre-wrap"
           style={{ marginLeft: `${level * 1.5}rem` }}
+          dir={textDirection}
         >
           {formatted.displayContent}
         </div>

@@ -846,19 +846,33 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
   const hasValidClosingBrace = /^\s*\}\s*$/.test(lastNonEmptyLine.trim());
   
   // Check if code looks complete:
-  // 1. Has proper function signature
+  // 1. Has proper function signature (supports both patterns):
+  //    - export default function ComponentName
+  //    - const ComponentName = () => { ... }; export default ComponentName
+  //    - export default function ComponentName() { ... }
+  const hasFunctionSignature = 
+    /export\s+default\s+function\s+\w+/.test(code) ||
+    /const\s+\w+\s*=\s*\([^)]*\)\s*=>/.test(code) ||
+    /function\s+\w+\s*\(/.test(code);
+  
   // 2. Has return statement
-  // 3. Ends with closing brace (valid case)
-  // 4. Braces are balanced
-  const hasFunctionSignature = /export\s+default\s+function\s+\w+/.test(code);
   const hasReturnStatement = /return\s*\(/.test(code);
+  
+  // 3. Braces are balanced
   const openBracesInCode = (code.match(/\{/g) || []).length;
   const closeBracesInCode = (code.match(/\}/g) || []).length;
   const bracesBalanced = Math.abs(openBracesInCode - closeBracesInCode) <= 1; // Allow small difference
   
+  // 4. Has export default (either inline or at end)
+  const hasExportDefault = 
+    /export\s+default/.test(code) ||
+    /export\s+default\s+\w+/.test(code);
+  
   // Only flag as incomplete if multiple indicators suggest it
+  // Code is incomplete if it's missing BOTH function signature AND return statement
+  // OR if braces are severely unbalanced
   const hasOrphanClosingBrace = /^\s*\}\s*$/m.test(code) && !hasValidClosingBrace && !hasReturnStatement;
-  const hasIncompleteJSX = !hasFunctionSignature || !hasReturnStatement || !bracesBalanced;
+  const hasIncompleteJSX = (!hasFunctionSignature && !hasReturnStatement) || Math.abs(openBracesInCode - closeBracesInCode) > 2;
 
   return (
     <div className="w-full">

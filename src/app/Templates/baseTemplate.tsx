@@ -102,22 +102,22 @@ const BaseTemplate: React.FC<BaseTemplateProps> = ({
   className = "",
   style,
 }) => {
-  // Determine page dimensions
+  // Determine page dimensions - Default to 100% width
   const getPageDimensions = () => {
     if (pageSize === "A4") {
       return {
-        width: "210mm",
-        maxWidth: maxWidth || "210mm",
+        width: "100%",
+        maxWidth: maxWidth || "100%",
       };
     } else if (pageSize === "letter") {
       return {
-        width: "8.5in",
-        maxWidth: maxWidth || "8.5in",
+        width: "100%",
+        maxWidth: maxWidth || "100%",
       };
     } else {
       return {
-        width: customWidth || "210mm",
-        maxWidth: maxWidth || customWidth || "210mm",
+        width: customWidth || "100%",
+        maxWidth: maxWidth || customWidth || "100%",
       };
     }
   };
@@ -140,43 +140,50 @@ const BaseTemplate: React.FC<BaseTemplateProps> = ({
     return "bg-gradient-to-r from-[#A4C639] to-[#8FB02E]";
   };
 
-  // Build container classes
+  // Build container classes - 100% width with responsive padding
   const containerClasses = [
     "base-template",
     "w-full",
-    minHeight,
+    "min-h-screen",
+    "py-8",
+    "px-4",
     getBackgroundClasses(),
     className,
   ].filter(Boolean).join(" ");
 
   // Build inner container classes
   const innerContainerClasses = [
+    "w-full",
+    "max-w-full",
+    "mx-auto",
     "bg-white",
     shadow && "shadow-2xl",
     rounded && "rounded-lg",
     border && `border ${borderColor}`,
+    "overflow-hidden",
     containerClassName,
   ].filter(Boolean).join(" ");
 
-  // Build content area classes
+  // Build content area classes - Responsive padding
   const contentAreaClasses = [
+    "w-full",
+    "px-4",
+    "sm:px-6",
+    "md:px-8",
+    "lg:px-12",
+    "xl:px-16",
+    "py-8",
+    "md:py-12",
     contentClassName,
   ].filter(Boolean).join(" ");
 
   // Inline styles for dimensions and padding
   const containerStyle: React.CSSProperties = {
-    maxWidth: dimensions.maxWidth,
-    width: dimensions.width,
     ...(customHeight && { minHeight: customHeight }),
     ...style,
   };
 
-  const contentStyle: React.CSSProperties = {
-    paddingLeft: contentPadding.horizontal,
-    paddingRight: contentPadding.horizontal,
-    paddingTop: contentPadding.vertical,
-    paddingBottom: contentPadding.vertical,
-  };
+  const contentStyle: React.CSSProperties = {};
 
   const backgroundImageStyle = backgroundImage
     ? {
