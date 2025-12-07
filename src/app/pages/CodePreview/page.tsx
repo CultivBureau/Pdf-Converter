@@ -5,12 +5,16 @@ import React, {
   useState,
   useCallback,
   useEffect,
+  useRef,
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import CodeEditor from "../../components/CodeEditor";
 import PreviewRenderer from "../../components/PreviewRenderer";
 import ToggleSwitch from "../../components/ToggleSwitch";
+import CustomizationPanel, { PanelContext } from "../../components/CustomizationPanel";
+import { getElementInfo } from "../../utils/jsxParser";
+import { addSection } from "../../utils/codeManipulator";
 
 type Mode = "code" | "preview" | "split";
 
@@ -90,6 +94,14 @@ export default function CodePage() {
     tableId: string;
     jsx: string;
   }>>([]);
+  const [panelContext, setPanelContext] = useState<PanelContext>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const codeRef = useRef<string>(code);
+  
+  // Keep code ref updated
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -145,6 +157,257 @@ export default function CodePage() {
 
   const setValue = useCallback((id: string, v: string) => {
     setValues((prev) => ({ ...prev, [id]: v }));
+  }, []);
+
+  // Add double-click handlers to preview elements
+  useEffect(() => {
+    if (mode !== "preview" && mode !== "split") return;
+    
+    const container = previewContainerRef.current;
+    if (!container) return;
+    
+    const handleDoubleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+      
+      // Don't trigger if clicking on add button
+      if (target.closest('.section-add-btn')) return;
+      
+      const elementInfo = getElementInfo(target);
+      
+      // Double click for sections, tables, columns, rows
+      if (elementInfo.type === 'section' && elementInfo.sectionIndex !== undefined) {
+        setPanelContext({ type: 'section', index: elementInfo.sectionIndex });
+      } else if (elementInfo.type === 'table' && elementInfo.tableIndex !== undefined) {
+        setPanelContext({ type: 'table', index: elementInfo.tableIndex });
+      } else if (elementInfo.type === 'column' && elementInfo.tableIndex !== undefined && elementInfo.columnIndex !== undefined) {
+        setPanelContext({ 
+          type: 'column', 
+          tableIndex: elementInfo.tableIndex, 
+          columnIndex: elementInfo.columnIndex 
+        });
+      } else if (elementInfo.type === 'row' && elementInfo.tableIndex !== undefined && elementInfo.rowIndex !== undefined) {
+        setPanelContext({ 
+          type: 'row', 
+          tableIndex: elementInfo.tableIndex, 
+          rowIndex: elementInfo.rowIndex 
+        });
+      }
+    };
+    
+    container.addEventListener('dblclick', handleDoubleClick);
+    
+    return () => {
+      container.removeEventListener('dblclick', handleDoubleClick);
+    };
+  }, [mode, code]);
+  
+  // Add data attributes to rendered elements
+  useEffect(() => {
+    if (mode !== "preview" && mode !== "split") return;
+    
+    const container = previewContainerRef.current;
+    if (!container) return;
+    
+    // Wait for content to render
+    const timeout = setTimeout(() => {
+      // Parse code to get structure
+      import('../../utils/jsxParser').then(({ parseJSXCode }) => {
+        const parsed = parseJSXCode(code);
+        
+        // Clean up existing add buttons and setup flags first
+        const existingButtons = container.querySelectorAll('.section-add-btn');
+        existingButtons.forEach(btn => btn.remove());
+        const existingSections = container.querySelectorAll('[data-section-setup]');
+        existingSections.forEach(section => {
+          (section as HTMLElement).removeAttribute('data-section-setup');
+        });
+        
+        // Find all sections (section elements or divs that look like sections)
+        const sections = container.querySelectorAll('section, [class*="section"]');
+        let sectionIndex = 0;
+        sections.forEach((section) => {
+          // Only mark as section if it's likely a SectionTemplate (has title or content structure)
+          const hasTitle = section.querySelector('h1, h2, h3, h4, h5, h6');
+          const hasContent = section.textContent && section.textContent.trim().length > 0;
+          
+          if (hasTitle || hasContent) {
+            if (sectionIndex < parsed.sections.length) {
+              const sectionEl = section as HTMLElement;
+              
+              sectionEl.setAttribute('data-section-index', sectionIndex.toString());
+              sectionEl.setAttribute('data-section-setup', 'true');
+              sectionEl.style.cursor = 'pointer';
+              sectionEl.style.position = 'relative';
+              sectionEl.style.transition = 'all 0.3s ease';
+              sectionEl.style.opacity = '1';
+              sectionEl.style.transform = 'translateY(0)';
+              sectionEl.style.marginBottom = '24px'; // Space for add button
+              sectionEl.title = 'Double-click to edit section';
+              
+              let addButton: HTMLButtonElement | null = null;
+              
+              // Add hover effect and "+" button
+              sectionEl.addEventListener('mouseenter', function() {
+                this.style.outline = '2px dashed #A4C639';
+                this.style.outlineOffset = '2px';
+                this.style.transform = 'translateY(-2px)';
+                
+                // Create and show add button
+                if (!addButton) {
+                  addButton = document.createElement('button');
+                  addButton.className = 'section-add-btn';
+                  addButton.style.cssText = 'position: absolute; left: 50%; bottom: -16px; transform: translate(-50%, 0) scale(0.8); width: 32px; height: 32px; background: #A4C639; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 10; opacity: 0; transition: all 0.3s ease; cursor: pointer; border: none;';
+                  addButton.innerHTML = '<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>';
+                  addButton.title = 'Add new section';
+                  
+                  addButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const sectionIdx = parseInt(sectionEl.getAttribute('data-section-index') || '0', 10);
+                    // Use current code from ref (always latest)
+                    const currentCode = codeRef.current;
+                    const newCode = addSection(currentCode, {
+                      title: "New Section",
+                      content: "Section content here",
+                      type: "section",
+                    }, sectionIdx + 1);
+                    setCode(newCode);
+                  });
+                  
+                  addButton.addEventListener('mouseenter', function() {
+                    this.style.background = '#8FB02E';
+                    this.style.transform = 'translate(-50%, 0) scale(1.1)';
+                  });
+                  
+                  addButton.addEventListener('mouseleave', function() {
+                    this.style.background = '#A4C639';
+                    this.style.transform = 'translate(-50%, 0) scale(1)';
+                  });
+                  
+                  sectionEl.appendChild(addButton);
+                }
+                addButton.style.opacity = '1';
+                addButton.style.transform = 'translate(-50%, 0) scale(1)';
+              });
+              
+              sectionEl.addEventListener('mouseleave', function(e) {
+                // Don't hide if mouse is moving to the add button
+                const relatedTarget = e.relatedTarget as HTMLElement;
+                if (relatedTarget && (relatedTarget === addButton || relatedTarget.closest('.section-add-btn'))) {
+                  return;
+                }
+                
+                this.style.outline = '';
+                this.style.outlineOffset = '';
+                this.style.transform = 'translateY(0)';
+                
+                // Hide add button
+                if (addButton) {
+                  addButton.style.opacity = '0';
+                  addButton.style.transform = 'translate(-50%, 0) scale(0.8)';
+                }
+              });
+              
+              // Keep button visible when hovering over it
+              if (addButton) {
+                addButton.addEventListener('mouseenter', function() {
+                  this.style.opacity = '1';
+                  this.style.transform = 'translate(-50%, 0) scale(1.1)';
+                });
+              }
+              
+              
+              sectionIndex++;
+            }
+          }
+        });
+        
+        // Find all tables (table elements or divs containing tables)
+        const tables = container.querySelectorAll('table, [class*="table"]');
+        let tableIndex = 0;
+        tables.forEach((table) => {
+          // Only process if it's actually a table element or contains one
+          const actualTable = table.tagName === 'TABLE' ? table : table.querySelector('table');
+          if (actualTable && tableIndex < parsed.tables.length) {
+            const tableElement = actualTable.closest('div') || actualTable;
+            (tableElement as HTMLElement).setAttribute('data-table-index', tableIndex.toString());
+            (tableElement as HTMLElement).style.cursor = 'pointer';
+            (tableElement as HTMLElement).style.transition = 'all 0.3s ease';
+            (tableElement as HTMLElement).style.opacity = '1';
+            (tableElement as HTMLElement).title = 'Double-click to customize table';
+            // Add hover effect
+            const tableEl = tableElement as HTMLElement;
+            tableEl.addEventListener('mouseenter', function() {
+              this.style.outline = '2px dashed #A4C639';
+              this.style.outlineOffset = '2px';
+              this.style.transform = 'translateY(-2px)';
+            });
+            tableEl.addEventListener('mouseleave', function() {
+              this.style.outline = '';
+              this.style.outlineOffset = '';
+              this.style.transform = 'translateY(0)';
+            });
+            
+            // Find table headers (th elements)
+            const headers = actualTable.querySelectorAll('thead th, th');
+            headers.forEach((th, colIndex) => {
+              (th as HTMLElement).setAttribute('data-table-index', tableIndex.toString());
+              (th as HTMLElement).setAttribute('data-column-index', colIndex.toString());
+              (th as HTMLElement).style.cursor = 'pointer';
+              (th as HTMLElement).style.transition = 'all 0.3s ease';
+              (th as HTMLElement).title = 'Double-click to customize column';
+              // Add hover effect
+              const thEl = th as HTMLElement;
+              thEl.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = 'rgba(164, 198, 57, 0.2)';
+                this.style.transform = 'scale(1.02)';
+              });
+              thEl.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+                this.style.transform = 'scale(1)';
+              });
+            });
+            
+            // Find table rows (tr elements in tbody)
+            const rows = actualTable.querySelectorAll('tbody tr');
+            rows.forEach((tr, rowIndex) => {
+              (tr as HTMLElement).setAttribute('data-table-index', tableIndex.toString());
+              (tr as HTMLElement).setAttribute('data-row-index', rowIndex.toString());
+              (tr as HTMLElement).style.cursor = 'pointer';
+              (tr as HTMLElement).style.transition = 'all 0.3s ease';
+              (tr as HTMLElement).title = 'Double-click to customize row';
+              // Add hover effect
+              const trEl = tr as HTMLElement;
+              trEl.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = 'rgba(164, 198, 57, 0.1)';
+                this.style.transform = 'translateX(2px)';
+              });
+              trEl.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+                this.style.transform = 'translateX(0)';
+              });
+            });
+            
+            tableIndex++;
+          }
+        });
+      });
+    }, 300); // Increased timeout to ensure content is rendered
+    
+    return () => {
+      clearTimeout(timeout);
+        // Clean up add buttons on unmount
+        const container = previewContainerRef.current;
+        if (container) {
+          const existingButtons = container.querySelectorAll('.section-add-btn');
+          existingButtons.forEach(btn => btn.remove());
+        }
+    };
+  }, [mode, code, values]);
+  
+  const handleCodeChange = useCallback((newCode: string) => {
+    setCode(newCode);
   }, []);
 
   const handleExportCode = useCallback(() => {
@@ -331,13 +594,26 @@ export default function CodePage() {
             <CodeEditor code={code} onChange={setCode} />
           </div>
         ) : (
-          <div className="min-h-[70vh] bg-white rounded-xl shadow-lg p-8 max-w-full overflow-hidden">
-            <div className="preview-content max-w-full">
+          <div className="min-h-[70vh] bg-white rounded-xl shadow-lg p-8 max-w-full overflow-hidden relative">
+            <div 
+              ref={previewContainerRef}
+              className="preview-content max-w-full"
+            >
               <PreviewRenderer code={code} values={values} setValue={setValue} />
             </div>
           </div>
         )}
       </div>
+      
+      {/* Customization Panel */}
+      {panelContext && (
+        <CustomizationPanel
+          code={code}
+          onCodeChange={handleCodeChange}
+          context={panelContext}
+          onClose={() => setPanelContext(null)}
+        />
+      )}
     </div>
   );
 }
