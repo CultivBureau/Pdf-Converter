@@ -13,8 +13,9 @@ import CodeEditor from "../../components/CodeEditor";
 import PreviewRenderer from "../../components/PreviewRenderer";
 import ToggleSwitch from "../../components/ToggleSwitch";
 import CustomizationPanel, { PanelContext } from "../../components/CustomizationPanel";
+import CreateTableModal from "../../components/CreateTableModal";
 import { getElementInfo } from "../../utils/jsxParser";
-import { addSection } from "../../utils/codeManipulator";
+import { addSection, addNewTable } from "../../utils/codeManipulator";
 
 type Mode = "code" | "preview" | "split";
 
@@ -95,6 +96,8 @@ export default function CodePage() {
     jsx: string;
   }>>([]);
   const [panelContext, setPanelContext] = useState<PanelContext>(null);
+  const [isCreateTableModalOpen, setIsCreateTableModalOpen] = useState(false);
+  const [showTableCreatedToast, setShowTableCreatedToast] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<string>(code);
   
@@ -159,7 +162,7 @@ export default function CodePage() {
     setValues((prev) => ({ ...prev, [id]: v }));
   }, []);
 
-  // Add double-click handlers to preview elements
+  // Add data attributes to preview elements for the edit icons
   useEffect(() => {
     if (mode !== "preview" && mode !== "split") return;
     
@@ -175,23 +178,9 @@ export default function CodePage() {
       
       const elementInfo = getElementInfo(target);
       
-      // Double click for sections, tables, columns, rows
+      // Double click for sections only (not tables)
       if (elementInfo.type === 'section' && elementInfo.sectionIndex !== undefined) {
         setPanelContext({ type: 'section', index: elementInfo.sectionIndex });
-      } else if (elementInfo.type === 'table' && elementInfo.tableIndex !== undefined) {
-        setPanelContext({ type: 'table', index: elementInfo.tableIndex });
-      } else if (elementInfo.type === 'column' && elementInfo.tableIndex !== undefined && elementInfo.columnIndex !== undefined) {
-        setPanelContext({ 
-          type: 'column', 
-          tableIndex: elementInfo.tableIndex, 
-          columnIndex: elementInfo.columnIndex 
-        });
-      } else if (elementInfo.type === 'row' && elementInfo.tableIndex !== undefined && elementInfo.rowIndex !== undefined) {
-        setPanelContext({ 
-          type: 'row', 
-          tableIndex: elementInfo.tableIndex, 
-          rowIndex: elementInfo.rowIndex 
-        });
       }
     };
     
@@ -201,8 +190,6 @@ export default function CodePage() {
       container.removeEventListener('dblclick', handleDoubleClick);
     };
   }, [mode, code]);
-  
-  // Add data attributes to rendered elements
   useEffect(() => {
     if (mode !== "preview" && mode !== "split") return;
     
@@ -215,12 +202,18 @@ export default function CodePage() {
       import('../../utils/jsxParser').then(({ parseJSXCode }) => {
         const parsed = parseJSXCode(code);
         
-        // Clean up existing add buttons and setup flags first
-        const existingButtons = container.querySelectorAll('.section-add-btn');
+        // Clean up existing buttons and remove old event listeners
+        const existingButtons = container.querySelectorAll('.section-add-btn, .table-edit-btn');
         existingButtons.forEach(btn => btn.remove());
+        
+        // Remove old setup flags and clone elements to remove event listeners
         const existingSections = container.querySelectorAll('[data-section-setup]');
         existingSections.forEach(section => {
           (section as HTMLElement).removeAttribute('data-section-setup');
+        });
+        const existingTables = container.querySelectorAll('[data-table-setup]');
+        existingTables.forEach(table => {
+          (table as HTMLElement).removeAttribute('data-table-setup');
         });
         
         // Find all sections (section elements or divs that look like sections)
@@ -323,71 +316,86 @@ export default function CodePage() {
           }
         });
         
-        // Find all tables (table elements or divs containing tables)
-        const tables = container.querySelectorAll('table, [class*="table"]');
+        // Find all tables (only actual table elements)
+        const tables = container.querySelectorAll('table');
+        console.log('Found', tables.length, 'table elements in DOM, parsed', parsed.tables.length, 'tables from code');
         let tableIndex = 0;
-        tables.forEach((table) => {
-          // Only process if it's actually a table element or contains one
-          const actualTable = table.tagName === 'TABLE' ? table : table.querySelector('table');
-          if (actualTable && tableIndex < parsed.tables.length) {
-            const tableElement = actualTable.closest('div') || actualTable;
-            (tableElement as HTMLElement).setAttribute('data-table-index', tableIndex.toString());
-            (tableElement as HTMLElement).style.cursor = 'pointer';
-            (tableElement as HTMLElement).style.transition = 'all 0.3s ease';
-            (tableElement as HTMLElement).style.opacity = '1';
-            (tableElement as HTMLElement).title = 'Double-click to customize table';
-            // Add hover effect
+        tables.forEach((table, domIndex) => {
+          // Only process actual table elements
+          if (table.tagName === 'TABLE' && tableIndex < parsed.tables.length) {
+            const tableElement = table.closest('div') || table;
             const tableEl = tableElement as HTMLElement;
+            
+            console.log(`Setting up table ${tableIndex} (DOM index ${domIndex})`);
+            tableEl.setAttribute('data-table-index', tableIndex.toString());
+            tableEl.setAttribute('data-table-setup', 'true');
+            tableEl.style.cursor = 'pointer';
+            tableEl.style.transition = 'all 0.3s ease';
+            tableEl.style.opacity = '1';
+            tableEl.style.position = 'relative';
+            tableEl.title = 'Click the gear icon to manage table';
+            let editButton: HTMLButtonElement | null = null;
+            
+            // Add hover effect and edit button
             tableEl.addEventListener('mouseenter', function() {
               this.style.outline = '2px dashed #A4C639';
               this.style.outlineOffset = '2px';
               this.style.transform = 'translateY(-2px)';
+              
+              // Create and show edit button
+              if (!editButton) {
+                editButton = document.createElement('button');
+                editButton.className = 'table-edit-btn';
+                editButton.style.cssText = 'position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; background: #A4C639; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 20; opacity: 0; transition: all 0.3s ease; cursor: pointer; border: 2px solid white;';
+                editButton.innerHTML = '<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>';
+                editButton.title = 'Edit table structure';
+                
+                editButton.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  const tblIdx = parseInt(tableEl.getAttribute('data-table-index') || '0', 10);
+                  console.log('Clicked table index:', tblIdx, 'Total tables:', parsed.tables.length);
+                  setPanelContext({ type: 'table', index: tblIdx });
+                });
+                
+                editButton.addEventListener('mouseenter', function() {
+                  this.style.background = '#8FB02E';
+                  this.style.transform = 'scale(1.1)';
+                });
+                
+                editButton.addEventListener('mouseleave', function() {
+                  this.style.background = '#A4C639';
+                  this.style.transform = 'scale(1)';
+                });
+                
+                tableEl.appendChild(editButton);
+              }
+              editButton.style.opacity = '1';
             });
-            tableEl.addEventListener('mouseleave', function() {
+            
+            tableEl.addEventListener('mouseleave', function(e) {
+              // Don't hide if mouse is moving to the edit button
+              const relatedTarget = e.relatedTarget as HTMLElement;
+              if (relatedTarget && (relatedTarget === editButton || relatedTarget.closest('.table-edit-btn'))) {
+                return;
+              }
+              
               this.style.outline = '';
               this.style.outlineOffset = '';
               this.style.transform = 'translateY(0)';
+              
+              // Hide edit button
+              if (editButton) {
+                editButton.style.opacity = '0';
+              }
             });
             
-            // Find table headers (th elements)
-            const headers = actualTable.querySelectorAll('thead th, th');
-            headers.forEach((th, colIndex) => {
-              (th as HTMLElement).setAttribute('data-table-index', tableIndex.toString());
-              (th as HTMLElement).setAttribute('data-column-index', colIndex.toString());
-              (th as HTMLElement).style.cursor = 'pointer';
-              (th as HTMLElement).style.transition = 'all 0.3s ease';
-              (th as HTMLElement).title = 'Double-click to customize column';
-              // Add hover effect
-              const thEl = th as HTMLElement;
-              thEl.addEventListener('mouseenter', function() {
-                this.style.backgroundColor = 'rgba(164, 198, 57, 0.2)';
-                this.style.transform = 'scale(1.02)';
+            // Keep button visible when hovering over it
+            if (editButton) {
+              editButton.addEventListener('mouseenter', function() {
+                this.style.opacity = '1';
               });
-              thEl.addEventListener('mouseleave', function() {
-                this.style.backgroundColor = '';
-                this.style.transform = 'scale(1)';
-              });
-            });
-            
-            // Find table rows (tr elements in tbody)
-            const rows = actualTable.querySelectorAll('tbody tr');
-            rows.forEach((tr, rowIndex) => {
-              (tr as HTMLElement).setAttribute('data-table-index', tableIndex.toString());
-              (tr as HTMLElement).setAttribute('data-row-index', rowIndex.toString());
-              (tr as HTMLElement).style.cursor = 'pointer';
-              (tr as HTMLElement).style.transition = 'all 0.3s ease';
-              (tr as HTMLElement).title = 'Double-click to customize row';
-              // Add hover effect
-              const trEl = tr as HTMLElement;
-              trEl.addEventListener('mouseenter', function() {
-                this.style.backgroundColor = 'rgba(164, 198, 57, 0.1)';
-                this.style.transform = 'translateX(2px)';
-              });
-              trEl.addEventListener('mouseleave', function() {
-                this.style.backgroundColor = '';
-                this.style.transform = 'translateX(0)';
-              });
-            });
+            }
             
             tableIndex++;
           }
@@ -397,17 +405,28 @@ export default function CodePage() {
     
     return () => {
       clearTimeout(timeout);
-        // Clean up add buttons on unmount
-        const container = previewContainerRef.current;
-        if (container) {
-          const existingButtons = container.querySelectorAll('.section-add-btn');
-          existingButtons.forEach(btn => btn.remove());
-        }
+      // Clean up add buttons and edit buttons on unmount
+      const container = previewContainerRef.current;
+      if (container) {
+        const existingButtons = container.querySelectorAll('.section-add-btn, .table-edit-btn');
+        existingButtons.forEach(btn => btn.remove());
+      }
     };
   }, [mode, code, values]);
   
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode);
+  }, []);
+
+  const handleCreateTable = useCallback((config: {
+    title: string;
+    columns: string[];
+    rowCount: number;
+  }) => {
+    const newCode = addNewTable(codeRef.current, config);
+    setCode(newCode);
+    setShowTableCreatedToast(true);
+    setTimeout(() => setShowTableCreatedToast(false), 3000);
   }, []);
 
   const handleExportCode = useCallback(() => {
@@ -595,6 +614,28 @@ export default function CodePage() {
           </div>
         ) : (
           <div className="min-h-[70vh] bg-white rounded-xl shadow-lg p-8 max-w-full overflow-hidden relative">
+            {/* Create New Table Button */}
+            <button
+              onClick={() => setIsCreateTableModalOpen(true)}
+              className="absolute top-4 right-4 z-10 px-4 py-2 bg-gradient-to-r from-[#A4C639] to-[#8FB02E] text-white rounded-lg font-medium hover:from-[#8FB02E] hover:to-[#7A9124] transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm"
+              title="Create a new table"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Table
+            </button>
+
+            {/* Success Toast */}
+            {showTableCreatedToast && (
+              <div className="fixed top-24 right-6 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-in">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Table created successfully!
+              </div>
+            )}
+
             <div 
               ref={previewContainerRef}
               className="preview-content max-w-full"
@@ -614,6 +655,29 @@ export default function CodePage() {
           onClose={() => setPanelContext(null)}
         />
       )}
+
+      {/* Create Table Modal */}
+      <CreateTableModal
+        isOpen={isCreateTableModalOpen}
+        onClose={() => setIsCreateTableModalOpen(false)}
+        onCreateTable={handleCreateTable}
+      />
+
+      <style jsx>{`
+        @keyframes slide-in {
+          from {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

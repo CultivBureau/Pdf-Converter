@@ -57,51 +57,113 @@ function extractArrayFromProp(propValue: string): string[] {
 }
 
 /**
+ * Extract balanced brackets from a string starting at a given position
+ */
+function extractBalancedBrackets(str: string, startPos: number): string {
+  if (str[startPos] !== '[') return '[]';
+  
+  let depth = 0;
+  let endPos = startPos;
+  let inString = false;
+  let stringChar = '';
+  
+  for (let i = startPos; i < str.length; i++) {
+    const char = str[i];
+    const prevChar = i > 0 ? str[i - 1] : '';
+    
+    // Handle strings
+    if ((char === '"' || char === "'") && prevChar !== '\\') {
+      if (!inString) {
+        inString = true;
+        stringChar = char;
+      } else if (char === stringChar) {
+        inString = false;
+      }
+    }
+    
+    // Only count brackets outside strings
+    if (!inString) {
+      if (char === '[') {
+        depth++;
+      } else if (char === ']') {
+        depth--;
+        if (depth === 0) {
+          endPos = i;
+          break;
+        }
+      }
+    }
+  }
+  
+  return str.substring(startPos, endPos + 1);
+}
+
+/**
  * Extract 2D array (rows) from JSX props or array literals
  */
 function extract2DArrayFromProp(propValue: string): (string | number)[][] {
-  const arrayMatch = propValue.match(/\[(.*?)\]/s);
-  if (!arrayMatch) return [];
+  // propValue should be the full array string like: [["a", "b"], ["c", "d"]]
+  if (!propValue || propValue.trim().length === 0) return [];
   
-  const content = arrayMatch[1];
+  // Remove leading/trailing whitespace and check if it starts with [
+  const trimmed = propValue.trim();
+  if (!trimmed.startsWith('[')) return [];
+  
   const rows: (string | number)[][] = [];
   
-  // Find all inner arrays
+  // Find all inner arrays by tracking bracket depth
   let depth = 0;
   let currentRow = '';
   let currentRowStart = -1;
+  let inString = false;
+  let stringChar = '';
   
-  for (let i = 0; i < content.length; i++) {
-    const char = content[i];
+  for (let i = 0; i < trimmed.length; i++) {
+    const char = trimmed[i];
+    const prevChar = i > 0 ? trimmed[i - 1] : '';
     
-    if (char === '[') {
-      if (depth === 0) {
-        currentRowStart = i;
-        currentRow = '';
+    // Track string boundaries
+    if ((char === '"' || char === "'") && prevChar !== '\\') {
+      if (!inString) {
+        inString = true;
+        stringChar = char;
+      } else if (char === stringChar) {
+        inString = false;
       }
-      depth++;
-      if (depth > 1) currentRow += char;
-    } else if (char === ']') {
-      depth--;
-      if (depth > 0) {
-        currentRow += char;
-      } else if (depth === 0 && currentRowStart !== -1) {
-        // Complete row found
-        const rowValues: (string | number)[] = [];
-        const stringRegex = /['"]([^'"]*)['"]/g;
-        let match;
-        
-        while ((match = stringRegex.exec(currentRow)) !== null) {
-          rowValues.push(match[1]);
+    }
+    
+    // Only count brackets outside strings
+    if (!inString) {
+      if (char === '[') {
+        if (depth === 1) {
+          // Start of a row array
+          currentRowStart = i;
+          currentRow = '';
         }
-        
-        if (rowValues.length > 0) {
-          rows.push(rowValues);
+        depth++;
+      } else if (char === ']') {
+        depth--;
+        if (depth === 1 && currentRowStart !== -1) {
+          // Complete row found
+          const rowValues: (string | number)[] = [];
+          const stringRegex = /['"]([^'"]*)['"]/g;
+          let match;
+          
+          while ((match = stringRegex.exec(currentRow)) !== null) {
+            rowValues.push(match[1]);
+          }
+          
+          if (rowValues.length > 0) {
+            rows.push(rowValues);
+          }
+          currentRow = '';
+          currentRowStart = -1;
         }
-        currentRow = '';
-        currentRowStart = -1;
       }
-    } else if (depth > 0) {
+    }
+    
+    // Collect content for current row
+    if (depth > 1 && currentRowStart !== -1) {
       currentRow += char;
     }
   }
@@ -261,13 +323,28 @@ function parseArrayBasedTables(code: string): ParsedTable[] {
         currentObject += '}';
         const objectContent = currentObject;
         
-        // Extract columns
-        const columnsMatch = objectContent.match(/"columns"\s*:\s*\[([\s\S]*?)\]/);
-        const columns = columnsMatch ? extractArrayFromProp(`[${columnsMatch[1]}]`) : [];
+        // Extract columns with proper bracket matching
+        const columnsMatch = objectContent.match(/"columns"\s*:\s*\[/);
+        let columns: string[] = [];
+        if (columnsMatch) {
+          const startPos = columnsMatch.index! + columnsMatch[0].length;
+          const columnsStr = extractBalancedBrackets(objectContent, startPos - 1);
+          console.log('Columns string extracted:', columnsStr.substring(0, 100));
+          columns = extractArrayFromProp(columnsStr);
+          console.log('Parsed columns count:', columns.length);
+        }
         
-        // Extract rows
-        const rowsMatch = objectContent.match(/"rows"\s*:\s*\[([\s\S]*?)\]/);
-        const rows = rowsMatch ? extract2DArrayFromProp(`[${rowsMatch[1]}]`) : [];
+        // Extract rows with proper bracket matching
+        const rowsMatch = objectContent.match(/"rows"\s*:\s*\[/);
+        let rows: (string | number)[][] = [];
+        if (rowsMatch) {
+          const startPos = rowsMatch.index! + rowsMatch[0].length;
+          const rowsStr = extractBalancedBrackets(objectContent, startPos - 1);
+          console.log('Rows string extracted length:', rowsStr.length);
+          console.log('Rows string preview:', rowsStr.substring(0, 200));
+          rows = extract2DArrayFromProp(rowsStr);
+          console.log('Parsed rows count:', rows.length);
+        }
         
         // Extract title
         const titleMatch = objectContent.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/);

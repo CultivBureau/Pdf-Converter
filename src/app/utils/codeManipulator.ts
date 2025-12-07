@@ -473,7 +473,8 @@ export function addTableColumn(
     const before = arrayContent.substring(0, relativeStart);
     const after = arrayContent.substring(relativeEnd);
     
-    const newArrayContent = before + newTableObject + (after.trim() ? ',\n' : '') + after;
+    // Don't add extra comma - 'after' already contains comma if there's another table
+    const newArrayContent = before + newTableObject + after;
     return code.replace(tablesArrayMatch[0], tablesArrayMatch[1] + newArrayContent + tablesArrayMatch[3]);
   } else {
     // Update in JSX
@@ -521,7 +522,8 @@ export function removeTableColumn(code: string, tableIndex: number, columnIndex:
     const before = arrayContent.substring(0, relativeStart);
     const after = arrayContent.substring(relativeEnd);
     
-    const newArrayContent = before + newTableObject + (after.trim() ? ',\n' : '') + after;
+    // Don't add extra comma - 'after' already contains comma if there's another table
+    const newArrayContent = before + newTableObject + after;
     return code.replace(tablesArrayMatch[0], tablesArrayMatch[1] + newArrayContent + tablesArrayMatch[3]);
   } else {
     // Update in JSX
@@ -585,7 +587,8 @@ export function addTableRow(
     const before = arrayContent.substring(0, relativeStart);
     const after = arrayContent.substring(relativeEnd);
     
-    const newArrayContent = before + newTableObject + (after.trim() ? ',\n' : '') + after;
+    // Don't add extra comma - 'after' already contains comma if there's another table
+    const newArrayContent = before + newTableObject + after;
     return code.replace(tablesArrayMatch[0], tablesArrayMatch[1] + newArrayContent + tablesArrayMatch[3]);
   } else {
     // Update in JSX
@@ -631,7 +634,8 @@ export function removeTableRow(code: string, tableIndex: number, rowIndex: numbe
     const before = arrayContent.substring(0, relativeStart);
     const after = arrayContent.substring(relativeEnd);
     
-    const newArrayContent = before + newTableObject + (after.trim() ? ',\n' : '') + after;
+    // Don't add extra comma - 'after' already contains comma if there's another table
+    const newArrayContent = before + newTableObject + after;
     return code.replace(tablesArrayMatch[0], tablesArrayMatch[1] + newArrayContent + tablesArrayMatch[3]);
   } else {
     // Update in JSX
@@ -699,7 +703,8 @@ export function mergeTableColumns(
     const before = arrayContent.substring(0, relativeStart);
     const after = arrayContent.substring(relativeEnd);
     
-    const newArrayContent = before + newTableObject + (after.trim() ? ',\n' : '') + after;
+    // Don't add extra comma - 'after' already contains comma if there's another table
+    const newArrayContent = before + newTableObject + after;
     return code.replace(tablesArrayMatch[0], tablesArrayMatch[1] + newArrayContent + tablesArrayMatch[3]);
   } else {
     // Update in JSX
@@ -828,7 +833,223 @@ export function updateTableColumnHeader(
     const before = arrayContent.substring(0, relativeStart);
     const after = arrayContent.substring(relativeEnd);
     
-    const newArrayContent = before + newTableObject + (after.trim() ? ',\n' : '') + after;
+    // Don't add extra comma - 'after' already contains comma if there's another table
+    const newArrayContent = before + newTableObject + after;
+    return code.replace(tablesArrayMatch[0], tablesArrayMatch[1] + newArrayContent + tablesArrayMatch[3]);
+  } else {
+    // Update in JSX
+    const newJSX = generateTableJSX(updatedTable);
+    return code.slice(0, table.startIndex) + newJSX + code.slice(table.endIndex);
+  }
+}
+
+/**
+ * Add a new table to the code
+ */
+export function addNewTable(
+  code: string,
+  tableConfig: {
+    title?: string;
+    columns: string[];
+    rowCount: number;
+  }
+): string {
+  const parsed = parseJSXCode(code);
+  
+  // Create empty rows based on rowCount and columns
+  const rows: (string | number)[][] = [];
+  for (let i = 0; i < tableConfig.rowCount; i++) {
+    rows.push(tableConfig.columns.map(() => ''));
+  }
+  
+  const newTable = {
+    columns: tableConfig.columns,
+    rows,
+    title: tableConfig.title,
+  };
+  
+  if (parsed.isArrayBased) {
+    // Handle array-based pattern
+    const tablesArrayMatch = code.match(/(const\s+tables\s*=\s*\[)([\s\S]*?)(\];)/);
+    
+    if (tablesArrayMatch) {
+      // Add to existing tables array
+      const arrayContent = tablesArrayMatch[2];
+      const newTableObject = generateTableObject(newTable);
+      const trimmedContent = arrayContent.trim();
+      const newArrayContent = trimmedContent + 
+        (trimmedContent ? ',\n' : '') + 
+        newTableObject;
+      
+      return code.substring(0, tablesArrayMatch.index!) + 
+        tablesArrayMatch[1] + newArrayContent + tablesArrayMatch[3] + 
+        code.substring(tablesArrayMatch.index! + tablesArrayMatch[0].length);
+    } else {
+      // Create new tables array if it doesn't exist
+      const sectionsArrayMatch = code.match(/(const\s+sections\s*=\s*\[[\s\S]*?\];)/);
+      if (sectionsArrayMatch) {
+        const insertPosition = sectionsArrayMatch.index! + sectionsArrayMatch[0].length;
+        const newTableObject = generateTableObject(newTable);
+        const tablesArray = `\n\n  const tables = [\n${newTableObject}\n  ];`;
+        return code.substring(0, insertPosition) + tablesArray + code.substring(insertPosition);
+      }
+    }
+  } else {
+    // Handle direct component usage
+    const returnMatch = code.match(/return\s*\([\s\S]*?<BaseTemplate[^>]*>([\s\S]*?)<\/BaseTemplate>/);
+    if (returnMatch) {
+      const baseTemplateContent = returnMatch[1];
+      const baseTemplateContentStart = returnMatch.index! + returnMatch[0].indexOf('>') + 1;
+      const newTableJSX = '\n        ' + generateTableJSX(newTable);
+      return code.slice(0, baseTemplateContentStart + baseTemplateContent.length) + newTableJSX + code.slice(baseTemplateContentStart + baseTemplateContent.length);
+    } else {
+      // Try to find the end of return statement
+      const returnIndex = code.indexOf('return (');
+      if (returnIndex !== -1) {
+        // Find the closing div before the final closing parenthesis
+        const closingDivMatch = code.match(/<\/div>\s*\)\s*;?\s*}/);
+        if (closingDivMatch && closingDivMatch.index) {
+          const insertPosition = closingDivMatch.index;
+          const newTableJSX = '\n        ' + generateTableJSX(newTable) + '\n        ';
+          return code.substring(0, insertPosition) + newTableJSX + code.substring(insertPosition);
+        }
+      }
+    }
+  }
+  
+  return code;
+}
+
+/**
+ * Delete a table from the code
+ */
+export function deleteTable(code: string, tableIndex: number): string {
+  const parsed = parseJSXCode(code);
+  
+  if (tableIndex < 0 || tableIndex >= parsed.tables.length) {
+    console.warn('Invalid table index for removal:', tableIndex, 'tables length:', parsed.tables.length);
+    return code;
+  }
+  
+  const table = parsed.tables[tableIndex];
+  
+  if (parsed.isArrayBased && table.isArrayBased) {
+    // Handle array-based pattern - rebuild the entire array without the removed table
+    const tablesArrayMatch = code.match(/(const\s+tables\s*=\s*\[)([\s\S]*?)(\];)/);
+    if (!tablesArrayMatch) {
+      console.warn('Could not find tables array in code');
+      return code;
+    }
+    
+    // Create new tables array without the removed table
+    const remainingTables = parsed.tables.filter((_, idx) => idx !== tableIndex);
+    
+    console.log('Removing table', tableIndex, '- remaining tables:', remainingTables.length);
+    
+    // Rebuild array with remaining tables
+    const newTableObjects = remainingTables.map((t) => {
+      return generateTableObject({
+        columns: t.columns || t.headers || [],
+        rows: t.rows || [],
+        title: t.title,
+      });
+    });
+    
+    const newArrayContent = newTableObjects.join(',\n');
+    
+    const beforeArray = code.substring(0, tablesArrayMatch.index!);
+    const afterArray = code.substring(tablesArrayMatch.index! + tablesArrayMatch[0].length);
+    
+    // Ensure we have valid array content
+    if (remainingTables.length === 0) {
+      // Empty array case
+      const newCode = beforeArray + tablesArrayMatch[1] + '\n' + tablesArrayMatch[3] + afterArray;
+      console.log('Removed last table - empty array');
+      return newCode;
+    }
+    
+    const newCode = beforeArray + tablesArrayMatch[1] + '\n' + newArrayContent + '\n' + tablesArrayMatch[3] + afterArray;
+    
+    console.log('Generated new code length:', newCode.length, 'original:', code.length);
+    
+    // Validate the generated code doesn't have obvious syntax errors
+    if (newArrayContent.includes(',,') || newArrayContent.match(/,\s*,/)) {
+      console.error('Double comma detected in generated array!');
+      return code; // Return original code if we detect an error
+    }
+    
+    return newCode;
+  } else {
+    // Handle direct component usage
+    let before = code.slice(0, table.startIndex);
+    let after = code.slice(table.endIndex);
+    
+    // Clean up extra whitespace
+    before = before.replace(/\n\s*\n\s*$/, '\n');
+    after = after.replace(/^\s*\n\s*/, '\n');
+    
+    return before + after;
+  }
+}
+
+/**
+ * Update a table cell value
+ */
+export function updateTableCell(
+  code: string,
+  tableIndex: number,
+  rowIndex: number,
+  columnIndex: number,
+  newValue: string
+): string {
+  const parsed = parseJSXCode(code);
+  
+  if (tableIndex < 0 || tableIndex >= parsed.tables.length) {
+    return code;
+  }
+  
+  const table = parsed.tables[tableIndex];
+  const rows = table.rows || [];
+  
+  if (rowIndex < 0 || rowIndex >= rows.length) {
+    return code;
+  }
+  
+  const row = rows[rowIndex];
+  if (columnIndex < 0 || columnIndex >= row.length) {
+    return code;
+  }
+  
+  // Create new rows with updated cell
+  const newRows = rows.map((r, rIdx) => {
+    if (rIdx === rowIndex) {
+      const newRow = [...r];
+      newRow[columnIndex] = newValue;
+      return newRow;
+    }
+    return r;
+  });
+  
+  const updatedTable: ParsedTable = {
+    ...table,
+    rows: newRows,
+  };
+  
+  if (parsed.isArrayBased && table.isArrayBased) {
+    // Update in array
+    const tablesArrayMatch = code.match(/(const\s+tables\s*=\s*\[)([\s\S]*?)(\];)/);
+    if (!tablesArrayMatch) return code;
+    
+    const newTableObject = generateTableObject(updatedTable);
+    const arrayContent = tablesArrayMatch[2];
+    const relativeStart = table.startIndex - (tablesArrayMatch.index! + tablesArrayMatch[1].length);
+    const relativeEnd = table.endIndex - (tablesArrayMatch.index! + tablesArrayMatch[1].length);
+    
+    const before = arrayContent.substring(0, relativeStart);
+    const after = arrayContent.substring(relativeEnd);
+    
+    // Don't add extra comma - 'after' already contains comma if there's another table
+    const newArrayContent = before + newTableObject + after;
     return code.replace(tablesArrayMatch[0], tablesArrayMatch[1] + newArrayContent + tablesArrayMatch[3]);
   } else {
     // Update in JSX

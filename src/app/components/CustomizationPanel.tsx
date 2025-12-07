@@ -7,12 +7,7 @@ import {
   removeSection,
   updateSectionTitle,
   updateSectionContent,
-  addTableColumn,
-  removeTableColumn,
-  addTableRow,
-  removeTableRow,
-  mergeTableColumns,
-  updateTableColumnHeader,
+  deleteTable,
 } from "../utils/codeManipulator";
 
 export type PanelContext = 
@@ -85,50 +80,17 @@ export default function CustomizationPanel({
       onCodeChange(newCode);
     }
   };
-  
-  const handleAddColumn = () => {
+
+  const handleDeleteTable = () => {
     if (context.type === 'table') {
-      const newCode = addTableColumn(code, context.index, "New Column");
-      onCodeChange(newCode);
-    }
-  };
-  
-  const handleRemoveColumn = () => {
-    if (context.type === 'column') {
-      const newCode = removeTableColumn(code, context.tableIndex, context.columnIndex);
-      onCodeChange(newCode);
-      onClose();
-    }
-  };
-  
-  const handleAddRow = () => {
-    if (context.type === 'table' || context.type === 'row') {
-      const tableIndex = context.type === 'table' ? context.index : context.tableIndex;
-      const position = context.type === 'row' ? context.rowIndex + 1 : undefined;
-      const newCode = addTableRow(code, tableIndex, undefined, position);
-      onCodeChange(newCode);
-    }
-  };
-  
-  const handleRemoveRow = () => {
-    if (context.type === 'row') {
-      const newCode = removeTableRow(code, context.tableIndex, context.rowIndex);
-      onCodeChange(newCode);
-      onClose();
-    }
-  };
-  
-  const handleMergeColumns = (startCol: number, endCol: number) => {
-    if (context.type === 'table') {
-      const newCode = mergeTableColumns(code, context.index, startCol, endCol);
-      onCodeChange(newCode);
-    }
-  };
-  
-  const handleUpdateColumnHeader = (newHeader: string) => {
-    if (context.type === 'column') {
-      const newCode = updateTableColumnHeader(code, context.tableIndex, context.columnIndex, newHeader);
-      onCodeChange(newCode);
+      console.log('Deleting table at index:', context.index);
+      const confirmed = window.confirm('Are you sure you want to delete this table? This action cannot be undone.');
+      if (confirmed) {
+        const newCode = deleteTable(code, context.index);
+        console.log('Delete result - code changed:', newCode !== code);
+        onCodeChange(newCode);
+        onClose();
+      }
     }
   };
   
@@ -141,7 +103,7 @@ export default function CustomizationPanel({
   return (
     <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl z-50 border-l border-gray-200 flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#A4C639] to-[#8FB02E] px-6 py-4 flex items-center justify-between">
+      <div className="bg-linear-to-r from-[#A4C639] to-[#8FB02E] px-6 py-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Customize</h2>
         <button
           onClick={onClose}
@@ -199,139 +161,52 @@ export default function CustomizationPanel({
         {/* Table Context */}
         {context.type === 'table' && currentTable && (
           <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                Table: {currentTable.title || `Table ${context.index + 1}`}
+            <div className="bg-linear-to-r from-green-50 to-lime-50 p-4 rounded-lg border border-green-200">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#A4C639]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                {currentTable.title || `Table ${context.index + 1}`}
               </h3>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Columns ({currentTable.columns?.length || currentTable.headers?.length || 0})
-              </label>
-              <button
-                onClick={handleAddColumn}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-              >
-                + Add Column
-              </button>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Rows ({currentTable.rows?.length || 0})
-              </label>
-              <button
-                onClick={handleAddRow}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-              >
-                + Add Row
-              </button>
-            </div>
-            
-            {/* Column Merge */}
-            {currentTable.columns && currentTable.columns.length > 1 && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Merge Columns
-                </label>
-                <div className="space-y-2">
-                  <select
-                    id="merge-start"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  >
-                    {currentTable.columns.map((col, idx) => (
-                      <option key={idx} value={idx}>{col}</option>
-                    ))}
-                  </select>
-                  <span className="text-xs text-gray-500 text-center block">to</span>
-                  <select
-                    id="merge-end"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  >
-                    {currentTable.columns.map((col, idx) => (
-                      <option key={idx} value={idx}>{col}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => {
-                      const start = parseInt((document.getElementById('merge-start') as HTMLSelectElement)?.value || '0', 10);
-                      const end = parseInt((document.getElementById('merge-end') as HTMLSelectElement)?.value || '0', 10);
-                      if (start < end) {
-                        handleMergeColumns(start, end);
-                      }
-                    }}
-                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                  >
-                    Merge Columns
-                  </button>
+              <div className="flex items-center gap-4 text-sm text-gray-700">
+                <div className="flex items-center gap-1">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <span className="font-semibold">{currentTable.columns?.length || currentTable.headers?.length || 0}</span>
+                  <span>columns</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  <span className="font-semibold">{currentTable.rows?.length || 0}</span>
+                  <span>rows</span>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Danger Zone */}
+            <div className="border-t border-red-200 pt-4 mt-4">
+              <label className="block text-sm font-semibold text-red-700 mb-2">
+                Danger Zone
+              </label>
+              <button
+                onClick={handleDeleteTable}
+                className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Table
+              </button>
+            </div>
           </div>
         )}
         
-        {/* Column Context */}
-        {context.type === 'column' && currentTable && currentColumn !== null && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                Column: {currentColumn}
-              </h3>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Column Name
-              </label>
-              <input
-                type="text"
-                value={currentColumn}
-                onChange={(e) => handleUpdateColumnHeader(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A4C639] focus:border-transparent"
-                placeholder="Column name"
-              />
-            </div>
-            
-            <button
-              onClick={handleRemoveColumn}
-              className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-            >
-              Remove Column
-            </button>
-          </div>
-        )}
+        {/* Column Context - REMOVED */}
         
-        {/* Row Context */}
-        {context.type === 'row' && currentTable && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                Row {context.rowIndex + 1}
-              </h3>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Actions
-              </label>
-              <div className="space-y-2">
-                <button
-                  onClick={handleAddRow}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  Add Row Below
-                </button>
-                <button
-                  onClick={handleRemoveRow}
-                  className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                >
-                  Remove Row
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Row Context - REMOVED */}
       </div>
     </div>
   );
