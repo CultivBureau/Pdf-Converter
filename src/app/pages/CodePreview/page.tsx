@@ -16,7 +16,8 @@ import ToggleSwitch from "../../components/ToggleSwitch";
 import CustomizationPanel, { PanelContext } from "../../components/CustomizationPanel";
 import CreateTableModal from "../../components/CreateTableModal";
 import { getElementInfo } from "../../utils/jsxParser";
-import { addSection, addNewTable } from "../../utils/codeManipulator";
+import { addSection, addNewTable, updateTableCell, updateTableColumnHeader } from "../../utils/codeManipulator";
+import { extractAllTablesFromDOM, updateCodeWithTableData } from "../../utils/extractTableData";
 import { isAuthenticated } from "../../services/AuthApi";
 import { saveDocument, updateDocument, getDocument } from "../../services/HistoryApi";
 import ProtectedRoute from "../../components/ProtectedRoute";
@@ -545,6 +546,51 @@ function CodePageContent() {
     setSaveStatus("idle");
 
     try {
+      // Extract table data from the rendered DOM to capture user edits
+      let updatedCode = code;
+      let updatedExtractedData = null;
+      
+      try {
+        // Extract tables from the preview container
+        const extractedTables = extractAllTablesFromDOM(previewContainerRef.current);
+        if (extractedTables.length > 0) {
+          // Update JSX code with extracted table data using updateTableCell function
+          updatedCode = updateCodeWithTableData(code, extractedTables, updateTableCell, updateTableColumnHeader);
+          
+          // Also update extracted_data structure if it exists
+          const extractedDataStr = sessionStorage.getItem("codePreview.extractedData");
+          if (extractedDataStr) {
+            try {
+              updatedExtractedData = JSON.parse(extractedDataStr);
+              
+              // Update tables in extracted_data
+              if (updatedExtractedData.tables && Array.isArray(updatedExtractedData.tables)) {
+                extractedTables.forEach((extractedTable, index) => {
+                  if (index < updatedExtractedData.tables.length) {
+                    // Update headers and rows
+                    updatedExtractedData.tables[index].columns = extractedTable.headers;
+                    updatedExtractedData.tables[index].rows = extractedTable.rows;
+                    if (extractedTable.title) {
+                      updatedExtractedData.tables[index].title = extractedTable.title;
+                    }
+                  }
+                });
+              }
+            } catch (parseError) {
+              console.error("Error parsing extracted data:", parseError);
+            }
+          }
+          
+          // Update code state if it changed
+          if (updatedCode !== code) {
+            setCode(updatedCode);
+          }
+        }
+      } catch (extractError) {
+        console.error("Error extracting table data:", extractError);
+        // Continue with save even if extraction fails
+      }
+      
       const extractedData = sessionStorage.getItem("codePreview.extractedData");
       const filePath = sessionStorage.getItem("codePreview.filePath");
       const originalFilename = sessionStorage.getItem("codePreview.originalFilename");
@@ -552,7 +598,8 @@ function CodePageContent() {
       if (documentId) {
         // Update existing document
         await updateDocument(documentId, {
-          jsx_code: code,
+          jsx_code: updatedCode,
+          extracted_data: updatedExtractedData || (extractedData ? JSON.parse(extractedData) : {}),
           metadata: {
             ...sourceMetadata,
             lastSaved: new Date().toISOString(),
@@ -565,8 +612,8 @@ function CodePageContent() {
           title,
           original_filename: originalFilename || "document.pdf",
           file_path: filePath || "",
-          extracted_data: extractedData ? JSON.parse(extractedData) : {},
-          jsx_code: code,
+          extracted_data: updatedExtractedData || (extractedData ? JSON.parse(extractedData) : {}),
+          jsx_code: updatedCode,
           metadata: {
             ...sourceMetadata,
             savedAt: new Date().toISOString(),
