@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import CodeEditor from "../../components/CodeEditor";
 import PreviewRenderer from "../../components/PreviewRenderer";
 import ToggleSwitch from "../../components/ToggleSwitch";
@@ -16,6 +17,9 @@ import CustomizationPanel, { PanelContext } from "../../components/Customization
 import CreateTableModal from "../../components/CreateTableModal";
 import { getElementInfo } from "../../utils/jsxParser";
 import { addSection, addNewTable } from "../../utils/codeManipulator";
+import { isAuthenticated } from "../../services/AuthApi";
+import { saveDocument, updateDocument, getDocument } from "../../services/HistoryApi";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
 type Mode = "code" | "preview" | "split";
 
@@ -82,7 +86,8 @@ const STARTER_TEMPLATE = `export default function Template() {
   );
 }`;
 
-export default function CodePage() {
+function CodePageContent() {
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("preview");
   const [code, setCode] = useState<string>(STARTER_TEMPLATE);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -98,6 +103,9 @@ export default function CodePage() {
   const [panelContext, setPanelContext] = useState<PanelContext>(null);
   const [isCreateTableModalOpen, setIsCreateTableModalOpen] = useState(false);
   const [showTableCreatedToast, setShowTableCreatedToast] = useState(false);
+  const [documentId, setDocumentId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<string>(code);
   
@@ -109,10 +117,23 @@ export default function CodePage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Check if we're loading a specific document
+    const docIdParam = searchParams?.get("docId");
+    if (docIdParam && isAuthenticated()) {
+      loadDocument(docIdParam);
+      return;
+    }
+
     const storedCode = sessionStorage.getItem("codePreview.initialCode");
     const storedWarnings = sessionStorage.getItem("codePreview.warnings");
     const storedMetadata = sessionStorage.getItem("codePreview.metadata");
     const storedTables = sessionStorage.getItem("codePreview.processedTables");
+    const storedDocId = sessionStorage.getItem("codePreview.documentId");
+
+    if (storedDocId) {
+      setDocumentId(storedDocId);
+      sessionStorage.removeItem("codePreview.documentId");
+    }
 
     if (storedCode) {
       // Clean and fix import paths when loading from storage
@@ -156,7 +177,31 @@ export default function CodePage() {
       }
       sessionStorage.removeItem("codePreview.processedTables");
     }
-  }, []);
+  }, [searchParams]);
+
+  const loadDocument = async (docId: string) => {
+    try {
+      const response = await getDocument(docId);
+      const doc = response.document;
+      
+      setDocumentId(doc.id);
+      if (doc.jsx_code) {
+        setCode(doc.jsx_code);
+      }
+      if (doc.metadata) {
+        setSourceMetadata({
+          filename: doc.metadata.filename || doc.original_filename,
+          uploadedAt: doc.created_at,
+        });
+        if (doc.metadata.warnings) {
+          setExternalWarnings(doc.metadata.warnings);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load document:", err);
+      alert("Failed to load document");
+    }
+  };
 
   const setValue = useCallback((id: string, v: string) => {
     setValues((prev) => ({ ...prev, [id]: v }));
@@ -490,6 +535,60 @@ export default function CodePage() {
     }
   }, []);
 
+  const handleSave = useCallback(async () => {
+    if (!isAuthenticated()) {
+      alert("Please login to save documents");
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveStatus("idle");
+
+    try {
+      const extractedData = sessionStorage.getItem("codePreview.extractedData");
+      const filePath = sessionStorage.getItem("codePreview.filePath");
+      const originalFilename = sessionStorage.getItem("codePreview.originalFilename");
+
+      if (documentId) {
+        // Update existing document
+        await updateDocument(documentId, {
+          jsx_code: code,
+          metadata: {
+            ...sourceMetadata,
+            lastSaved: new Date().toISOString(),
+          },
+        });
+      } else {
+        // Create new document
+        const title = sourceMetadata?.filename?.replace(/\.pdf$/i, "") || "Untitled Document";
+        const response = await saveDocument({
+          title,
+          original_filename: originalFilename || "document.pdf",
+          file_path: filePath || "",
+          extracted_data: extractedData ? JSON.parse(extractedData) : {},
+          jsx_code: code,
+          metadata: {
+            ...sourceMetadata,
+            savedAt: new Date().toISOString(),
+          },
+        });
+        
+        if (response.document?.id) {
+          setDocumentId(response.document.id);
+        }
+      }
+
+      setSaveStatus("success");
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    } catch (err) {
+      console.error("Save failed:", err);
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [code, documentId, sourceMetadata]);
+
   const header = useMemo(() => (
     <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-md">
       <div className="max-w-7xl mx-auto px-6 py-4">
@@ -526,6 +625,50 @@ export default function CodePage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            {isAuthenticated() && (
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className={`px-4 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm ${
+                  saveStatus === "success"
+                    ? "bg-green-500 text-white"
+                    : saveStatus === "error"
+                    ? "bg-red-500 text-white"
+                    : "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isSaving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : saveStatus === "success" ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Saved!
+                  </>
+                ) : saveStatus === "error" ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Failed
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    Save
+                  </>
+                )}
+              </button>
+            )}
             <button
               onClick={handleExportCode}
               className="px-4 py-2 bg-linear-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm"
@@ -549,7 +692,7 @@ export default function CodePage() {
         </div>
       </div>
     </div>
-  ), [mode, handleExportCode, handleExportPDF, sourceMetadata]);
+  ), [mode, handleExportCode, handleExportPDF, handleSave, sourceMetadata, isSaving, saveStatus]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-50 via-blue-50 to-lime-50 text-gray-900">
@@ -682,4 +825,11 @@ export default function CodePage() {
   );
 }
 
+export default function CodePage() {
+  return (
+    <ProtectedRoute>
+      <CodePageContent />
+    </ProtectedRoute>
+  );
+}
 

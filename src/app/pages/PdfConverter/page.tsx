@@ -14,8 +14,11 @@ import {
 } from "../../services/PdfApi";
 import { cleanJSXCode } from "../../utils/parseGptCode";
 import type { ExtractResponse } from "../../types/ExtractTypes";
+import { isAuthenticated } from "../../services/AuthApi";
+import { saveDocument } from "../../services/HistoryApi";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
-const PdfConverter: React.FC = () => {
+const PdfConverterContent: React.FC = () => {
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
@@ -121,6 +124,45 @@ const PdfConverter: React.FC = () => {
             tablesCount: cleanedStructure.tables?.length || 0,
           }),
         );
+        
+        // Store extracted data for auto-save
+        sessionStorage.setItem(
+          "codePreview.extractedData",
+          JSON.stringify(cleanedStructure),
+        );
+        sessionStorage.setItem("codePreview.filePath", uploadResponse.file_path);
+        sessionStorage.setItem("codePreview.originalFilename", uploadResponse.original_filename || selectedFile.name);
+      }
+
+      // Auto-save to history if user is authenticated
+      if (isAuthenticated()) {
+        try {
+          setStatus("Saving to history…");
+          const docTitle = uploadResponse.original_filename?.replace(/\.pdf$/i, "") || selectedFile.name.replace(/\.pdf$/i, "");
+          
+          const savedDoc = await saveDocument({
+            title: docTitle,
+            original_filename: uploadResponse.original_filename || selectedFile.name,
+            file_path: uploadResponse.file_path,
+            extracted_data: cleanedStructure,
+            jsx_code: generatedCode,
+            metadata: {
+              filename: uploadResponse.filename || selectedFile.name,
+              uploadedAt: new Date().toISOString(),
+              sectionsCount: cleanedStructure.sections?.length || 0,
+              tablesCount: cleanedStructure.tables?.length || 0,
+              warnings: allWarnings,
+            },
+          });
+          
+          // Store document ID for later updates
+          if (typeof window !== "undefined" && savedDoc.document?.id) {
+            sessionStorage.setItem("codePreview.documentId", savedDoc.document.id);
+          }
+        } catch (saveErr) {
+          console.warn("Failed to auto-save to history:", saveErr);
+          // Continue anyway - this is not critical
+        }
       }
 
       setStatus("Opening editor…");
@@ -337,6 +379,14 @@ const PdfConverter: React.FC = () => {
         </p>
       </div>
     </div>
+  );
+};
+
+const PdfConverter: React.FC = () => {
+  return (
+    <ProtectedRoute>
+      <PdfConverterContent />
+    </ProtectedRoute>
   );
 };
 

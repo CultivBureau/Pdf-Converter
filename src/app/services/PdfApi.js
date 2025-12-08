@@ -10,6 +10,12 @@ if (process.env.NODE_ENV !== "production" && !process.env.NEXT_PUBLIC_API_BASE_U
   );
 }
 
+// Get auth token
+function getAuthToken() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("auth_token");
+}
+
 async function handleResponse(response) {
   const contentType = response.headers.get("content-type");
   const isJson = contentType && contentType.includes("application/json");
@@ -32,16 +38,27 @@ async function handleResponse(response) {
 async function request(path, init = {}) {
   try {
     const url = `${API_BASE_URL}${path}`;
+    
+    // Get auth token
+    const token = getAuthToken();
+    
+    // Prepare headers
+    let headers = init.headers || {};
+    
+    // Add auth token if available
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    
+    // Only set Content-Type if not FormData
+    if (!(init.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
+    
     const response = await fetch(url, {
       ...init,
       mode: init.mode ?? "cors",
-      // Only set headers if not FormData (FormData sets its own Content-Type with boundary)
-      headers: init.body instanceof FormData 
-        ? (init.headers || {})
-        : {
-            "Content-Type": "application/json",
-            ...(init.headers || {}),
-          },
+      headers,
     });
     return await handleResponse(response);
   } catch (error) {
