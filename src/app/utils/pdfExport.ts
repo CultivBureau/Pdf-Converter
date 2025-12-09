@@ -135,6 +135,44 @@ export async function exportToPDF(
   };
 
   try {
+    // CRITICAL: Remove all lab() colors from the document BEFORE html2pdf processes it
+    // html2pdf parses CSS during html2canvas phase, which happens before onclone
+    // So we must clean the source element first
+    const sourceElement = element.cloneNode(true) as HTMLElement;
+    
+    // Remove all style tags with lab() colors from source
+    const sourceStyleTags = sourceElement.querySelectorAll('style');
+    sourceStyleTags.forEach((style: HTMLStyleElement) => {
+      if (style.textContent && (
+        style.textContent.includes('lab(') ||
+        style.textContent.includes('lch(') ||
+        style.textContent.includes('oklab(') ||
+        style.textContent.includes('oklch(')
+      )) {
+        style.remove();
+      }
+    });
+    
+    // Remove lab() colors from all inline styles in source
+    const sourceAllElements = sourceElement.querySelectorAll('*');
+    sourceAllElements.forEach((el) => {
+      if (el instanceof HTMLElement) {
+        const inlineStyle = el.getAttribute('style');
+        if (inlineStyle && (inlineStyle.includes('lab(') || inlineStyle.includes('lch(') || inlineStyle.includes('oklab(') || inlineStyle.includes('oklch('))) {
+          const cleaned = inlineStyle
+            .replace(/[^:]*lab\([^)]*\)[^;]*;?/gi, '')
+            .replace(/[^:]*lch\([^)]*\)[^;]*;?/gi, '')
+            .replace(/[^:]*oklab\([^)]*\)[^;]*;?/gi, '')
+            .replace(/[^:]*oklch\([^)]*\)[^;]*;?/gi, '');
+          if (cleaned.trim()) {
+            el.setAttribute('style', cleaned);
+          } else {
+            el.removeAttribute('style');
+          }
+        }
+      }
+    });
+    
     // Configure html2pdf - NO browser dialogs, direct download
     const opt = {
       margin: mergedOptions.margin,
@@ -147,63 +185,124 @@ export async function exportToPDF(
     };
 
     // Convert colors to RGB and remove unsupported color functions
+    // Helper function to convert any color format to RGB hex
+    const convertColorToRGB = (color: string): string => {
+      if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') {
+        return color;
+      }
+      
+      // If it contains unsupported color functions, return fallback
+      if (color.includes('lab(') || color.includes('lch(') || color.includes('oklab(')) {
+        return '#000000'; // Default fallback
+      }
+      
+      // If already RGB/RGBA/hex, return as is
+      if (color.startsWith('#') || color.startsWith('rgb') || color.startsWith('rgba')) {
+        return color;
+      }
+      
+      // Try to convert named colors or other formats
+      // Create a temporary element to get computed color
+      const tempEl = document.createElement('div');
+      tempEl.style.color = color;
+      document.body.appendChild(tempEl);
+      const computed = window.getComputedStyle(tempEl).color;
+      document.body.removeChild(tempEl);
+      
+      // Check if computed color is valid
+      if (computed && !computed.includes('lab(') && !computed.includes('lch(') && !computed.includes('oklab(')) {
+        return computed;
+      }
+      
+      return '#000000'; // Fallback
+    };
+    
     const convertColorsToRGB = (el: HTMLElement) => {
-      const computed = window.getComputedStyle(el);
-      
-      // Convert background colors to static RGB (skip lab/lch/oklab functions)
-      if (computed.backgroundColor && computed.backgroundColor !== 'rgba(0, 0, 0, 0)') {
-        const bgColor = computed.backgroundColor;
-        if (!bgColor.includes('lab(') && !bgColor.includes('lch(') && !bgColor.includes('oklab(')) {
+      try {
+        const computed = window.getComputedStyle(el);
+        
+        // Convert background colors to static RGB
+        if (computed.backgroundColor && computed.backgroundColor !== 'rgba(0, 0, 0, 0)' && computed.backgroundColor !== 'transparent') {
+          const bgColor = convertColorToRGB(computed.backgroundColor);
           el.style.backgroundColor = bgColor;
-        } else {
-          // Fallback to white if unsupported color function
-          el.style.backgroundColor = '#ffffff';
         }
-      }
-      
-      // Convert text colors to static RGB
-      if (computed.color) {
-        const textColor = computed.color;
-        if (!textColor.includes('lab(') && !textColor.includes('lch(') && !textColor.includes('oklab(')) {
+        
+        // Convert text colors to static RGB
+        if (computed.color) {
+          const textColor = convertColorToRGB(computed.color);
           el.style.color = textColor;
-        } else {
-          // Fallback to black if unsupported color function
-          el.style.color = '#000000';
         }
-      }
-      
-      // Convert border colors to static RGB
-      if (computed.borderColor) {
-        const borderColor = computed.borderColor;
-        if (!borderColor.includes('lab(') && !borderColor.includes('lch(') && !borderColor.includes('oklab(')) {
+        
+        // Convert border colors to static RGB
+        if (computed.borderColor && computed.borderColor !== 'rgba(0, 0, 0, 0)') {
+          const borderColor = convertColorToRGB(computed.borderColor);
           el.style.borderColor = borderColor;
-        } else {
-          // Fallback to gray if unsupported color function
-          el.style.borderColor = '#e5e7eb';
         }
+        
+        // Also check border-top, border-right, border-bottom, border-left
+        ['borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor'].forEach(prop => {
+          const borderColor = (computed as any)[prop];
+          if (borderColor && borderColor !== 'rgba(0, 0, 0, 0)') {
+            const converted = convertColorToRGB(borderColor);
+            (el.style as any)[prop] = converted;
+          }
+        });
+        
+        // Recursively process all children
+        Array.from(el.children).forEach(child => {
+          if (child instanceof HTMLElement) {
+            convertColorsToRGB(child);
+          }
+        });
+      } catch (err) {
+        // Ignore errors for individual elements
+        console.warn('Error converting colors for element:', err);
       }
-      
-      // Recursively process all children
-      Array.from(el.children).forEach(child => {
-        if (child instanceof HTMLElement) {
-          convertColorsToRGB(child);
-        }
-      });
     };
 
-    // Clone element to avoid modifying original
-    const clonedElement = element.cloneNode(true) as HTMLElement;
+    // Clone the pre-cleaned element (already has lab() colors removed)
+    const clonedElement = sourceElement.cloneNode(true) as HTMLElement;
+    
+    // Hide interactive elements that might cause issues (like split buttons)
+    const interactiveElements = clonedElement.querySelectorAll('.no-pdf-export, [class*="split"], button[title*="Split"]');
+    interactiveElements.forEach((el) => {
+      if (el instanceof HTMLElement) {
+        el.style.display = 'none';
+      }
+    });
+    
+    // Convert all colors to RGB BEFORE html2pdf processes
     convertColorsToRGB(clonedElement);
 
-    // Remove all style tags that might contain lab() colors BEFORE export
+    // Remove ALL style tags that might contain lab() colors BEFORE export
+    // This is critical - html2pdf parses CSS before onclone runs
     const styleTags = clonedElement.querySelectorAll('style');
     styleTags.forEach((style: HTMLStyleElement) => {
       if (style.textContent && (
         style.textContent.includes('lab(') ||
         style.textContent.includes('lch(') ||
-        style.textContent.includes('oklab(')
+        style.textContent.includes('oklab(') ||
+        style.textContent.includes('oklch(')
       )) {
         style.remove();
+      }
+    });
+    
+    // Also remove any inline styles with lab() colors
+    const allElements = clonedElement.querySelectorAll('*');
+    allElements.forEach((el) => {
+      if (el instanceof HTMLElement) {
+        // Check inline style attribute
+        const inlineStyle = el.getAttribute('style');
+        if (inlineStyle && (inlineStyle.includes('lab(') || inlineStyle.includes('lch(') || inlineStyle.includes('oklab('))) {
+          // Remove lab() colors from inline style
+          const cleanedStyle = inlineStyle
+            .replace(/[^:]*lab\([^)]*\)[^;]*;?/gi, '')
+            .replace(/[^:]*lch\([^)]*\)[^;]*;?/gi, '')
+            .replace(/[^:]*oklab\([^)]*\)[^;]*;?/gi, '')
+            .replace(/[^:]*oklch\([^)]*\)[^;]*;?/gi, '');
+          el.setAttribute('style', cleanedStyle);
+        }
       }
     });
 
@@ -214,42 +313,85 @@ export async function exportToPDF(
         html2canvas: {
           ...opt.html2canvas,
           onclone: (clonedDoc: Document) => {
-            // Fix all elements' computed styles
+            // Helper to safely convert any color to RGB
+            const safeColorToRGB = (color: string, fallback: string = '#000000'): string => {
+              if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') {
+                return color || fallback;
+              }
+              // Check for unsupported color functions
+              if (color.includes('lab(') || color.includes('lch(') || color.includes('oklab(') || color.includes('oklch(')) {
+                return fallback;
+              }
+              // If already RGB/RGBA/hex, return as is
+              if (color.startsWith('#') || color.startsWith('rgb') || color.startsWith('rgba')) {
+                return color;
+              }
+              // Try to get computed color
+              try {
+                const temp = clonedDoc.createElement('div');
+                temp.style.color = color;
+                clonedDoc.body.appendChild(temp);
+                const computed = clonedDoc.defaultView?.getComputedStyle(temp);
+                clonedDoc.body.removeChild(temp);
+                if (computed && computed.color && !computed.color.includes('lab(') && !computed.color.includes('lch(')) {
+                  return computed.color;
+                }
+              } catch (e) {
+                // Ignore
+              }
+              return fallback;
+            };
+            
+            // Hide interactive elements first (like split buttons)
+            const interactiveElements = clonedDoc.querySelectorAll('.no-pdf-export, [class*="split"], button[title*="Split"]');
+            interactiveElements.forEach((el) => {
+              if (el instanceof HTMLElement) {
+                el.style.display = 'none';
+              }
+            });
+            
+            // Fix all elements' computed styles - convert ALL colors to RGB
             const allElements = clonedDoc.querySelectorAll('*');
             allElements.forEach((el) => {
               if (el instanceof HTMLElement) {
                 try {
                   const computed = clonedDoc.defaultView?.getComputedStyle(el);
                   if (computed) {
+                    // Background color
                     const bgColor = computed.backgroundColor;
                     if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
-                      if (bgColor.includes('lab(') || bgColor.includes('lch(') || bgColor.includes('oklab(')) {
-                        el.style.backgroundColor = '#ffffff';
-                      } else {
-                        el.style.backgroundColor = bgColor;
-                      }
+                      el.style.backgroundColor = safeColorToRGB(bgColor, '#ffffff');
                     }
                     
+                    // Text color
                     const textColor = computed.color;
                     if (textColor) {
-                      if (textColor.includes('lab(') || textColor.includes('lch(') || textColor.includes('oklab(')) {
-                        el.style.color = '#000000';
-                      } else {
-                        el.style.color = textColor;
-                      }
+                      el.style.color = safeColorToRGB(textColor, '#000000');
                     }
                     
+                    // Border colors
                     const borderColor = computed.borderColor;
                     if (borderColor && borderColor !== 'rgba(0, 0, 0, 0)') {
-                      if (borderColor.includes('lab(') || borderColor.includes('lch(') || borderColor.includes('oklab(')) {
-                        el.style.borderColor = '#e5e7eb';
-                      } else {
-                        el.style.borderColor = borderColor;
-                      }
+                      el.style.borderColor = safeColorToRGB(borderColor, '#e5e7eb');
                     }
+                    
+                    // Individual border colors
+                    ['borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor'].forEach(prop => {
+                      const color = (computed as any)[prop];
+                      if (color && color !== 'rgba(0, 0, 0, 0)') {
+                        (el.style as any)[prop] = safeColorToRGB(color, '#e5e7eb');
+                      }
+                    });
                   }
                 } catch (e) {
-                  // Safe fallback
+                  // Safe fallback - set default colors to prevent errors
+                  try {
+                    if (!el.style.backgroundColor) el.style.backgroundColor = '#ffffff';
+                    if (!el.style.color) el.style.color = '#000000';
+                    if (!el.style.borderColor) el.style.borderColor = '#e5e7eb';
+                  } catch (err) {
+                    // Ignore
+                  }
                 }
               }
             });
@@ -365,15 +507,39 @@ export async function generatePDFBlob(
     const clonedElement = element.cloneNode(true) as HTMLElement;
     convertColorsToRGB(clonedElement);
 
-    // Remove all style tags that might contain lab() colors BEFORE export
+    // Remove ALL style tags that might contain lab() colors BEFORE export
+    // This is critical - html2pdf parses CSS before onclone runs
     const styleTags = clonedElement.querySelectorAll('style');
     styleTags.forEach((style: HTMLStyleElement) => {
       if (style.textContent && (
         style.textContent.includes('lab(') ||
         style.textContent.includes('lch(') ||
-        style.textContent.includes('oklab(')
+        style.textContent.includes('oklab(') ||
+        style.textContent.includes('oklch(')
       )) {
         style.remove();
+      }
+    });
+    
+    // Also remove any inline styles with lab() colors
+    const allElementsPre = clonedElement.querySelectorAll('*');
+    allElementsPre.forEach((el) => {
+      if (el instanceof HTMLElement) {
+        // Check inline style attribute
+        const inlineStyle = el.getAttribute('style');
+        if (inlineStyle && (inlineStyle.includes('lab(') || inlineStyle.includes('lch(') || inlineStyle.includes('oklab(') || inlineStyle.includes('oklch('))) {
+          // Remove lab() colors from inline style
+          const cleanedStyle = inlineStyle
+            .replace(/[^:]*lab\([^)]*\)[^;]*;?/gi, '')
+            .replace(/[^:]*lch\([^)]*\)[^;]*;?/gi, '')
+            .replace(/[^:]*oklab\([^)]*\)[^;]*;?/gi, '')
+            .replace(/[^:]*oklch\([^)]*\)[^;]*;?/gi, '');
+          if (cleanedStyle.trim()) {
+            el.setAttribute('style', cleanedStyle);
+          } else {
+            el.removeAttribute('style');
+          }
+        }
       }
     });
 
