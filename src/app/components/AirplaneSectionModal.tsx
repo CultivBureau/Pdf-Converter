@@ -24,12 +24,14 @@ interface AirplaneSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: AirplaneSectionData) => void;
+  initialData?: AirplaneSectionData;
 }
 
 export default function AirplaneSectionModal({
   isOpen,
   onClose,
   onSubmit,
+  initialData,
 }: AirplaneSectionModalProps) {
   const [title, setTitle] = useState("حجز الطيران");
   const [noticeMessage, setNoticeMessage] = useState("التواجد في صاله المطار قبل الاقلاع بساعتين");
@@ -46,25 +48,43 @@ export default function AirplaneSectionModal({
   ]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Reset form when modal opens
+  // Reset form when modal opens or initialData changes
   useEffect(() => {
     if (isOpen) {
-      setTitle("حجز الطيران");
-      setNoticeMessage("التواجد في صاله المطار قبل الاقلاع بساعتين");
-      setShowTitle(true);
-      setShowNotice(true);
-      setFlights([
-        {
-          date: "",
-          fromAirport: "",
-          toAirport: "",
-          travelers: { adults: 0, children: 0, infants: 0 },
-          luggage: "",
-        },
-      ]);
+      if (initialData) {
+        // Pre-fill with initial data for editing
+        setTitle(initialData.title || "حجز الطيران");
+        setNoticeMessage(initialData.noticeMessage || "التواجد في صاله المطار قبل الاقلاع بساعتين");
+        setShowTitle(initialData.showTitle !== undefined ? initialData.showTitle : true);
+        setShowNotice(initialData.showNotice !== undefined ? initialData.showNotice : true);
+        setFlights(initialData.flights.length > 0 ? initialData.flights : [
+          {
+            date: "",
+            fromAirport: "",
+            toAirport: "",
+            travelers: { adults: 0, children: 0, infants: 0 },
+            luggage: "",
+          },
+        ]);
+      } else {
+        // Reset to defaults for new section
+        setTitle("حجز الطيران");
+        setNoticeMessage("التواجد في صاله المطار قبل الاقلاع بساعتين");
+        setShowTitle(true);
+        setShowNotice(true);
+        setFlights([
+          {
+            date: "",
+            fromAirport: "",
+            toAirport: "",
+            travelers: { adults: 0, children: 0, infants: 0 },
+            luggage: "",
+          },
+        ]);
+      }
       setErrors({});
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   const validate = (): boolean => {
     const newErrors: { [key: string]: string } = {};

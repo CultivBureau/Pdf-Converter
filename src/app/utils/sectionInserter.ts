@@ -27,7 +27,11 @@ function generateAirplaneSectionJSX(data: AirplaneSectionData): string {
     })
     .join(',\n');
 
+  // Generate unique ID
+  const sectionId = `airplane_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   const props: string[] = [];
+  props.push(`id="${sectionId}"`);
   if (data.title) {
     props.push(`title="${data.title.replace(/"/g, '\\"')}"`);
   }
@@ -86,7 +90,11 @@ function generateHotelsSectionJSX(data: HotelsSectionData): string {
     })
     .join(',\n');
 
+  // Generate unique ID
+  const sectionId = `hotels_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   const props: string[] = [];
+  props.push(`id="${sectionId}"`);
   if (data.title) {
     props.push(`title="${data.title.replace(/"/g, '\\"')}"`);
   }

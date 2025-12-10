@@ -53,6 +53,17 @@ export interface HotelsSectionProps {
     count: string; // e.g., "عدد"
   };
   
+  // Unique identifier
+  id?: string; // Unique identifier for the hotels section
+  
+  // Editable mode
+  editable?: boolean;
+  sectionId?: string; // Deprecated, use id instead
+  onEditHotel?: (hotelIndex: number) => void;
+  onRemoveHotel?: (hotelIndex: number) => void;
+  onAddHotel?: () => void;
+  onEditSection?: () => void;
+  
   // Customization
   className?: string;
   style?: React.CSSProperties;
@@ -127,14 +138,22 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
     details: "للتفاصيل",
     count: "عدد"
   },
+  editable = false,
+  id,
+  sectionId,
+  onEditHotel,
+  onRemoveHotel,
+  onAddHotel,
+  onEditSection,
   className = "",
   style
 }) => {
+  const sectionIdValue = id || sectionId;
   return (
-    <div className={`w-full mb-6 ${className}`} style={style} dir={direction}>
+    <div className={`w-full mb-6 ${className}`} style={style} dir={direction} data-hotels-section-id={sectionIdValue}>
       {/* Header with Title and Icon */}
       {showTitle && (
-        <div className="flex items-center justify-center mb-4">
+        <div className="flex items-center justify-center mb-4 relative">
           <div className="bg-[#3B5998] text-white px-10 py-3 rounded-full flex items-center gap-3 shadow-md">
             <h2 className="text-xl font-bold tracking-wide">{title}</h2>
             <div className="bg-white rounded-full p-2.5">
@@ -149,6 +168,17 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
               </svg>
             </div>
           </div>
+          {editable && onEditSection && (
+            <button
+              onClick={onEditSection}
+              className="absolute left-0 top-1/2 -translate-y-1/2 p-2 bg-[#3B5998] text-white rounded-full hover:bg-[#2E4A7A] transition-colors shadow-md"
+              title="تعديل القسم"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
         </div>
       )}
 
@@ -157,8 +187,34 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
         {hotels.map((hotel, index) => (
           <div 
             key={index} 
-            className="border-2 border-blue-300 rounded-2xl p-4 bg-white shadow-md relative"
+            className="border-2 border-blue-300 rounded-2xl p-4 bg-white shadow-md relative group"
           >
+            {editable && (
+              <div className="absolute top-2 left-2 z-10 flex gap-2">
+                {onEditHotel && (
+                  <button
+                    onClick={() => onEditHotel(index)}
+                    className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors shadow-md"
+                    title="تعديل"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                )}
+                {onRemoveHotel && hotels.length > 1 && (
+                  <button
+                    onClick={() => onRemoveHotel(index)}
+                    className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md"
+                    title="حذف"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            )}
             {/* City Badge */}
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 flex items-center gap-2">
               <div className="bg-[#FF6B35] text-white px-4 py-1 rounded-full text-sm font-bold">
@@ -226,6 +282,19 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
             </div>
           </div>
         ))}
+        {editable && onAddHotel && (
+          <div className="border-2 border-dashed border-blue-300 rounded-2xl p-8 bg-blue-50 text-center">
+            <button
+              onClick={onAddHotel}
+              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2 mx-auto"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              إضافة فندق جديد
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

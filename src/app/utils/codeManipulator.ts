@@ -54,11 +54,15 @@ function generateTableObject(table: {
   columns?: string[]; 
   rows: (string | number)[][]; 
   title?: string;
+  id?: string;
 }): string {
   const props: string[] = [];
   
+  // Generate unique ID if not provided
+  const tableId = table.id || `table_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   props.push(`"type": "table"`);
-  props.push(`"id": "table_${Date.now()}"`);
+  props.push(`"id": "${tableId}"`);
   
   if (table.columns && table.columns.length > 0) {
     const columnsStr = table.columns.map(c => {
@@ -107,8 +111,12 @@ function generateTableObject(table: {
 /**
  * Generate JSX string for a section (direct component usage)
  */
-function generateSectionJSX(section: { title?: string; content: string; type?: string }): string {
+function generateSectionJSX(section: { title?: string; content: string; type?: string; id?: string }): string {
   const props: string[] = [];
+  
+  // Generate unique ID if not provided
+  const sectionId = section.id || `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  props.push(`id="${sectionId}"`);
   
   if (section.title) {
     const escapedTitle = section.title
@@ -139,8 +147,15 @@ function generateTableJSX(table: {
   columns?: string[]; 
   rows: (string | number)[][]; 
   title?: string;
+  id?: string;
 }): string {
   const props: string[] = [];
+  
+  // Generate unique ID if not provided
+  const tableId = table.id || `table_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Add tableId prop for identification
+  props.push(`tableId="${tableId}"`);
   
   if (table.title) {
     const escapedTitle = table.title
@@ -148,6 +163,11 @@ function generateTableJSX(table: {
       .replace(/"/g, '\\"')
       .replace(/\n/g, '\\n');
     props.push(`title="${escapedTitle}"`);
+  }
+  
+  // Always include tableId for identification
+  if (tableId) {
+    props.push(`tableId="${tableId}"`);
   }
   
   if (table.columns && table.columns.length > 0) {
@@ -266,13 +286,16 @@ export function addSection(
 }
 
 /**
- * Remove a section from the code
+ * Remove a section from the code by ID
  */
-export function removeSection(code: string, sectionIndex: number): string {
+export function removeSection(code: string, sectionId: string): string {
   const parsed = parseJSXCode(code);
   
-  if (sectionIndex < 0 || sectionIndex >= parsed.sections.length) {
-    console.warn('Invalid section index for removal:', sectionIndex, 'sections length:', parsed.sections.length);
+  // Find section by ID
+  const sectionIndex = parsed.sections.findIndex(s => s.id === sectionId);
+  
+  if (sectionIndex === -1) {
+    console.warn('Section not found with ID:', sectionId);
     return code;
   }
   
@@ -287,7 +310,7 @@ export function removeSection(code: string, sectionIndex: number): string {
     }
     
     // Create new sections array without the removed section
-    const remainingSections = parsed.sections.filter((_, idx) => idx !== sectionIndex);
+    const remainingSections = parsed.sections.filter((s) => s.id !== sectionId);
     
     console.log('Removing section', sectionIndex, '- remaining sections:', remainingSections.length);
     
@@ -921,13 +944,16 @@ export function addNewTable(
 }
 
 /**
- * Delete a table from the code
+ * Delete a table from the code by ID
  */
-export function deleteTable(code: string, tableIndex: number): string {
+export function deleteTable(code: string, tableId: string): string {
   const parsed = parseJSXCode(code);
   
-  if (tableIndex < 0 || tableIndex >= parsed.tables.length) {
-    console.warn('Invalid table index for removal:', tableIndex, 'tables length:', parsed.tables.length);
+  // Find table by ID
+  const tableIndex = parsed.tables.findIndex(t => t.id === tableId);
+  
+  if (tableIndex === -1) {
+    console.warn('Table not found with ID:', tableId);
     return code;
   }
   
@@ -942,16 +968,17 @@ export function deleteTable(code: string, tableIndex: number): string {
     }
     
     // Create new tables array without the removed table
-    const remainingTables = parsed.tables.filter((_, idx) => idx !== tableIndex);
+    const remainingTables = parsed.tables.filter((t) => t.id !== tableId);
     
     console.log('Removing table', tableIndex, '- remaining tables:', remainingTables.length);
     
-    // Rebuild array with remaining tables
+    // Rebuild array with remaining tables (preserve IDs)
     const newTableObjects = remainingTables.map((t) => {
       return generateTableObject({
         columns: t.columns || t.headers || [],
         rows: t.rows || [],
         title: t.title,
+        id: t.id, // Preserve original ID
       });
     });
     

@@ -48,6 +48,17 @@ export interface AirplaneSectionProps {
     luggage: string;
   };
   
+  // Unique identifier
+  id?: string; // Unique identifier for the airplane section
+  
+  // Editable mode
+  editable?: boolean;
+  sectionId?: string; // Deprecated, use id instead
+  onEditFlight?: (flightIndex: number) => void;
+  onRemoveFlight?: (flightIndex: number) => void;
+  onAddFlight?: () => void;
+  onEditSection?: () => void;
+  
   // Customization
   className?: string;
   style?: React.CSSProperties;
@@ -83,9 +94,17 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
     travelers: "المسافرين",
     luggage: "الأمتعه"
   },
+  editable = false,
+  id,
+  sectionId,
+  onEditFlight,
+  onRemoveFlight,
+  onAddFlight,
+  onEditSection,
   className = "",
   style
 }) => {
+  const sectionIdValue = id || sectionId;
   const formatTravelers = (travelers: { adults: number; children: number; infants: number }) => {
     const parts = [];
     if (travelers.adults > 0) parts.push(`${language === 'ar' ? 'البالغين:' : 'Adults:'}${travelers.adults}`);
@@ -95,10 +114,10 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
   };
 
   return (
-    <div className={`w-full mb-6 ${className}`} style={style} dir={direction}>
+    <div className={`w-full mb-6 ${className}`} style={style} dir={direction} data-airplane-section-id={sectionIdValue}>
       {/* Header with Title and Icon */}
       {showTitle && (
-        <div className="flex items-center justify-center mb-3">
+        <div className="flex items-center justify-center mb-3 relative">
           <div className="bg-[#4A5568] text-white px-8 py-2.5 rounded-full flex items-center gap-3 shadow-md">
             <h2 className="text-lg font-bold tracking-wide">{title}</h2>
             <div className="bg-white rounded-full p-2">
@@ -112,6 +131,17 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
               </svg>
             </div>
           </div>
+          {editable && onEditSection && (
+            <button
+              onClick={onEditSection}
+              className="absolute left-0 top-1/2 -translate-y-1/2 p-2 bg-[#4A5568] text-white rounded-full hover:bg-[#2D3748] transition-colors shadow-md"
+              title="تعديل القسم"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
         </div>
       )}
 
@@ -121,6 +151,11 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
           {/* Column Headers */}
           <thead>
             <tr className="bg-[#F5A623]">
+              {editable && (
+                <th className="px-2 py-2.5 text-center text-white font-bold text-xs border-r-2 border-white">
+                  إجراءات
+                </th>
+              )}
               <th className="px-4 py-2.5 text-center text-white font-bold text-sm border-r-2 border-white">
                 {columnLabels.date}
               </th>
@@ -142,7 +177,35 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
           {/* Data Rows */}
           <tbody>
             {flights.map((flight, index) => (
-              <tr key={index} className="bg-[#E8E8E8]">
+              <tr key={index} className="bg-[#E8E8E8] relative group">
+                {editable && (
+                  <td className="px-2 py-3 border-r-2 border-white">
+                    <div className="flex flex-col gap-1">
+                      {onEditFlight && (
+                        <button
+                          onClick={() => onEditFlight(index)}
+                          className="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                          title="تعديل"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      )}
+                      {onRemoveFlight && flights.length > 1 && (
+                        <button
+                          onClick={() => onRemoveFlight(index)}
+                          className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                          title="حذف"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                )}
                 <td className="px-4 py-3 text-center text-gray-800 font-semibold text-sm border-r-2 border-white">
                   {flight.date}
                 </td>
@@ -168,6 +231,21 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
                 </td>
               </tr>
             ))}
+            {editable && onAddFlight && (
+              <tr>
+                <td colSpan={editable ? 6 : 5} className="px-4 py-3 text-center">
+                  <button
+                    onClick={onAddFlight}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2 mx-auto"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    إضافة رحلة جديدة
+                  </button>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -18,8 +18,9 @@ import CreateTableModal from "../../components/CreateTableModal";
 import AirplaneSectionModal, { type AirplaneSectionData } from "../../components/AirplaneSectionModal";
 import HotelsSectionModal, { type HotelsSectionData } from "../../components/HotelsSectionModal";
 import { getElementInfo } from "../../utils/jsxParser";
-import { addSection, addNewTable, updateTableCell, updateTableColumnHeader } from "../../utils/codeManipulator";
+import { addSection, removeSection, addNewTable, updateTableCell, updateTableColumnHeader } from "../../utils/codeManipulator";
 import { insertAirplaneSection, insertHotelsSection } from "../../utils/sectionInserter";
+import { updateAirplaneSectionFlights, updateHotelsSectionHotels, updateAirplaneSection, updateHotelsSection, deleteAirplaneSection, deleteHotelsSection } from "../../utils/sectionCodeUpdater";
 import { extractAllTablesFromDOM, updateCodeWithTableData } from "../../utils/extractTableData";
 import { isAuthenticated } from "../../services/AuthApi";
 import { saveDocument, updateDocument, getDocument } from "../../services/HistoryApi";
@@ -109,6 +110,10 @@ function CodePageContent() {
   const [showTableCreatedToast, setShowTableCreatedToast] = useState(false);
   const [airplaneModalOpen, setAirplaneModalOpen] = useState(false);
   const [hotelsModalOpen, setHotelsModalOpen] = useState(false);
+  const [editingAirplaneSectionId, setEditingAirplaneSectionId] = useState<string | null>(null);
+  const [editingHotelsSectionId, setEditingHotelsSectionId] = useState<string | null>(null);
+  const [airplaneSectionInitialData, setAirplaneSectionInitialData] = useState<AirplaneSectionData | undefined>(undefined);
+  const [hotelsSectionInitialData, setHotelsSectionInitialData] = useState<HotelsSectionData | undefined>(undefined);
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
@@ -254,7 +259,7 @@ function CodePageContent() {
         const parsed = parseJSXCode(code);
         
         // Clean up existing buttons and remove old event listeners
-        const existingButtons = container.querySelectorAll('.section-add-btn, .table-edit-btn');
+        const existingButtons = container.querySelectorAll('.section-add-btn, .section-edit-btn, .section-delete-btn, .table-edit-btn, .airplane-section-edit-btn, .hotels-section-edit-btn');
         existingButtons.forEach(btn => btn.remove());
         
         // Remove old setup flags and clone elements to remove event listeners
@@ -265,6 +270,14 @@ function CodePageContent() {
         const existingTables = container.querySelectorAll('[data-table-setup]');
         existingTables.forEach(table => {
           (table as HTMLElement).removeAttribute('data-table-setup');
+        });
+        const existingAirplaneSections = container.querySelectorAll('[data-airplane-section-setup]');
+        existingAirplaneSections.forEach(section => {
+          (section as HTMLElement).removeAttribute('data-airplane-section-setup');
+        });
+        const existingHotelsSections = container.querySelectorAll('[data-hotels-section-setup]');
+        existingHotelsSections.forEach(section => {
+          (section as HTMLElement).removeAttribute('data-hotels-section-setup');
         });
         
         // Find all sections (section elements or divs that look like sections)
@@ -286,24 +299,110 @@ function CodePageContent() {
               sectionEl.style.transition = 'all 0.3s ease';
               sectionEl.style.opacity = '1';
               sectionEl.style.transform = 'translateY(0)';
-              sectionEl.style.marginBottom = '24px'; // Space for add button
-              sectionEl.title = 'Double-click to edit section';
+              sectionEl.style.marginBottom = '24px'; // Space for buttons
+              sectionEl.title = 'Click edit button to modify section';
               
               let addButton: HTMLButtonElement | null = null;
+              let editButton: HTMLButtonElement | null = null;
+              let deleteButton: HTMLButtonElement | null = null;
               
-              // Add hover effect and "+" button
+              // Add hover effect and action buttons
               sectionEl.addEventListener('mouseenter', function() {
                 this.style.outline = '2px dashed #A4C639';
                 this.style.outlineOffset = '2px';
                 this.style.transform = 'translateY(-2px)';
                 
-                // Create and show add button
+                // Create edit button (top right)
+                if (!editButton) {
+                  editButton = document.createElement('button');
+                  editButton.className = 'section-edit-btn';
+                  editButton.style.cssText = 'position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; background: #A4C639; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 20; opacity: 0; transition: all 0.3s ease; cursor: pointer; border: 2px solid white;';
+                  editButton.innerHTML = '<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>';
+                  editButton.title = 'تعديل القسم';
+                  
+                  editButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const sectionId = sectionEl.getAttribute('data-section-id');
+                    const sectionIdx = parseInt(sectionEl.getAttribute('data-section-index') || '0', 10);
+                    if (sectionId) {
+                      // Use ID if available, but PanelContext still uses index for now
+                      setPanelContext({ type: 'section', index: sectionIdx });
+                    } else {
+                      setPanelContext({ type: 'section', index: sectionIdx });
+                    }
+                  });
+                  
+                  editButton.addEventListener('mouseenter', function() {
+                    this.style.background = '#8FB02E';
+                    this.style.transform = 'scale(1.1)';
+                  });
+                  
+                  editButton.addEventListener('mouseleave', function() {
+                    this.style.background = '#A4C639';
+                    this.style.transform = 'scale(1)';
+                  });
+                  
+                  sectionEl.appendChild(editButton);
+                }
+                editButton.style.opacity = '1';
+                
+                // Create delete button (top left)
+                if (!deleteButton) {
+                  deleteButton = document.createElement('button');
+                  deleteButton.className = 'section-delete-btn';
+                  deleteButton.style.cssText = 'position: absolute; left: 8px; top: 8px; width: 36px; height: 36px; background: #ef4444; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 20; opacity: 0; transition: all 0.3s ease; cursor: pointer; border: 2px solid white;';
+                  deleteButton.innerHTML = '<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>';
+                  deleteButton.title = 'حذف القسم';
+                  
+                  deleteButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const sectionId = sectionEl.getAttribute('data-section-id');
+                    if (!sectionId) {
+                      // Fallback: try to find ID from parsed code
+                      const sectionIdx = parseInt(sectionEl.getAttribute('data-section-index') || '0', 10);
+                      const parsed = parseJSXCode(codeRef.current);
+                      if (parsed.sections[sectionIdx]?.id) {
+                        const confirmed = window.confirm('هل أنت متأكد من حذف هذا القسم؟ لا يمكن التراجع عن هذا الإجراء.');
+                        if (confirmed) {
+                          const newCode = removeSection(codeRef.current, parsed.sections[sectionIdx].id!);
+                          setCode(newCode);
+                        }
+                        return;
+                      }
+                      console.error('Could not find section ID');
+                      return;
+                    }
+                    const confirmed = window.confirm('هل أنت متأكد من حذف هذا القسم؟ لا يمكن التراجع عن هذا الإجراء.');
+                    if (confirmed) {
+                      const currentCode = codeRef.current;
+                      const newCode = removeSection(currentCode, sectionId);
+                      setCode(newCode);
+                    }
+                  });
+                  
+                  deleteButton.addEventListener('mouseenter', function() {
+                    this.style.background = '#dc2626';
+                    this.style.transform = 'scale(1.1)';
+                  });
+                  
+                  deleteButton.addEventListener('mouseleave', function() {
+                    this.style.background = '#ef4444';
+                    this.style.transform = 'scale(1)';
+                  });
+                  
+                  sectionEl.appendChild(deleteButton);
+                }
+                deleteButton.style.opacity = '1';
+                
+                // Create and show add button (bottom center)
                 if (!addButton) {
                   addButton = document.createElement('button');
                   addButton.className = 'section-add-btn';
                   addButton.style.cssText = 'position: absolute; left: 50%; bottom: -16px; transform: translate(-50%, 0) scale(0.8); width: 32px; height: 32px; background: #A4C639; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 10; opacity: 0; transition: all 0.3s ease; cursor: pointer; border: none;';
                   addButton.innerHTML = '<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>';
-                  addButton.title = 'Add new section';
+                  addButton.title = 'إضافة قسم جديد';
                   
                   addButton.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -312,8 +411,8 @@ function CodePageContent() {
                     // Use current code from ref (always latest)
                     const currentCode = codeRef.current;
                     const newCode = addSection(currentCode, {
-                      title: "New Section",
-                      content: "Section content here",
+                      title: "قسم جديد",
+                      content: "محتوى القسم هنا",
                       type: "section",
                     }, sectionIdx + 1);
                     setCode(newCode);
@@ -336,9 +435,14 @@ function CodePageContent() {
               });
               
               sectionEl.addEventListener('mouseleave', function(e) {
-                // Don't hide if mouse is moving to the add button
+                // Don't hide if mouse is moving to any button
                 const relatedTarget = e.relatedTarget as HTMLElement;
-                if (relatedTarget && (relatedTarget === addButton || relatedTarget.closest('.section-add-btn'))) {
+                if (relatedTarget && (
+                  relatedTarget === addButton || 
+                  relatedTarget === editButton ||
+                  relatedTarget === deleteButton ||
+                  relatedTarget.closest('.section-add-btn, .section-edit-btn, .section-delete-btn')
+                )) {
                   return;
                 }
                 
@@ -346,18 +450,34 @@ function CodePageContent() {
                 this.style.outlineOffset = '';
                 this.style.transform = 'translateY(0)';
                 
-                // Hide add button
+                // Hide all buttons
                 if (addButton) {
                   addButton.style.opacity = '0';
                   addButton.style.transform = 'translate(-50%, 0) scale(0.8)';
                 }
+                if (editButton) {
+                  editButton.style.opacity = '0';
+                }
+                if (deleteButton) {
+                  deleteButton.style.opacity = '0';
+                }
               });
               
-              // Keep button visible when hovering over it
+              // Keep buttons visible when hovering over them
               if (addButton) {
                 addButton.addEventListener('mouseenter', function() {
                   this.style.opacity = '1';
                   this.style.transform = 'translate(-50%, 0) scale(1.1)';
+                });
+              }
+              if (editButton) {
+                editButton.addEventListener('mouseenter', function() {
+                  this.style.opacity = '1';
+                });
+              }
+              if (deleteButton) {
+                deleteButton.addEventListener('mouseenter', function() {
+                  this.style.opacity = '1';
                 });
               }
               
@@ -368,17 +488,48 @@ function CodePageContent() {
         });
         
         // Find all tables (only actual table elements)
-        const tables = container.querySelectorAll('table');
-        console.log('Found', tables.length, 'table elements in DOM, parsed', parsed.tables.length, 'tables from code');
-        let tableIndex = 0;
+        // Exclude tables that are inside AirplaneSection or HotelsSection components
+        const allTables = container.querySelectorAll('table');
+        const tables: Element[] = [];
+        
+        allTables.forEach((table) => {
+          // Check if this table is inside an AirplaneSection or HotelsSection
+          const parentSection = table.closest('[data-airplane-section-setup], [data-hotels-section-setup]');
+          // Only include tables that are NOT inside airplane/hotel sections
+          if (!parentSection) {
+            tables.push(table);
+          }
+        });
+        
+        console.log('Found', tables.length, 'table elements in DOM (excluding airplane/hotel sections), parsed', parsed.tables.length, 'tables from code');
+        
         tables.forEach((table, domIndex) => {
           // Only process actual table elements
-          if (table.tagName === 'TABLE' && tableIndex < parsed.tables.length) {
+          if (table.tagName === 'TABLE') {
             const tableElement = table.closest('div') || table;
             const tableEl = tableElement as HTMLElement;
             
-            console.log(`Setting up table ${tableIndex} (DOM index ${domIndex})`);
-            tableEl.setAttribute('data-table-index', tableIndex.toString());
+            // Try to find matching parsed table by position or by checking nearby code
+            // For now, match by order in DOM
+            let matchedTable = parsed.tables[domIndex];
+            
+            // If we can't match by index, try to find by checking the table structure
+            if (!matchedTable && parsed.tables.length > 0) {
+              // Find the closest match by checking if table has similar structure
+              // This is a fallback - ideally tables should have IDs
+              matchedTable = parsed.tables[Math.min(domIndex, parsed.tables.length - 1)];
+            }
+            
+            if (!matchedTable) {
+              console.warn('Could not match table at DOM index', domIndex);
+              return;
+            }
+            
+            const tableId = matchedTable.id || `table_${domIndex}_${Date.now()}`;
+            
+            console.log(`Setting up table ${tableId} (DOM index ${domIndex})`);
+            tableEl.setAttribute('data-table-id', tableId);
+            tableEl.setAttribute('data-table-index', domIndex.toString()); // Keep for backward compatibility
             tableEl.setAttribute('data-table-setup', 'true');
             tableEl.style.cursor = 'pointer';
             tableEl.style.transition = 'all 0.3s ease';
@@ -404,9 +555,16 @@ function CodePageContent() {
                 editButton.addEventListener('click', (e) => {
                   e.stopPropagation();
                   e.preventDefault();
+                  const tblId = tableEl.getAttribute('data-table-id');
+                  if (tblId) {
+                    console.log('Clicked table ID:', tblId);
+                    setPanelContext({ type: 'table', tableId: tblId });
+                  } else {
+                    // Fallback to index for backward compatibility
                   const tblIdx = parseInt(tableEl.getAttribute('data-table-index') || '0', 10);
-                  console.log('Clicked table index:', tblIdx, 'Total tables:', parsed.tables.length);
+                    console.log('Clicked table index (fallback):', tblIdx);
                   setPanelContext({ type: 'table', index: tblIdx });
+                  }
                 });
                 
                 editButton.addEventListener('mouseenter', function() {
@@ -447,8 +605,979 @@ function CodePageContent() {
                 this.style.opacity = '1';
               });
             }
+          }
+        });
+
+        // Find and setup AirplaneSection components
+        const airplaneSections = container.querySelectorAll('[dir="rtl"]');
+        let airplaneSectionIndex = 0;
+        airplaneSections.forEach((section) => {
+          // Check if this is an AirplaneSection by looking for the characteristic table structure
+          const hasAirplaneTable = section.querySelector('table thead tr.bg-\\[\\#F5A623\\]') || 
+                                   section.querySelector('table thead tr[style*="background"]');
+          const hasAirplaneIcon = section.querySelector('svg path[d*="2.405"]'); // Airplane icon path
+          
+          if (hasAirplaneTable && hasAirplaneIcon) {
+            const sectionEl = section as HTMLElement;
+            // Extract ID from code
+            const sectionRegex = /<AirplaneSection\s+[^>]*\/>/g;
+            const matches = Array.from(codeRef.current.matchAll(sectionRegex));
+            let sectionId: string | null = null;
+            if (matches[airplaneSectionIndex]) {
+              const idMatch = matches[airplaneSectionIndex][0].match(/id\s*=\s*["']([^"']+)["']/);
+              if (idMatch) {
+                sectionId = idMatch[1];
+              }
+            }
             
-            tableIndex++;
+            sectionEl.setAttribute('data-airplane-section-index', airplaneSectionIndex.toString());
+            if (sectionId) {
+              sectionEl.setAttribute('data-airplane-section-id', sectionId);
+            }
+            sectionEl.setAttribute('data-airplane-section-setup', 'true');
+            sectionEl.style.position = 'relative';
+            sectionEl.style.cursor = 'pointer';
+            
+            let editButton: HTMLButtonElement | null = null;
+            let deleteButton: HTMLButtonElement | null = null;
+            
+            sectionEl.addEventListener('mouseenter', function() {
+              this.style.outline = '2px dashed #4A5568';
+              this.style.outlineOffset = '2px';
+              
+              if (!editButton) {
+                editButton = document.createElement('button');
+                editButton.className = 'airplane-section-edit-btn';
+                editButton.style.cssText = 'position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; background: #4A5568; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 20; opacity: 0; transition: all 0.3s ease; cursor: pointer; border: 2px solid white;';
+                editButton.innerHTML = '<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>';
+                editButton.title = 'تعديل قسم الطيران';
+                
+                // Create delete button
+                deleteButton = document.createElement('button');
+                deleteButton.className = 'airplane-section-delete-btn';
+                deleteButton.style.cssText = 'position: absolute; left: 8px; top: 8px; width: 36px; height: 36px; background: #ef4444; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 20; opacity: 0; transition: all 0.3s ease; cursor: pointer; border: 2px solid white;';
+                deleteButton.innerHTML = '<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>';
+                deleteButton.title = 'حذف قسم الطيران';
+                
+                deleteButton.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  // Extract ID from the component code
+                  const sectionId = sectionEl.getAttribute('data-airplane-section-id');
+                  if (!sectionId) {
+                    // Fallback: try to find ID from parsed code
+                    const idx = parseInt(sectionEl.getAttribute('data-airplane-section-index') || '0', 10);
+                    const parsed = parseJSXCode(codeRef.current);
+                    // Find AirplaneSection in code by index
+                    const sectionRegex = /<AirplaneSection\s+[^>]*\/>/g;
+                    const matches = Array.from(codeRef.current.matchAll(sectionRegex));
+                    if (matches[idx]) {
+                      const idMatch = matches[idx][0].match(/id\s*=\s*["']([^"']+)["']/);
+                      if (idMatch) {
+                        const confirmed = window.confirm('هل أنت متأكد من حذف قسم الطيران؟ لا يمكن التراجع عن هذا الإجراء.');
+                        if (confirmed) {
+                          const newCode = deleteAirplaneSection(codeRef.current, idMatch[1]);
+                          setCode(newCode);
+                        }
+                        return;
+                      }
+                    }
+                    console.error('Could not find AirplaneSection ID');
+                    return;
+                  }
+                  const confirmed = window.confirm('هل أنت متأكد من حذف قسم الطيران؟ لا يمكن التراجع عن هذا الإجراء.');
+                  if (confirmed) {
+                    const currentCode = codeRef.current;
+                    const newCode = deleteAirplaneSection(currentCode, sectionId);
+                    setCode(newCode);
+                  }
+                });
+                
+                deleteButton.addEventListener('mouseenter', function() {
+                  this.style.background = '#dc2626';
+                  this.style.transform = 'scale(1.1)';
+                });
+                
+                deleteButton.addEventListener('mouseleave', function() {
+                  this.style.background = '#ef4444';
+                  this.style.transform = 'scale(1)';
+                });
+                
+                sectionEl.appendChild(deleteButton);
+                
+                editButton.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  const sectionId = sectionEl.getAttribute('data-airplane-section-id');
+                  const idx = parseInt(sectionEl.getAttribute('data-airplane-section-index') || '0', 10);
+                  
+                  // Extract current data from the rendered component
+                  const titleEl = sectionEl.querySelector('h2');
+                  const title = titleEl?.textContent?.trim() || 'حجز الطيران';
+                  
+                  const noticeEl = sectionEl.querySelector('p.text-\\[\\#DC143C\\]');
+                  const noticeMessage = noticeEl?.textContent?.trim() || '';
+                  
+                  // Extract flights from table rows
+                  const tableRows = sectionEl.querySelectorAll('tbody tr');
+                  const flights: AirplaneSectionData['flights'] = [];
+                  
+                  tableRows.forEach((row) => {
+                    const cells = row.querySelectorAll('td');
+                    // Check if first cell has edit buttons (editable mode)
+                    const hasEditButtons = cells[0]?.querySelector('button');
+                    const startIndex = hasEditButtons ? 1 : 0;
+                    
+                    if (cells.length >= (5 + (hasEditButtons ? 1 : 0))) {
+                      const date = cells[startIndex]?.textContent?.trim() || '';
+                      const fromAirport = cells[startIndex + 1]?.textContent?.trim() || '';
+                      const toAirport = cells[startIndex + 2]?.textContent?.trim() || '';
+                      const travelersText = cells[startIndex + 3]?.textContent?.trim() || '';
+                      const luggage = cells[startIndex + 4]?.textContent?.trim() || '';
+                      
+                      // Parse travelers
+                      const adultsMatch = travelersText.match(/البالغين:(\d+)|Adults:(\d+)/);
+                      const childrenMatch = travelersText.match(/الاطفال:(\d+)|Children:(\d+)/);
+                      const infantsMatch = travelersText.match(/رضيع:(\d+)|Infants:(\d+)/);
+                      
+                      flights.push({
+                        date,
+                        fromAirport,
+                        toAirport,
+                        travelers: {
+                          adults: parseInt(adultsMatch?.[1] || adultsMatch?.[2] || '0', 10),
+                          children: parseInt(childrenMatch?.[1] || childrenMatch?.[2] || '0', 10),
+                          infants: parseInt(infantsMatch?.[1] || infantsMatch?.[2] || '0', 10),
+                        },
+                        luggage,
+                      });
+                    }
+                  });
+                  
+                  setAirplaneSectionInitialData({
+                    title,
+                    flights,
+                    noticeMessage,
+                    showTitle: true,
+                    showNotice: !!noticeMessage,
+                  });
+                  setEditingAirplaneSectionId(sectionId || null);
+                  setAirplaneModalOpen(true);
+                });
+                
+                sectionEl.appendChild(editButton);
+              }
+              if (editButton) {
+                editButton.style.opacity = '1';
+              }
+            });
+            
+            // Add edit/remove buttons to each flight row if they don't exist
+            const flightRows = sectionEl.querySelectorAll('tbody tr');
+            const table = sectionEl.querySelector('table');
+            const thead = table?.querySelector('thead tr');
+            
+            // Add actions column header if it doesn't exist
+            if (thead && !thead.querySelector('th:first-child')?.textContent?.includes('إجراءات')) {
+              const actionsHeader = document.createElement('th');
+              actionsHeader.className = 'px-2 py-2.5 text-center text-white font-bold text-xs border-r-2 border-white';
+              actionsHeader.textContent = 'إجراءات';
+              actionsHeader.style.cssText = 'background: #F5A623;';
+              thead.insertBefore(actionsHeader, thead.firstChild);
+            }
+            
+            flightRows.forEach((row, flightIdx) => {
+              // Add actions cell if it doesn't exist
+              let actionsCell = row.querySelector('td:first-child');
+              if (!actionsCell || !actionsCell.querySelector('button')) {
+                actionsCell = document.createElement('td');
+                actionsCell.className = 'px-2 py-3 border-r-2 border-white';
+                actionsCell.style.cssText = 'background: #E8E8E8;';
+                
+                const btnContainer = document.createElement('div');
+                btnContainer.className = 'flex flex-col gap-1';
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors';
+                editBtn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>';
+                editBtn.title = 'تعديل';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'p-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition-colors';
+                removeBtn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>';
+                removeBtn.title = 'حذف';
+                removeBtn.style.display = flightRows.length > 1 ? 'block' : 'none';
+                
+                btnContainer.appendChild(editBtn);
+                btnContainer.appendChild(removeBtn);
+                actionsCell.appendChild(btnContainer);
+                row.insertBefore(actionsCell, row.firstChild);
+              }
+              
+              const editBtn = row.querySelector('button.bg-blue-500') as HTMLButtonElement;
+              const removeBtn = row.querySelector('button.bg-red-500') as HTMLButtonElement;
+              const addBtn = sectionEl.querySelector('button.bg-green-500');
+              
+              if (editBtn && !editBtn.hasAttribute('data-flight-edit-handler')) {
+                editBtn.setAttribute('data-flight-edit-handler', 'true');
+                editBtn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  
+                  // Extract flight data from this row
+                  const cells = row.querySelectorAll('td');
+                  const hasEditButtons = cells[0]?.querySelector('button');
+                  const startIndex = hasEditButtons ? 1 : 0;
+                  
+                  if (cells.length >= (5 + (hasEditButtons ? 1 : 0))) {
+                    const date = cells[startIndex]?.textContent?.trim() || '';
+                    const fromAirport = cells[startIndex + 1]?.textContent?.trim() || '';
+                    const toAirport = cells[startIndex + 2]?.textContent?.trim() || '';
+                    const travelersText = cells[startIndex + 3]?.textContent?.trim() || '';
+                    const luggage = cells[startIndex + 4]?.textContent?.trim() || '';
+                    
+                    const adultsMatch = travelersText.match(/البالغين:(\d+)|Adults:(\d+)/);
+                    const childrenMatch = travelersText.match(/الاطفال:(\d+)|Children:(\d+)/);
+                    const infantsMatch = travelersText.match(/رضيع:(\d+)|Infants:(\d+)/);
+                    
+                    const flight = {
+                      date,
+                      fromAirport,
+                      toAirport,
+                      travelers: {
+                        adults: parseInt(adultsMatch?.[1] || adultsMatch?.[2] || '0', 10),
+                        children: parseInt(childrenMatch?.[1] || childrenMatch?.[2] || '0', 10),
+                        infants: parseInt(infantsMatch?.[1] || infantsMatch?.[2] || '0', 10),
+                      },
+                      luggage,
+                    };
+                    
+                    // Extract all flights and update the one being edited
+                    const allFlights: AirplaneSectionData['flights'] = [];
+                    flightRows.forEach((r) => {
+                      const c = r.querySelectorAll('td');
+                      const sIdx = c[0]?.querySelector('button') ? 1 : 0;
+                      if (c.length >= (5 + (c[0]?.querySelector('button') ? 1 : 0))) {
+                        const d = c[sIdx]?.textContent?.trim() || '';
+                        const fa = c[sIdx + 1]?.textContent?.trim() || '';
+                        const ta = c[sIdx + 2]?.textContent?.trim() || '';
+                        const tt = c[sIdx + 3]?.textContent?.trim() || '';
+                        const l = c[sIdx + 4]?.textContent?.trim() || '';
+                        
+                        const am = tt.match(/البالغين:(\d+)|Adults:(\d+)/);
+                        const cm = tt.match(/الاطفال:(\d+)|Children:(\d+)/);
+                        const im = tt.match(/رضيع:(\d+)|Infants:(\d+)/);
+                        
+                        allFlights.push({
+                          date: d,
+                          fromAirport: fa,
+                          toAirport: ta,
+                          travelers: {
+                            adults: parseInt(am?.[1] || am?.[2] || '0', 10),
+                            children: parseInt(cm?.[1] || cm?.[2] || '0', 10),
+                            infants: parseInt(im?.[1] || im?.[2] || '0', 10),
+                          },
+                          luggage: l,
+                        });
+                      }
+                    });
+                    
+                    // Replace the flight at flightIdx with the extracted one (in case it was edited)
+                    allFlights[flightIdx] = flight;
+                    
+                    const titleEl = sectionEl.querySelector('h2');
+                    const title = titleEl?.textContent?.trim() || 'حجز الطيران';
+                    const noticeEl = sectionEl.querySelector('p.text-\\[\\#DC143C\\]');
+                    const noticeMessage = noticeEl?.textContent?.trim() || '';
+                    
+                    setAirplaneSectionInitialData({
+                      title,
+                      flights: allFlights,
+                      noticeMessage,
+                      showTitle: true,
+                      showNotice: !!noticeMessage,
+                    });
+                    const sectionId = sectionEl.getAttribute('data-airplane-section-id');
+                    setEditingAirplaneSectionId(sectionId || null);
+                    setAirplaneModalOpen(true);
+                  }
+                });
+              }
+              
+              if (removeBtn && !removeBtn.hasAttribute('data-flight-remove-handler')) {
+                removeBtn.setAttribute('data-flight-remove-handler', 'true');
+                removeBtn.addEventListener('click', async (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  
+                  // Extract all flights except the one being removed
+                  const allFlights: AirplaneSectionData['flights'] = [];
+                  flightRows.forEach((r, i) => {
+                    if (i === flightIdx) return; // Skip the one being removed
+                    
+                    const c = r.querySelectorAll('td');
+                    const sIdx = c[0]?.querySelector('button') ? 1 : 0;
+                    if (c.length >= (5 + (c[0]?.querySelector('button') ? 1 : 0))) {
+                      const d = c[sIdx]?.textContent?.trim() || '';
+                      const fa = c[sIdx + 1]?.textContent?.trim() || '';
+                      const ta = c[sIdx + 2]?.textContent?.trim() || '';
+                      const tt = c[sIdx + 3]?.textContent?.trim() || '';
+                      const l = c[sIdx + 4]?.textContent?.trim() || '';
+                      
+                      const am = tt.match(/البالغين:(\d+)|Adults:(\d+)/);
+                      const cm = tt.match(/الاطفال:(\d+)|Children:(\d+)/);
+                      const im = tt.match(/رضيع:(\d+)|Infants:(\d+)/);
+                      
+                      allFlights.push({
+                        date: d,
+                        fromAirport: fa,
+                        toAirport: ta,
+                        travelers: {
+                          adults: parseInt(am?.[1] || am?.[2] || '0', 10),
+                          children: parseInt(cm?.[1] || cm?.[2] || '0', 10),
+                          infants: parseInt(im?.[1] || im?.[2] || '0', 10),
+                        },
+                        luggage: l,
+                      });
+                    }
+                  });
+                  
+                  if (allFlights.length > 0) {
+                    const updatedCode = updateAirplaneSectionFlights(codeRef.current, idx, allFlights);
+                    setCode(updatedCode);
+                  } else {
+                    // Can't remove last flight - show message or prevent
+                    alert('يجب أن يكون هناك رحلة واحدة على الأقل');
+                  }
+                });
+              }
+            });
+            
+            // Add "Add Flight" button if it doesn't exist
+            let addFlightBtn = sectionEl.querySelector('button.bg-green-500');
+            const tbody = table?.querySelector('tbody');
+            if (!addFlightBtn && tbody) {
+              const addRow = document.createElement('tr');
+              const addCell = document.createElement('td');
+              addCell.colSpan = thead?.querySelectorAll('th').length || 6;
+              addCell.className = 'px-4 py-3 text-center';
+              addCell.style.cssText = 'background: #E8E8E8;';
+              
+              addFlightBtn = document.createElement('button');
+              addFlightBtn.className = 'px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2 mx-auto';
+              addFlightBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>إضافة رحلة جديدة';
+              
+              addCell.appendChild(addFlightBtn);
+              addRow.appendChild(addCell);
+              tbody.appendChild(addRow);
+            }
+            
+            if (addFlightBtn && !addFlightBtn.hasAttribute('data-add-flight-handler')) {
+              addFlightBtn.setAttribute('data-add-flight-handler', 'true');
+              addFlightBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                // Extract current flights and add a new empty one
+                const flightRows = sectionEl.querySelectorAll('tbody tr:not(:last-child)');
+                const allFlights: AirplaneSectionData['flights'] = [];
+                
+                flightRows.forEach((r) => {
+                  const c = r.querySelectorAll('td');
+                  const sIdx = c[0]?.querySelector('button') ? 1 : 0;
+                  if (c.length >= (5 + (c[0]?.querySelector('button') ? 1 : 0))) {
+                    const d = c[sIdx]?.textContent?.trim() || '';
+                    const fa = c[sIdx + 1]?.textContent?.trim() || '';
+                    const ta = c[sIdx + 2]?.textContent?.trim() || '';
+                    const tt = c[sIdx + 3]?.textContent?.trim() || '';
+                    const l = c[sIdx + 4]?.textContent?.trim() || '';
+                    
+                    const am = tt.match(/البالغين:(\d+)|Adults:(\d+)/);
+                    const cm = tt.match(/الاطفال:(\d+)|Children:(\d+)/);
+                    const im = tt.match(/رضيع:(\d+)|Infants:(\d+)/);
+                    
+                    allFlights.push({
+                      date: d,
+                      fromAirport: fa,
+                      toAirport: ta,
+                      travelers: {
+                        adults: parseInt(am?.[1] || am?.[2] || '0', 10),
+                        children: parseInt(cm?.[1] || cm?.[2] || '0', 10),
+                        infants: parseInt(im?.[1] || im?.[2] || '0', 10),
+                      },
+                      luggage: l,
+                    });
+                  }
+                });
+                
+                // Add new empty flight
+                allFlights.push({
+                  date: '',
+                  fromAirport: '',
+                  toAirport: '',
+                  travelers: { adults: 0, children: 0, infants: 0 },
+                  luggage: '',
+                });
+                
+                const titleEl = sectionEl.querySelector('h2');
+                const title = titleEl?.textContent?.trim() || 'حجز الطيران';
+                const noticeEl = sectionEl.querySelector('p.text-\\[\\#DC143C\\]');
+                const noticeMessage = noticeEl?.textContent?.trim() || '';
+                
+                setAirplaneSectionInitialData({
+                  title,
+                  flights: allFlights,
+                  noticeMessage,
+                  showTitle: true,
+                  showNotice: !!noticeMessage,
+                });
+                const sectionId = sectionEl.getAttribute('data-airplane-section-id');
+                setEditingAirplaneSectionId(sectionId || null);
+                setAirplaneModalOpen(true);
+              });
+            }
+            
+            sectionEl.addEventListener('mouseleave', function(e) {
+              const relatedTarget = e.relatedTarget as HTMLElement;
+              if (relatedTarget && (relatedTarget === editButton || relatedTarget.closest('.airplane-section-edit-btn'))) {
+                return;
+              }
+              this.style.outline = '';
+              if (editButton) {
+                editButton.style.opacity = '0';
+              }
+            });
+            
+            airplaneSectionIndex++;
+          }
+        });
+
+        // Find and setup HotelsSection components
+        const hotelsSections = container.querySelectorAll('[dir="rtl"]');
+        let hotelsSectionIndex = 0;
+        hotelsSections.forEach((section) => {
+          // Check if this is a HotelsSection by looking for hotel cards
+          const hasHotelCards = section.querySelector('.border-2.border-blue-300.rounded-2xl');
+          const hasHotelIcon = section.querySelector('svg path[d*="3.705"]'); // Hotel icon path
+          
+          if (hasHotelCards && hasHotelIcon && !section.hasAttribute('data-airplane-section-setup')) {
+            const sectionEl = section as HTMLElement;
+            sectionEl.setAttribute('data-hotels-section-index', hotelsSectionIndex.toString());
+            sectionEl.setAttribute('data-hotels-section-setup', 'true');
+            sectionEl.style.position = 'relative';
+            sectionEl.style.cursor = 'pointer';
+            
+            let editButton: HTMLButtonElement | null = null;
+            let deleteButton: HTMLButtonElement | null = null;
+            
+            sectionEl.addEventListener('mouseenter', function() {
+              this.style.outline = '2px dashed #3B5998';
+              this.style.outlineOffset = '2px';
+              
+              if (!editButton) {
+                editButton = document.createElement('button');
+                editButton.className = 'hotels-section-edit-btn';
+                editButton.style.cssText = 'position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; background: #3B5998; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 20; opacity: 0; transition: all 0.3s ease; cursor: pointer; border: 2px solid white;';
+                editButton.innerHTML = '<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>';
+                editButton.title = 'تعديل قسم الفنادق';
+                
+                // Create delete button
+                deleteButton = document.createElement('button');
+                deleteButton.className = 'hotels-section-delete-btn';
+                deleteButton.style.cssText = 'position: absolute; left: 8px; top: 8px; width: 36px; height: 36px; background: #ef4444; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 20; opacity: 0; transition: all 0.3s ease; cursor: pointer; border: 2px solid white;';
+                deleteButton.innerHTML = '<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>';
+                deleteButton.title = 'حذف قسم الفنادق';
+                
+                deleteButton.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  const sectionId = sectionEl.getAttribute('data-hotels-section-id');
+                  if (!sectionId) {
+                    // Fallback: try to find ID from code
+                    const idx = parseInt(sectionEl.getAttribute('data-hotels-section-index') || '0', 10);
+                    const hotelsSectionRegex = /<HotelsSection\s+[^>]*\/>/g;
+                    const hotelsMatches = Array.from(codeRef.current.matchAll(hotelsSectionRegex));
+                    if (hotelsMatches[idx]) {
+                      const idMatch = hotelsMatches[idx][0].match(/id\s*=\s*["']([^"']+)["']/);
+                      if (idMatch) {
+                        const confirmed = window.confirm('هل أنت متأكد من حذف قسم الفنادق؟ لا يمكن التراجع عن هذا الإجراء.');
+                        if (confirmed) {
+                          const newCode = deleteHotelsSection(codeRef.current, idMatch[1]);
+                          setCode(newCode);
+                        }
+                        return;
+                      }
+                    }
+                    console.error('Could not find HotelsSection ID');
+                    return;
+                  }
+                  const confirmed = window.confirm('هل أنت متأكد من حذف قسم الفنادق؟ لا يمكن التراجع عن هذا الإجراء.');
+                  if (confirmed) {
+                    const currentCode = codeRef.current;
+                    const newCode = deleteHotelsSection(currentCode, sectionId);
+                    setCode(newCode);
+                  }
+                });
+                
+                deleteButton.addEventListener('mouseenter', function() {
+                  this.style.background = '#dc2626';
+                  this.style.transform = 'scale(1.1)';
+                });
+                
+                deleteButton.addEventListener('mouseleave', function() {
+                  this.style.background = '#ef4444';
+                  this.style.transform = 'scale(1)';
+                });
+                
+                sectionEl.appendChild(deleteButton);
+                
+                editButton.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  const idx = parseInt(sectionEl.getAttribute('data-hotels-section-index') || '0', 10);
+                  
+                  // Extract current data from the rendered component
+                  const titleEl = sectionEl.querySelector('h2');
+                  const title = titleEl?.textContent?.trim() || 'حجز الفنادق';
+                  
+                  // Extract hotels from cards
+                  const hotelCards = sectionEl.querySelectorAll('.border-2.border-blue-300.rounded-2xl');
+                  const hotels: HotelsSectionData['hotels'] = [];
+                  
+                  hotelCards.forEach((card) => {
+                    const cityEl = card.querySelector('.bg-\\[\\#1E88E5\\] span:last-child');
+                    const city = cityEl?.textContent?.trim() || '';
+                    
+                    const nightsEl = card.querySelector('.bg-white.text-\\[\\#1E88E5\\]');
+                    const nightsText = nightsEl?.textContent?.trim() || '';
+                    const nights = parseInt(nightsText.match(/\d+/)?.[0] || '0', 10);
+                    
+                    const cityBadgeEl = card.querySelector('.bg-\\[\\#FF6B35\\]');
+                    const cityBadge = cityBadgeEl?.textContent?.trim();
+                    
+                    const hotelNameEl = card.querySelector('.bg-\\[\\#1E88E5\\] span.font-bold');
+                    const hotelName = hotelNameEl?.textContent?.trim() || '';
+                    
+                    const hasDetailsLink = !!card.querySelector('.bg-white.rounded-full.p-1\\.5');
+                    
+                    const roomDivs = card.querySelectorAll('.bg-\\[\\#1E88E5\\].text-white.px-4');
+                    const includesAll = roomDivs[0]?.textContent?.trim() || '';
+                    const roomType = roomDivs[1]?.textContent?.trim();
+                    const bedType = roomDivs[2]?.textContent?.trim() || '';
+                    
+                    const dateSection = card.querySelector('.bg-\\[\\#FF6B35\\]');
+                    const dateText = dateSection?.textContent || '';
+                    const checkInMatch = dateText.match(/تاريخ الدخول\s+(\d{4}-\d{2}-\d{2})/);
+                    const checkOutMatch = dateText.match(/تاريخ الخروج\s+(\d{4}-\d{2}-\d{2})/);
+                    const checkInDate = checkInMatch?.[1] || '';
+                    const checkOutDate = checkOutMatch?.[1] || '';
+                    
+                    const dayInfoEl = card.querySelector('.absolute.top-6.right-4');
+                    const dayInfoText = dayInfoEl?.textContent || '';
+                    const checkInDayMatch = dayInfoText.match(/^(.+)$/m);
+                    const checkOutDayMatch = dayInfoText.match(/\n(.+)$/m);
+                    const checkInDay = checkInDayMatch?.[1]?.trim() || '';
+                    const checkOutDay = checkOutDayMatch?.[1]?.trim() || '';
+                    
+                    hotels.push({
+                      city,
+                      nights,
+                      cityBadge,
+                      hotelName,
+                      hasDetailsLink,
+                      roomDescription: {
+                        includesAll,
+                        bedType,
+                        roomType,
+                      },
+                      checkInDate,
+                      checkOutDate,
+                      dayInfo: {
+                        checkInDay,
+                        checkOutDay,
+                      },
+                    });
+                  });
+                  
+                  setHotelsSectionInitialData({
+                    title,
+                    hotels,
+                    showTitle: true,
+                  });
+                  const sectionId = sectionEl.getAttribute('data-hotels-section-id');
+                  setEditingHotelsSectionId(sectionId || null);
+                  setHotelsModalOpen(true);
+                });
+                
+                sectionEl.appendChild(editButton);
+              }
+              if (editButton) {
+                editButton.style.opacity = '1';
+              }
+            });
+            
+            // Add edit/remove buttons to each hotel card if they don't exist
+            const hotelCards = sectionEl.querySelectorAll('.border-2.border-blue-300.rounded-2xl');
+            hotelCards.forEach((card, hotelIdx) => {
+              let editBtn = card.querySelector('button.bg-blue-500') as HTMLButtonElement;
+              let removeBtn = card.querySelector('button.bg-red-500') as HTMLButtonElement;
+              
+              // Add buttons if they don't exist
+              if (!editBtn || !removeBtn) {
+                const cardEl = card as HTMLElement;
+                cardEl.style.position = 'relative';
+                
+                if (!editBtn) {
+                  editBtn = document.createElement('button');
+                  editBtn.className = 'p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors shadow-md absolute top-2 left-2 z-10';
+                  editBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>';
+                  editBtn.title = 'تعديل';
+                  cardEl.appendChild(editBtn);
+                }
+                
+                if (!removeBtn) {
+                  removeBtn = document.createElement('button');
+                  removeBtn.className = 'p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md absolute top-2 left-14 z-10';
+                  removeBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>';
+                  removeBtn.title = 'حذف';
+                  removeBtn.style.display = hotelCards.length > 1 ? 'block' : 'none';
+                  cardEl.appendChild(removeBtn);
+                }
+              }
+              
+              if (editBtn && !editBtn.hasAttribute('data-hotel-edit-handler')) {
+                editBtn.setAttribute('data-hotel-edit-handler', 'true');
+                editBtn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  
+                  // Extract hotel data from this card (same logic as above)
+                  const cityEl = card.querySelector('.bg-\\[\\#1E88E5\\] span:last-child');
+                  const city = cityEl?.textContent?.trim() || '';
+                  
+                  const nightsEl = card.querySelector('.bg-white.text-\\[\\#1E88E5\\]');
+                  const nightsText = nightsEl?.textContent?.trim() || '';
+                  const nights = parseInt(nightsText.match(/\d+/)?.[0] || '0', 10);
+                  
+                  const cityBadgeEl = card.querySelector('.bg-\\[\\#FF6B35\\]');
+                  const cityBadge = cityBadgeEl?.textContent?.trim();
+                  
+                  const hotelNameEl = card.querySelector('.bg-\\[\\#1E88E5\\] span.font-bold');
+                  const hotelName = hotelNameEl?.textContent?.trim() || '';
+                  
+                  const hasDetailsLink = !!card.querySelector('.bg-white.rounded-full.p-1\\.5');
+                  
+                  const roomDivs = card.querySelectorAll('.bg-\\[\\#1E88E5\\].text-white.px-4');
+                  const includesAll = roomDivs[0]?.textContent?.trim() || '';
+                  const roomType = roomDivs[1]?.textContent?.trim();
+                  const bedType = roomDivs[2]?.textContent?.trim() || '';
+                  
+                  const dateSection = card.querySelector('.bg-\\[\\#FF6B35\\]');
+                  const dateText = dateSection?.textContent || '';
+                  const checkInMatch = dateText.match(/تاريخ الدخول\s+(\d{4}-\d{2}-\d{2})/);
+                  const checkOutMatch = dateText.match(/تاريخ الخروج\s+(\d{4}-\d{2}-\d{2})/);
+                  const checkInDate = checkInMatch?.[1] || '';
+                  const checkOutDate = checkOutMatch?.[1] || '';
+                  
+                  const dayInfoEl = card.querySelector('.absolute.top-6.right-4');
+                  const dayInfoText = dayInfoEl?.textContent || '';
+                  const checkInDayMatch = dayInfoText.match(/^(.+)$/m);
+                  const checkOutDayMatch = dayInfoText.match(/\n(.+)$/m);
+                  const checkInDay = checkInDayMatch?.[1]?.trim() || '';
+                  const checkOutDay = checkOutDayMatch?.[1]?.trim() || '';
+                  
+                  // Extract all hotels and update the one being edited
+                  const allHotels: HotelsSectionData['hotels'] = [];
+                  hotelCards.forEach((c, i) => {
+                    const cityE = c.querySelector('.bg-\\[\\#1E88E5\\] span:last-child');
+                    const cityV = cityE?.textContent?.trim() || '';
+                    
+                    const nightsE = c.querySelector('.bg-white.text-\\[\\#1E88E5\\]');
+                    const nightsTextV = nightsE?.textContent?.trim() || '';
+                    const nightsV = parseInt(nightsTextV.match(/\d+/)?.[0] || '0', 10);
+                    
+                    const cityBadgeE = c.querySelector('.bg-\\[\\#FF6B35\\]');
+                    const cityBadgeV = cityBadgeE?.textContent?.trim();
+                    
+                    const hotelNameE = c.querySelector('.bg-\\[\\#1E88E5\\] span.font-bold');
+                    const hotelNameV = hotelNameE?.textContent?.trim() || '';
+                    
+                    const hasDetailsLinkV = !!c.querySelector('.bg-white.rounded-full.p-1\\.5');
+                    
+                    const roomDivsV = c.querySelectorAll('.bg-\\[\\#1E88E5\\].text-white.px-4');
+                    const includesAllV = roomDivsV[0]?.textContent?.trim() || '';
+                    const roomTypeV = roomDivsV[1]?.textContent?.trim();
+                    const bedTypeV = roomDivsV[2]?.textContent?.trim() || '';
+                    
+                    const dateSectionV = c.querySelector('.bg-\\[\\#FF6B35\\]');
+                    const dateTextV = dateSectionV?.textContent || '';
+                    const checkInMatchV = dateTextV.match(/تاريخ الدخول\s+(\d{4}-\d{2}-\d{2})/);
+                    const checkOutMatchV = dateTextV.match(/تاريخ الخروج\s+(\d{4}-\d{2}-\d{2})/);
+                    const checkInDateV = checkInMatchV?.[1] || '';
+                    const checkOutDateV = checkOutMatchV?.[1] || '';
+                    
+                    const dayInfoElV = c.querySelector('.absolute.top-6.right-4');
+                    const dayInfoTextV = dayInfoElV?.textContent || '';
+                    const checkInDayMatchV = dayInfoTextV.match(/^(.+)$/m);
+                    const checkOutDayMatchV = dayInfoTextV.match(/\n(.+)$/m);
+                    const checkInDayV = checkInDayMatchV?.[1]?.trim() || '';
+                    const checkOutDayV = checkOutDayMatchV?.[1]?.trim() || '';
+                    
+                    allHotels.push({
+                      city: cityV,
+                      nights: nightsV,
+                      cityBadge: cityBadgeV,
+                      hotelName: hotelNameV,
+                      hasDetailsLink: hasDetailsLinkV,
+                      roomDescription: {
+                        includesAll: includesAllV,
+                        bedType: bedTypeV,
+                        roomType: roomTypeV,
+                      },
+                      checkInDate: checkInDateV,
+                      checkOutDate: checkOutDateV,
+                      dayInfo: {
+                        checkInDay: checkInDayV,
+                        checkOutDay: checkOutDayV,
+                      },
+                    });
+                  });
+                  
+                  // Replace the hotel at hotelIdx
+                  allHotels[hotelIdx] = {
+                    city,
+                    nights,
+                    cityBadge,
+                    hotelName,
+                    hasDetailsLink,
+                    roomDescription: {
+                      includesAll,
+                      bedType,
+                      roomType,
+                    },
+                    checkInDate,
+                    checkOutDate,
+                    dayInfo: {
+                      checkInDay,
+                      checkOutDay,
+                    },
+                  };
+                  
+                  const titleEl = sectionEl.querySelector('h2');
+                  const title = titleEl?.textContent?.trim() || 'حجز الفنادق';
+                  
+                  setHotelsSectionInitialData({
+                    title,
+                    hotels: allHotels,
+                    showTitle: true,
+                  });
+                  setEditingHotelsSectionIndex(idx);
+                  setHotelsModalOpen(true);
+                });
+              }
+              
+              if (removeBtn && !removeBtn.hasAttribute('data-hotel-remove-handler')) {
+                removeBtn.setAttribute('data-hotel-remove-handler', 'true');
+                removeBtn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  
+                  // Extract all hotels except the one being removed
+                  const allHotels: HotelsSectionData['hotels'] = [];
+                  hotelCards.forEach((c, i) => {
+                    if (i === hotelIdx) return;
+                    
+                    const cityE = c.querySelector('.bg-\\[\\#1E88E5\\] span:last-child');
+                    const cityV = cityE?.textContent?.trim() || '';
+                    
+                    const nightsE = c.querySelector('.bg-white.text-\\[\\#1E88E5\\]');
+                    const nightsTextV = nightsE?.textContent?.trim() || '';
+                    const nightsV = parseInt(nightsTextV.match(/\d+/)?.[0] || '0', 10);
+                    
+                    const cityBadgeE = c.querySelector('.bg-\\[\\#FF6B35\\]');
+                    const cityBadgeV = cityBadgeE?.textContent?.trim();
+                    
+                    const hotelNameE = c.querySelector('.bg-\\[\\#1E88E5\\] span.font-bold');
+                    const hotelNameV = hotelNameE?.textContent?.trim() || '';
+                    
+                    const hasDetailsLinkV = !!c.querySelector('.bg-white.rounded-full.p-1\\.5');
+                    
+                    const roomDivsV = c.querySelectorAll('.bg-\\[\\#1E88E5\\].text-white.px-4');
+                    const includesAllV = roomDivsV[0]?.textContent?.trim() || '';
+                    const roomTypeV = roomDivsV[1]?.textContent?.trim();
+                    const bedTypeV = roomDivsV[2]?.textContent?.trim() || '';
+                    
+                    const dateSectionV = c.querySelector('.bg-\\[\\#FF6B35\\]');
+                    const dateTextV = dateSectionV?.textContent || '';
+                    const checkInMatchV = dateTextV.match(/تاريخ الدخول\s+(\d{4}-\d{2}-\d{2})/);
+                    const checkOutMatchV = dateTextV.match(/تاريخ الخروج\s+(\d{4}-\d{2}-\d{2})/);
+                    const checkInDateV = checkInMatchV?.[1] || '';
+                    const checkOutDateV = checkOutMatchV?.[1] || '';
+                    
+                    const dayInfoElV = c.querySelector('.absolute.top-6.right-4');
+                    const dayInfoTextV = dayInfoElV?.textContent || '';
+                    const checkInDayMatchV = dayInfoTextV.match(/^(.+)$/m);
+                    const checkOutDayMatchV = dayInfoTextV.match(/\n(.+)$/m);
+                    const checkInDayV = checkInDayMatchV?.[1]?.trim() || '';
+                    const checkOutDayV = checkOutDayMatchV?.[1]?.trim() || '';
+                    
+                    allHotels.push({
+                      city: cityV,
+                      nights: nightsV,
+                      cityBadge: cityBadgeV,
+                      hotelName: hotelNameV,
+                      hasDetailsLink: hasDetailsLinkV,
+                      roomDescription: {
+                        includesAll: includesAllV,
+                        bedType: bedTypeV,
+                        roomType: roomTypeV,
+                      },
+                      checkInDate: checkInDateV,
+                      checkOutDate: checkOutDateV,
+                      dayInfo: {
+                        checkInDay: checkInDayV,
+                        checkOutDay: checkOutDayV,
+                      },
+                    });
+                  });
+                  
+                  if (allHotels.length > 0) {
+                    const updatedCode = updateHotelsSectionHotels(codeRef.current, idx, allHotels);
+                    setCode(updatedCode);
+                  } else {
+                    // Can't remove last hotel - show message or prevent
+                    alert('يجب أن يكون هناك فندق واحد على الأقل');
+                  }
+                });
+              }
+            });
+            
+            // Add "Add Hotel" button if it doesn't exist
+            const hotelsContainer = sectionEl.querySelector('.space-y-4');
+            let addHotelBtn = sectionEl.querySelector('button.bg-green-500') as HTMLButtonElement;
+            
+            if (!addHotelBtn && hotelsContainer) {
+              const addCard = document.createElement('div');
+              addCard.className = 'border-2 border-dashed border-blue-300 rounded-2xl p-8 bg-blue-50 text-center';
+              
+              addHotelBtn = document.createElement('button');
+              addHotelBtn.className = 'px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2 mx-auto';
+              addHotelBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>إضافة فندق جديد';
+              
+              addCard.appendChild(addHotelBtn);
+              hotelsContainer.appendChild(addCard);
+            }
+            
+            if (addHotelBtn && !addHotelBtn.hasAttribute('data-add-hotel-handler')) {
+              addHotelBtn.setAttribute('data-add-hotel-handler', 'true');
+              addHotelBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                // Extract current hotels and add a new empty one
+                const hotelCards = sectionEl.querySelectorAll('.border-2.border-blue-300.rounded-2xl');
+                const allHotels: HotelsSectionData['hotels'] = [];
+                
+                hotelCards.forEach((c) => {
+                  const cityE = c.querySelector('.bg-\\[\\#1E88E5\\] span:last-child');
+                  const cityV = cityE?.textContent?.trim() || '';
+                  
+                  const nightsE = c.querySelector('.bg-white.text-\\[\\#1E88E5\\]');
+                  const nightsTextV = nightsE?.textContent?.trim() || '';
+                  const nightsV = parseInt(nightsTextV.match(/\d+/)?.[0] || '0', 10);
+                  
+                  const cityBadgeE = c.querySelector('.bg-\\[\\#FF6B35\\]');
+                  const cityBadgeV = cityBadgeE?.textContent?.trim();
+                  
+                  const hotelNameE = c.querySelector('.bg-\\[\\#1E88E5\\] span.font-bold');
+                  const hotelNameV = hotelNameE?.textContent?.trim() || '';
+                  
+                  const hasDetailsLinkV = !!c.querySelector('.bg-white.rounded-full.p-1\\.5');
+                  
+                  const roomDivsV = c.querySelectorAll('.bg-\\[\\#1E88E5\\].text-white.px-4');
+                  const includesAllV = roomDivsV[0]?.textContent?.trim() || '';
+                  const roomTypeV = roomDivsV[1]?.textContent?.trim();
+                  const bedTypeV = roomDivsV[2]?.textContent?.trim() || '';
+                  
+                  const dateSectionV = c.querySelector('.bg-\\[\\#FF6B35\\]');
+                  const dateTextV = dateSectionV?.textContent || '';
+                  const checkInMatchV = dateTextV.match(/تاريخ الدخول\s+(\d{4}-\d{2}-\d{2})/);
+                  const checkOutMatchV = dateTextV.match(/تاريخ الخروج\s+(\d{4}-\d{2}-\d{2})/);
+                  const checkInDateV = checkInMatchV?.[1] || '';
+                  const checkOutDateV = checkOutMatchV?.[1] || '';
+                  
+                  const dayInfoElV = c.querySelector('.absolute.top-6.right-4');
+                  const dayInfoTextV = dayInfoElV?.textContent || '';
+                  const checkInDayMatchV = dayInfoTextV.match(/^(.+)$/m);
+                  const checkOutDayMatchV = dayInfoTextV.match(/\n(.+)$/m);
+                  const checkInDayV = checkInDayMatchV?.[1]?.trim() || '';
+                  const checkOutDayV = checkOutDayMatchV?.[1]?.trim() || '';
+                  
+                  allHotels.push({
+                    city: cityV,
+                    nights: nightsV,
+                    cityBadge: cityBadgeV,
+                    hotelName: hotelNameV,
+                    hasDetailsLink: hasDetailsLinkV,
+                    roomDescription: {
+                      includesAll: includesAllV,
+                      bedType: bedTypeV,
+                      roomType: roomTypeV,
+                    },
+                    checkInDate: checkInDateV,
+                    checkOutDate: checkOutDateV,
+                    dayInfo: {
+                      checkInDay: checkInDayV,
+                      checkOutDay: checkOutDayV,
+                    },
+                  });
+                });
+                
+                // Add new empty hotel
+                allHotels.push({
+                  city: '',
+                  nights: 0,
+                  cityBadge: '',
+                  hotelName: '',
+                  hasDetailsLink: false,
+                  roomDescription: {
+                    includesAll: '',
+                    bedType: '',
+                    roomType: '',
+                  },
+                  checkInDate: '',
+                  checkOutDate: '',
+                  dayInfo: {
+                    checkInDay: '',
+                    checkOutDay: '',
+                  },
+                });
+                
+                const titleEl = sectionEl.querySelector('h2');
+                const title = titleEl?.textContent?.trim() || 'حجز الفنادق';
+                
+                setHotelsSectionInitialData({
+                  title,
+                  hotels: allHotels,
+                  showTitle: true,
+                });
+                setEditingHotelsSectionIndex(idx);
+                setHotelsModalOpen(true);
+              });
+            }
+            
+            sectionEl.addEventListener('mouseleave', function(e) {
+              const relatedTarget = e.relatedTarget as HTMLElement;
+              if (relatedTarget && (relatedTarget === editButton || relatedTarget.closest('.hotels-section-edit-btn'))) {
+                return;
+              }
+              this.style.outline = '';
+              if (editButton) {
+                editButton.style.opacity = '0';
+              }
+            });
+            
+            hotelsSectionIndex++;
           }
         });
       });
@@ -459,7 +1588,7 @@ function CodePageContent() {
       // Clean up add buttons and edit buttons on unmount
       const container = previewContainerRef.current;
       if (container) {
-        const existingButtons = container.querySelectorAll('.section-add-btn, .table-edit-btn');
+        const existingButtons = container.querySelectorAll('.section-add-btn, .section-edit-btn, .section-delete-btn, .table-edit-btn, .airplane-section-edit-btn, .hotels-section-edit-btn');
         existingButtons.forEach(btn => btn.remove());
       }
     };
@@ -471,16 +1600,44 @@ function CodePageContent() {
   }, []);
 
   const handleAirplaneSectionSubmit = useCallback((data: AirplaneSectionData) => {
-    const updatedCode = insertAirplaneSection(code, data);
+    let updatedCode: string;
+    if (editingAirplaneSectionId) {
+      // Update existing section - update all props (title, noticeMessage, flights, etc.)
+      updatedCode = updateAirplaneSection(code, editingAirplaneSectionId, {
+        title: data.title,
+        flights: data.flights,
+        noticeMessage: data.noticeMessage,
+        showTitle: data.showTitle,
+        showNotice: data.showNotice,
+      });
+      setEditingAirplaneSectionId(null);
+      setAirplaneSectionInitialData(undefined);
+    } else {
+      // Insert new section
+      updatedCode = insertAirplaneSection(code, data);
+    }
     handleCodeChange(updatedCode);
     setAirplaneModalOpen(false);
-  }, [code, handleCodeChange]);
+  }, [code, handleCodeChange, editingAirplaneSectionId]);
 
   const handleHotelsSectionSubmit = useCallback((data: HotelsSectionData) => {
-    const updatedCode = insertHotelsSection(code, data);
+    let updatedCode: string;
+    if (editingHotelsSectionId) {
+      // Update existing section - update all props (title, hotels, etc.)
+      updatedCode = updateHotelsSection(code, editingHotelsSectionId, {
+        title: data.title,
+        hotels: data.hotels,
+        showTitle: data.showTitle,
+      });
+      setEditingHotelsSectionId(null);
+      setHotelsSectionInitialData(undefined);
+    } else {
+      // Insert new section
+      updatedCode = insertHotelsSection(code, data);
+    }
     handleCodeChange(updatedCode);
     setHotelsModalOpen(false);
-  }, [code, handleCodeChange]);
+  }, [code, handleCodeChange, editingHotelsSectionId]);
 
   const handleCreateTable = useCallback((config: {
     title: string;
@@ -909,15 +2066,25 @@ function CodePageContent() {
       {/* Airplane Section Modal */}
       <AirplaneSectionModal
         isOpen={airplaneModalOpen}
-        onClose={() => setAirplaneModalOpen(false)}
+        onClose={() => {
+          setAirplaneModalOpen(false);
+          setEditingAirplaneSectionId(null);
+          setAirplaneSectionInitialData(undefined);
+        }}
         onSubmit={handleAirplaneSectionSubmit}
+        initialData={airplaneSectionInitialData}
       />
 
       {/* Hotels Section Modal */}
       <HotelsSectionModal
         isOpen={hotelsModalOpen}
-        onClose={() => setHotelsModalOpen(false)}
+        onClose={() => {
+          setHotelsModalOpen(false);
+          setEditingHotelsSectionId(null);
+          setHotelsSectionInitialData(undefined);
+        }}
         onSubmit={handleHotelsSectionSubmit}
+        initialData={hotelsSectionInitialData}
       />
 
       <style jsx>{`

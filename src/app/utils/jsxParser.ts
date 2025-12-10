@@ -6,6 +6,7 @@
 
 export interface ParsedSection {
   index: number;
+  id?: string; // Unique section ID
   title?: string;
   content: string;
   type?: string;
@@ -18,6 +19,7 @@ export interface ParsedSection {
 
 export interface ParsedTable {
   index: number;
+  id?: string; // Unique table ID
   headers?: string[];
   columns?: string[];
   rows: (string | number)[][];
@@ -250,11 +252,16 @@ function parseArrayBasedSections(code: string): ParsedSection[] {
         const typeMatch = objectContent.match(/"type"\s*:\s*"((?:[^"\\]|\\.)*)"/);
         const type = typeMatch ? typeMatch[1] : 'section';
         
+        // Extract ID
+        const idMatch = objectContent.match(/"id"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+        const id = idMatch ? idMatch[1].replace(/\\"/g, '"') : undefined;
+        
         const startIndex = arrayStart + objectStart;
         const endIndex = arrayStart + i + 1;
         
         sections.push({
           index,
+          id: id || `section_${index}_${Date.now()}`,
           title,
           content,
           type,
@@ -350,11 +357,16 @@ function parseArrayBasedTables(code: string): ParsedTable[] {
         const titleMatch = objectContent.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/);
         const title = titleMatch ? titleMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\') : undefined;
         
+        // Extract ID
+        const idMatch = objectContent.match(/"id"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+        const id = idMatch ? idMatch[1].replace(/\\"/g, '"') : undefined;
+        
         const startIndex = arrayStart + objectStart;
         const endIndex = arrayStart + i + 1;
         
         tables.push({
           index,
+          id: id || `table_${index}_${Date.now()}`,
           columns: columns.length > 0 ? columns : undefined,
           rows,
           title,
@@ -411,6 +423,7 @@ export function parseJSXCode(code: string): ParsedStructure {
       const startIndex = sectionMatch.index;
       const endIndex = startIndex + fullMatch.length;
       
+      const id = extractPropValue(propsString, 'id');
       const title = extractPropValue(propsString, 'title');
       const content = extractPropValue(propsString, 'content') || '';
       const type = extractPropValue(propsString, 'type') || 'section';
@@ -426,6 +439,7 @@ export function parseJSXCode(code: string): ParsedStructure {
       
       sections.push({
         index: sectionIndex++,
+        id: id || `section_${sectionIndex}_${Date.now()}`,
         title: title || undefined,
         content: actualContent,
         type: type || 'section',
@@ -451,6 +465,7 @@ export function parseJSXCode(code: string): ParsedStructure {
       const columns = extractPropValue(propsString, 'columns');
       const rows = extractPropValue(propsString, 'rows');
       const title = extractPropValue(propsString, 'title');
+      const tableId = extractPropValue(propsString, 'tableId');
       
       let headersArray: string[] = [];
       let columnsArray: string[] = [];
@@ -468,6 +483,7 @@ export function parseJSXCode(code: string): ParsedStructure {
       
       tables.push({
         index: tableIndex++,
+        id: tableId || `table_${tableIndex}_${Date.now()}`,
         headers: headersArray.length > 0 ? headersArray : undefined,
         columns: columnsArray.length > 0 ? columnsArray : undefined,
         rows: rowsArray,

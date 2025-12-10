@@ -12,9 +12,9 @@ import {
 
 export type PanelContext = 
   | { type: 'section'; index: number }
-  | { type: 'table'; index: number }
-  | { type: 'column'; tableIndex: number; columnIndex: number }
-  | { type: 'row'; tableIndex: number; rowIndex: number }
+  | { type: 'table'; index?: number; tableId?: string } // Support both for backward compatibility
+  | { type: 'column'; tableIndex?: number; tableId?: string; columnIndex: number }
+  | { type: 'row'; tableIndex?: number; tableId?: string; rowIndex: number }
   | null;
 
 interface CustomizationPanelProps {
@@ -83,10 +83,27 @@ export default function CustomizationPanel({
 
   const handleDeleteTable = () => {
     if (context.type === 'table') {
-      console.log('Deleting table at index:', context.index);
+      const tableId = context.tableId;
+      if (!tableId) {
+        // Fallback to index for backward compatibility
+        if (context.index !== undefined) {
+          const table = parsed.tables[context.index];
+          if (table?.id) {
+            const newCode = deleteTable(code, table.id);
+            console.log('Delete result - code changed:', newCode !== code);
+            onCodeChange(newCode);
+            onClose();
+            return;
+          }
+        }
+        console.error('Cannot delete table: no ID or index provided');
+        return;
+      }
+      
+      console.log('Deleting table with ID:', tableId);
       const confirmed = window.confirm('Are you sure you want to delete this table? This action cannot be undone.');
       if (confirmed) {
-        const newCode = deleteTable(code, context.index);
+        const newCode = deleteTable(code, tableId);
         console.log('Delete result - code changed:', newCode !== code);
         onCodeChange(newCode);
         onClose();
@@ -95,9 +112,26 @@ export default function CustomizationPanel({
   };
   
   const currentSection = context.type === 'section' ? parsed.sections[context.index] : null;
-  const currentTable = context.type === 'table' || context.type === 'column' || context.type === 'row'
-    ? parsed.tables[context.type === 'table' ? context.index : context.tableIndex]
-    : null;
+  
+  // Find table by ID or index
+  const getCurrentTable = () => {
+    if (context.type === 'table') {
+      if (context.tableId) {
+        return parsed.tables.find(t => t.id === context.tableId) || null;
+      } else if (context.index !== undefined) {
+        return parsed.tables[context.index] || null;
+      }
+    } else if (context.type === 'column' || context.type === 'row') {
+      if (context.tableId) {
+        return parsed.tables.find(t => t.id === context.tableId) || null;
+      } else if (context.tableIndex !== undefined) {
+        return parsed.tables[context.tableIndex] || null;
+      }
+    }
+    return null;
+  };
+  
+  const currentTable = getCurrentTable();
   const currentColumn = context.type === 'column' ? currentTable?.columns?.[context.columnIndex] || currentTable?.headers?.[context.columnIndex] : null;
   
   return (

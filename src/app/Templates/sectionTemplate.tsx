@@ -13,6 +13,7 @@ import React from "react";
  * - Typography
  */
 export interface SectionTemplateProps {
+  id?: string; // Unique identifier for the section
   title?: string;
   content: string | React.ReactNode;
   type?: 'section' | 'day' | 'included' | 'excluded' | 'notes';
@@ -69,6 +70,7 @@ export interface SectionTemplateProps {
 }
 
 const SectionTemplate: React.FC<SectionTemplateProps> = ({
+  id,
   title,
   content,
   type = 'section',
@@ -358,7 +360,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
   };
 
   return (
-    <section className={containerClasses} style={containerStyle}>
+    <section className={containerClasses} style={containerStyle} data-section-id={id}>
       {/* Top Divider */}
       {showDivider && dividerPosition === "top" && (
         <div className={`border-t ${borderColor} mb-6`} />

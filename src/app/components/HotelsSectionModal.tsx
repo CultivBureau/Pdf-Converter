@@ -29,12 +29,14 @@ interface HotelsSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: HotelsSectionData) => void;
+  initialData?: HotelsSectionData;
 }
 
 export default function HotelsSectionModal({
   isOpen,
   onClose,
   onSubmit,
+  initialData,
 }: HotelsSectionModalProps) {
   const [title, setTitle] = useState("حجز الفنادق");
   const [showTitle, setShowTitle] = useState(true);
@@ -60,34 +62,61 @@ export default function HotelsSectionModal({
   ]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Reset form when modal opens
+  // Reset form when modal opens or initialData changes
   useEffect(() => {
     if (isOpen) {
-      setTitle("حجز الفنادق");
-      setShowTitle(true);
-      setHotels([
-        {
-          city: "",
-          nights: 0,
-          cityBadge: "",
-          hotelName: "",
-          hasDetailsLink: false,
-          roomDescription: {
-            includesAll: "",
-            bedType: "",
-            roomType: "",
+      if (initialData) {
+        // Pre-fill with initial data for editing
+        setTitle(initialData.title || "حجز الفنادق");
+        setShowTitle(initialData.showTitle !== undefined ? initialData.showTitle : true);
+        setHotels(initialData.hotels.length > 0 ? initialData.hotels : [
+          {
+            city: "",
+            nights: 0,
+            cityBadge: "",
+            hotelName: "",
+            hasDetailsLink: false,
+            roomDescription: {
+              includesAll: "",
+              bedType: "",
+              roomType: "",
+            },
+            checkInDate: "",
+            checkOutDate: "",
+            dayInfo: {
+              checkInDay: "",
+              checkOutDay: "",
+            },
           },
-          checkInDate: "",
-          checkOutDate: "",
-          dayInfo: {
-            checkInDay: "",
-            checkOutDay: "",
+        ]);
+      } else {
+        // Reset to defaults for new section
+        setTitle("حجز الفنادق");
+        setShowTitle(true);
+        setHotels([
+          {
+            city: "",
+            nights: 0,
+            cityBadge: "",
+            hotelName: "",
+            hasDetailsLink: false,
+            roomDescription: {
+              includesAll: "",
+              bedType: "",
+              roomType: "",
+            },
+            checkInDate: "",
+            checkOutDate: "",
+            dayInfo: {
+              checkInDay: "",
+              checkOutDay: "",
+            },
           },
-        },
-      ]);
+        ]);
+      }
       setErrors({});
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   const validate = (): boolean => {
     const newErrors: { [key: string]: string } = {};

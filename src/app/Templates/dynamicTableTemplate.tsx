@@ -17,6 +17,7 @@ export interface DynamicTableTemplateProps {
   headers?: string[];
   columns?: string[]; // Support 'columns' prop from our JSON structure
   rows: (string | number | React.ReactNode)[][];
+  tableId?: string; // Unique table identifier
   
   // Editable Configuration
   editable?: boolean;
@@ -88,6 +89,7 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
   headers,
   columns, // Use 'columns' from JSON or fallback to 'headers'
   rows,
+  tableId,
   // Editable
   editable = true,
   onCellChange,
@@ -233,7 +235,7 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={wrapperClasses} style={style}>
+    <div className={wrapperClasses} style={style} data-table-id={tableId}>
       {/* Table Title - Compact */}
       {showTitle && title && (
         <div className="mb-3">
