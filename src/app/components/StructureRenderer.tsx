@@ -1,18 +1,21 @@
 "use client";
 
 import React from "react";
-import type { Structure, Section, Table } from "../types/ExtractTypes";
+import type { Structure, Section, Table, Element, ExtractResponse } from "../types/ExtractTypes";
 import SectionBlock from "./SectionBlock";
 import DynamicTable from "./DynamicTable";
+import ImageBlock from "./ImageBlock";
 import { sortSectionsByOrder, getSectionHierarchy } from "../utils/formatSections";
 import { sortTablesByOrder, groupTablesBySection } from "../utils/formatTables";
 
 interface StructureRendererProps {
-  structure: Structure;
+  structure?: Structure;
+  extractResponse?: ExtractResponse;
   showStats?: boolean;
   editable?: boolean;
   onSectionEdit?: (section: Section) => void;
   onTableEdit?: (table: Table) => void;
+  onImageEdit?: (image: Element) => void;
   className?: string;
 }
 
@@ -20,16 +23,126 @@ interface StructureRendererProps {
  * Structure Renderer Component
  * Phase 3: Receiving Extracted Data
  * 
- * Renders complete structure with sections and tables
+ * Renders complete structure with sections, tables, and images
+ * Supports both legacy format (Structure) and new enterprise format (ExtractResponse with elements)
  */
 export default function StructureRenderer({
   structure,
+  extractResponse,
   showStats = false,
   editable = false,
   onSectionEdit,
   onTableEdit,
+  onImageEdit,
   className = "",
 }: StructureRendererProps) {
+  // Handle new enterprise format (elements array)
+  if (extractResponse?.elements && extractResponse.elements.length > 0) {
+    return (
+      <div className={`structure-renderer ${className}`}>
+        {extractResponse.elements.map((element, index) => {
+          switch (element.type) {
+            case "section":
+              return (
+                <SectionBlock
+                  key={element.id}
+                  section={{
+                    id: element.id,
+                    type: "section",
+                    title: element.title || "",
+                    content: element.content || "",
+                    order: index + 1,
+                    parent_id: null,
+                  }}
+                  showStats={showStats}
+                  editable={editable}
+                  onEdit={onSectionEdit}
+                />
+              );
+            case "table":
+              return (
+                <DynamicTable
+                  key={element.id}
+                  table={{
+                    id: element.id,
+                    type: "table",
+                    columns: element.columns || [],
+                    rows: element.rows || [],
+                    order: index + 1,
+                    section_id: null,
+                  }}
+                  showStats={showStats}
+                  editable={editable}
+                  onEdit={onTableEdit}
+                />
+              );
+            case "image":
+              return (
+                <ImageBlock
+                  key={element.id}
+                  image={{
+                    id: element.id,
+                    type: "image",
+                    page: element.page,
+                    src: element.src || "",
+                    caption: element.caption,
+                    width: element.width,
+                    height: element.height,
+                  }}
+                  showStats={showStats}
+                  editable={editable}
+                  onEdit={onImageEdit}
+                />
+              );
+            default:
+              return null;
+          }
+        })}
+        
+        {/* Empty State */}
+        {extractResponse.elements.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            <p className="text-lg">لا توجد عناصر للعرض</p>
+          </div>
+        )}
+        
+        {/* Statistics Summary */}
+        {showStats && extractResponse.meta && (
+          <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 className="font-semibold text-gray-900 mb-2">إحصائيات</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">العناصر:</span>
+                <span className="font-bold ml-2">{extractResponse.elements.length}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">الأقسام:</span>
+                <span className="font-bold ml-2">{extractResponse.meta.sections_count || 0}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">الجداول:</span>
+                <span className="font-bold ml-2">{extractResponse.meta.tables_count || 0}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">الصور:</span>
+                <span className="font-bold ml-2">{extractResponse.meta.images_count || 0}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  // Handle legacy format (Structure)
+  if (!structure) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <p className="text-lg">لا توجد بيانات للعرض</p>
+      </div>
+    );
+  }
+  
   // Sort sections and tables by order
   const sortedSections = sortSectionsByOrder(structure.sections);
   const sortedTables = sortTablesByOrder(structure.tables);

@@ -8,8 +8,6 @@ import {
   uploadFile, 
   extractContent,
   cleanStructure,
-  generateJsx,
-  fixJsx,
   validateAndFixJsx 
 } from "../../services/PdfApi";
 import { cleanJSXCode } from "../../utils/parseGptCode";
@@ -47,11 +45,17 @@ const PdfConverterContent: React.FC = () => {
         throw new Error("Upload failed: No file path returned.");
       }
 
-      // Step 2: Extract content (sections and tables)
+      // Step 2: Extract content (sections, tables, and images)
       setStatus("Extracting content from PDF…");
       const extractResponse: ExtractResponse = await extractContent(uploadResponse.file_path);
       
-      if (!extractResponse.sections && !extractResponse.tables) {
+      // Check if we have content (either new format with elements or legacy format)
+      const hasContent = 
+        (extractResponse.elements && extractResponse.elements.length > 0) ||
+        (extractResponse.sections && extractResponse.sections.length > 0) ||
+        (extractResponse.tables && extractResponse.tables.length > 0);
+      
+      if (!hasContent) {
         throw new Error("Extraction returned no content.");
       }
 
@@ -71,41 +75,27 @@ const PdfConverterContent: React.FC = () => {
         // Continue with original structure - this is fine, cleaning is optional
       }
 
-      // Step 4: Generate JSX from structure
-      setStatus("Generating JSX code…");
-      const jsxResponse = await generateJsx(cleanedStructure);
+      // Step 4: Generate JSX template from JSON (frontend-side generation)
+      setStatus("Generating template from extracted data…");
       
-      if (!jsxResponse.jsxCode) {
-        throw new Error("JSX generation returned empty code.");
-      }
-
-      let generatedCode = jsxResponse.jsxCode;
-      const allWarnings = [...(jsxResponse.warnings || [])];
-
+      // Import template generator utility
+      const { generateTemplateFromJson } = await import("../../utils/generateTemplateFromJson");
+      
+      // Generate JSX template from extracted JSON
+      let generatedCode = generateTemplateFromJson(cleanedStructure);
+      const allWarnings: string[] = ["Template generated in frontend using React components"];
+      
       // Step 5: Clean and fix import paths
-      setStatus("Cleaning JSX code…");
+      setStatus("Cleaning template code…");
       generatedCode = cleanJSXCode(generatedCode);
-
-      // Step 6: Validate and fix JSX if needed
-      setStatus("Validating JSX code…");
+      
+      // Step 6: Basic validation (no backend fix needed - frontend generation is reliable)
+      setStatus("Validating template…");
       const validation = await validateAndFixJsx(generatedCode);
       
-      if (!validation.isValid && validation.fixed) {
-        generatedCode = validation.jsx;
-        allWarnings.push(...(validation.warnings || []));
-        allWarnings.push("JSX code was automatically fixed.");
-      } else if (!validation.isValid) {
-        // Try to fix using backend fix endpoint
-        try {
-          setStatus("Fixing JSX errors…");
-          const fixResponse = await fixJsx(generatedCode, validation.errors?.join(", "));
-          generatedCode = fixResponse.fixedCode;
-          allWarnings.push(...(fixResponse.warnings || []));
-          allWarnings.push(`Fixed: ${fixResponse.explanation}`);
-        } catch (fixError) {
-          console.warn("JSX fixing failed:", fixError);
-          allWarnings.push("Some JSX errors could not be automatically fixed.");
-        }
+      if (!validation.isValid) {
+        allWarnings.push(...(validation.errors || []));
+        allWarnings.push("Template has some validation warnings but should still work.");
       }
 
       // Store in sessionStorage for CodePreview page
@@ -120,8 +110,10 @@ const PdfConverterContent: React.FC = () => {
           JSON.stringify({
             filename: uploadResponse.filename || selectedFile.name,
             uploadedAt: new Date().toISOString(),
-            sectionsCount: cleanedStructure.sections?.length || 0,
-            tablesCount: cleanedStructure.tables?.length || 0,
+            elementsCount: cleanedStructure.elements?.length || 0,
+            sectionsCount: cleanedStructure.sections?.length || cleanedStructure.meta?.sections_count || 0,
+            tablesCount: cleanedStructure.tables?.length || cleanedStructure.meta?.tables_count || 0,
+            imagesCount: cleanedStructure.images?.length || cleanedStructure.meta?.images_count || 0,
           }),
         );
         

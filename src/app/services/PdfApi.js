@@ -119,43 +119,82 @@ export async function cleanStructure(structure, options = {}) {
 }
 
 /**
- * Generate JSX code from document structure using GPT
+ * Generate JSX code from document structure
+ * 
+ * @deprecated JSX generation has been moved to frontend.
+ * Backend now only returns JSON. Use generateTemplateFromJson utility instead.
+ * 
  * @param {Object} structure - Structure with sections and tables
- * @param {Object} options - Optional parameters (model, max_retries, timeout, temperature)
+ * @param {Object} options - Optional parameters (ignored)
  * @returns {Promise<{jsxCode: string, componentsUsed: Array, warnings: Array, metadata: Object}>}
  */
 export async function generateJsx(structure, options = {}) {
-  return request("/ai/generate-jsx", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      structure,
-      ...options,
-    }),
-  });
+  console.warn("[PdfApi] generateJsx is deprecated. JSX generation is now handled in frontend using React components.");
+  
+  // Import the utility function
+  const { generateTemplateFromJson } = await import("../utils/generateTemplateFromJson");
+  
+  // Generate template from JSON structure
+  const jsxCode = generateTemplateFromJson(structure);
+  
+  // Return in expected format
+  return {
+    jsxCode,
+    componentsUsed: ["SectionTemplate", "DynamicTable", "BaseTemplate", "ImageBlock"],
+    warnings: ["JSX generated in frontend - backend JSX generation is deprecated"],
+    metadata: {
+      generated_in: "frontend",
+      structure_elements: structure.elements?.length || 0,
+      structure_sections: structure.sections?.length || 0,
+      structure_tables: structure.tables?.length || 0,
+    }
+  };
 }
 
 /**
- * Fix JSX syntax errors using GPT
+ * Fix JSX syntax errors (frontend-side only)
+ * 
+ * @deprecated Backend fix-jsx endpoint has been removed.
+ * This function now performs basic frontend-side fixes only.
+ * 
  * @param {string} jsxCode - JSX code that may contain syntax errors
  * @param {string} errorMessage - Optional error message from compiler
- * @param {Object} options - Optional parameters (model, max_retries, timeout, temperature)
+ * @param {Object} options - Optional parameters (ignored)
  * @returns {Promise<{fixedCode: string, explanation: string, errors: Array, warnings: Array, changes: Array}>}
  */
 export async function fixJsx(jsxCode, errorMessage = null, options = {}) {
-  return request("/ai/fix-jsx", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      jsx_code: jsxCode,
-      error_message: errorMessage,
-      ...options,
-    }),
-  });
+  console.warn("[PdfApi] fixJsx is deprecated. Backend endpoint removed. Using frontend-side fixes only.");
+  
+  // Frontend-side basic fixes
+  let fixedCode = jsxCode;
+  const errors = [];
+  const warnings = ["Backend fix-jsx endpoint removed. Using frontend-side fixes only."];
+  const changes = [];
+  
+  // Fix missing closing parentheses
+  const openParens = (fixedCode.match(/\(/g) || []).length;
+  const closeParens = (fixedCode.match(/\)/g) || []).length;
+  if (openParens > closeParens) {
+    fixedCode += ')'.repeat(openParens - closeParens);
+    changes.push({ type: "fix", description: `Added ${openParens - closeParens} missing closing parentheses`, line: -1 });
+  }
+  
+  // Fix missing closing braces
+  const openBraces = (fixedCode.match(/\{/g) || []).length;
+  const closeBraces = (fixedCode.match(/\}/g) || []).length;
+  if (openBraces > closeBraces) {
+    fixedCode += '}'.repeat(openBraces - closeBraces);
+    changes.push({ type: "fix", description: `Added ${openBraces - closeBraces} missing closing braces`, line: -1 });
+  }
+  
+  return {
+    fixedCode,
+    explanation: "Applied frontend-side syntax fixes (backend endpoint removed)",
+    errors,
+    warnings,
+    changes,
+    metadata: { fixed_in: "frontend" }
+  };
 }
 
 /**

@@ -47,9 +47,30 @@ export interface Image {
   size_bytes: number;
 }
 
+// Enterprise Pipeline: Unified Element interface
+export interface Element {
+  id: string;
+  type: "section" | "table" | "image";
+  page: number;
+  // Section fields
+  title?: string;
+  content?: string;
+  // Table fields
+  columns?: string[];
+  rows?: string[][];
+  // Image fields
+  src?: string;
+  caption?: string;
+  width?: number;
+  height?: number;
+}
+
 export interface ExtractResponse {
-  sections: Section[];
-  tables: Table[];
+  // New enterprise format (ordered elements array)
+  elements?: Element[];
+  // Legacy format (for backward compatibility)
+  sections?: Section[];
+  tables?: Table[];
   images?: Image[];
   meta: Record<string, any>;
 }

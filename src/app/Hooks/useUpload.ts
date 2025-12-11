@@ -93,7 +93,13 @@ export function useUpload(): UseUploadReturn {
     try {
       const response = await extractContent(filePath);
       
-      if (!response.sections && !response.tables) {
+      // Check if we have content (either new format with elements or legacy format)
+      const hasContent = 
+        (response.elements && response.elements.length > 0) ||
+        (response.sections && response.sections.length > 0) ||
+        (response.tables && response.tables.length > 0);
+      
+      if (!hasContent) {
         throw new Error("لم يتم استخراج أي محتوى من الملف.");
       }
 
