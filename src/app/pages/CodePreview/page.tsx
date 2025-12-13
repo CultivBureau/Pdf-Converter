@@ -624,6 +624,9 @@ function CodePageContent() {
       const originalFilename = sessionStorage.getItem("codePreview.originalFilename");
 
       if (documentId) {
+        // Prompt for version name if creating a new version
+        const versionName = prompt("Enter a name for this version (optional):");
+        
         // Update existing document
         const updateResponse = await updateDocument(documentId, {
           jsx_code: updatedCode,
@@ -631,6 +634,7 @@ function CodePageContent() {
           metadata: {
             ...sourceMetadata,
             lastSaved: new Date().toISOString(),
+            ...(versionName && versionName.trim() ? { version_name: versionName.trim() } : {}),
           },
         });
         // Update version info after save

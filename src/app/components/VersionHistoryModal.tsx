@@ -30,6 +30,8 @@ export default function VersionHistoryModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoringVersion, setRestoringVersion] = useState<number | null>(null);
+  const [showNameInput, setShowNameInput] = useState<number | null>(null);
+  const [versionName, setVersionName] = useState("");
 
   useEffect(() => {
     if (isOpen && docId) {
@@ -50,17 +52,19 @@ export default function VersionHistoryModal({
     }
   };
 
-  const handleRestore = async (versionNumber: number) => {
+  const handleRestore = async (versionNumber: number, versionName?: string) => {
     if (!confirm(`Are you sure you want to restore to version ${versionNumber}? This will create a new version with the restored data.`)) {
       return;
     }
 
     setRestoringVersion(versionNumber);
     setError(null);
+    setShowNameInput(null);
     try {
-      await restoreDocumentVersion(docId, versionNumber);
+      await restoreDocumentVersion(docId, versionNumber, undefined, versionName || undefined);
       await onRestore();
       await loadVersions();
+      setVersionName("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to restore version");
     } finally {
@@ -68,17 +72,19 @@ export default function VersionHistoryModal({
     }
   };
 
-  const handleResetToOriginal = async () => {
+  const handleResetToOriginal = async (versionName?: string) => {
     if (!confirm("Are you sure you want to reset to the original version? This will create a new version with the original data.")) {
       return;
     }
 
     setRestoringVersion(0);
     setError(null);
+    setShowNameInput(null);
     try {
-      await resetToOriginal(docId);
+      await resetToOriginal(docId, undefined, versionName || undefined);
       await onRestore();
       await loadVersions();
+      setVersionName("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reset to original");
     } finally {
@@ -175,26 +181,70 @@ export default function VersionHistoryModal({
                           )}
                           <span className="text-xs text-gray-500 font-medium">{timeAgo}</span>
                         </div>
+                        {version.version_name && (
+                          <p className="text-sm font-semibold text-indigo-700 mt-1">
+                            "{version.version_name}"
+                          </p>
+                        )}
                         {version.change_summary && (
                           <p className="text-sm text-gray-600 mt-2 italic">
                             {version.change_summary}
                           </p>
                         )}
-                        {!version.change_summary && version.is_original && (
+                        {!version.change_summary && !version.version_name && version.is_original && (
                           <p className="text-sm text-gray-600 mt-2 italic">
                             Original version created when document was first saved
                           </p>
                         )}
+                        {showNameInput === version.version_number && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <input
+                              type="text"
+                              value={versionName}
+                              onChange={(e) => setVersionName(e.target.value)}
+                              placeholder="Enter version name (optional)"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                              maxLength={100}
+                              autoFocus
+                            />
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={() => {
+                                  handleRestore(version.version_number, versionName.trim() || undefined);
+                                }}
+                                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700"
+                              >
+                                Restore with Name
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowNameInput(null);
+                                  setVersionName("");
+                                }}
+                                className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-300"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         {!isCurrent && (
-                          <button
-                            onClick={() => handleRestore(version.version_number)}
-                            disabled={isRestoring || restoringVersion !== null}
-                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold text-sm hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
-                          >
-                            {isRestoring ? "Restoring..." : "Restore"}
-                          </button>
+                          <>
+                            {showNameInput !== version.version_number ? (
+                              <button
+                                onClick={() => {
+                                  setShowNameInput(version.version_number);
+                                  setVersionName("");
+                                }}
+                                disabled={isRestoring || restoringVersion !== null}
+                                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold text-sm hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+                              >
+                                {isRestoring ? "Restoring..." : "Restore"}
+                              </button>
+                            ) : null}
+                          </>
                         )}
                       </div>
                     </div>
@@ -207,21 +257,56 @@ export default function VersionHistoryModal({
 
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleResetToOriginal}
-              disabled={restoringVersion !== null || currentVersion === 1}
-              className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold text-sm hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
-            >
-              {restoringVersion === 0 ? "Resetting..." : "Reset to Original"}
-            </button>
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-all"
-            >
-              Close
-            </button>
-          </div>
+          {showNameInput === 0 ? (
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={versionName}
+                onChange={(e) => setVersionName(e.target.value)}
+                placeholder="Enter version name (optional)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                maxLength={100}
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleResetToOriginal(versionName.trim() || undefined)}
+                  disabled={restoringVersion !== null}
+                  className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold text-sm hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+                >
+                  {restoringVersion === 0 ? "Resetting..." : "Reset with Name"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNameInput(null);
+                    setVersionName("");
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold text-sm hover:bg-gray-300 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setShowNameInput(0);
+                  setVersionName("");
+                }}
+                disabled={restoringVersion !== null || currentVersion === 1}
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold text-sm hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+              >
+                Reset to Original
+              </button>
+              <button
+                onClick={onClose}
+                className="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

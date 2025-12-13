@@ -134,6 +134,7 @@ export interface DocumentVersion {
   created_at: string;
   created_by: string;
   change_summary?: string | null;
+  version_name?: string | null;
 }
 
 export interface DocumentVersionListResponse {
@@ -149,6 +150,7 @@ export interface DocumentVersionResponse {
 
 export interface RestoreVersionRequest {
   change_summary?: string;
+  version_name?: string;
 }
 
 /**
@@ -280,11 +282,20 @@ export async function getDocumentVersion(
 export async function restoreDocumentVersion(
   docId: string,
   versionNumber: number,
-  changeSummary?: string
+  changeSummary?: string,
+  versionName?: string
 ): Promise<DocumentResponse> {
+  const body: Record<string, string> = {};
+  if (changeSummary && changeSummary.trim()) {
+    body.change_summary = changeSummary.trim();
+  }
+  if (versionName && versionName.trim()) {
+    body.version_name = versionName.trim();
+  }
+  
   return historyRequest(`/history/${docId}/versions/${versionNumber}/restore`, {
     method: "POST",
-    body: JSON.stringify({ change_summary: changeSummary || undefined }),
+    body: Object.keys(body).length > 0 ? JSON.stringify(body) : JSON.stringify({}),
   });
 }
 
@@ -293,11 +304,20 @@ export async function restoreDocumentVersion(
  */
 export async function resetToOriginal(
   docId: string,
-  changeSummary?: string
+  changeSummary?: string,
+  versionName?: string
 ): Promise<DocumentResponse> {
+  const body: Record<string, string> = {};
+  if (changeSummary && changeSummary.trim()) {
+    body.change_summary = changeSummary.trim();
+  }
+  if (versionName && versionName.trim()) {
+    body.version_name = versionName.trim();
+  }
+  
   return historyRequest(`/history/${docId}/versions/original/restore`, {
     method: "POST",
-    body: JSON.stringify({ change_summary: changeSummary || undefined }),
+    body: Object.keys(body).length > 0 ? JSON.stringify(body) : JSON.stringify({}),
   });
 }
 
