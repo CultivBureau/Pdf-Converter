@@ -15,10 +15,12 @@ import {
 import DocumentCard from "@/app/components/DocumentCard";
 import RenameModal from "@/app/components/RenameModal";
 import ShareModal from "@/app/components/ShareModal";
+import VersionHistoryModal from "@/app/components/VersionHistoryModal";
 import HistoryFilters from "@/app/components/HistoryFilters";
 import HistorySort from "@/app/components/HistorySort";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import Loading from "@/app/components/Loading";
+import { getDocument } from "@/app/services/HistoryApi";
 
 function HistoryPageContent() {
   const router = useRouter();
@@ -48,6 +50,12 @@ function HistoryPageContent() {
     docId: string;
     title: string;
   }>({ isOpen: false, docId: "", title: "" });
+  const [versionModal, setVersionModal] = useState<{
+    isOpen: boolean;
+    docId: string;
+    currentVersion: number;
+    totalVersions: number;
+  }>({ isOpen: false, docId: "", currentVersion: 1, totalVersions: 1 });
   const [isModalLoading, setIsModalLoading] = useState(false);
 
   // Debounce search
@@ -109,6 +117,39 @@ function HistoryPageContent() {
       await refreshDocuments();
     } catch (err) {
       alert("Failed to delete document");
+    }
+  };
+
+  const handleViewVersions = async (docId: string) => {
+    try {
+      const response = await getDocument(docId);
+      const doc = response.document;
+      setVersionModal({
+        isOpen: true,
+        docId: doc.id,
+        currentVersion: doc.current_version || 1,
+        totalVersions: doc.total_versions || 1,
+      });
+    } catch (err) {
+      alert("Failed to load document versions");
+    }
+  };
+
+  const handleVersionRestore = async () => {
+    await refreshDocuments();
+    // Reload version modal data
+    if (versionModal.docId) {
+      try {
+        const response = await getDocument(versionModal.docId);
+        const doc = response.document;
+        setVersionModal({
+          ...versionModal,
+          currentVersion: doc.current_version || 1,
+          totalVersions: doc.total_versions || 1,
+        });
+      } catch (err) {
+        console.error("Failed to refresh version info:", err);
+      }
     }
   };
 
@@ -310,6 +351,7 @@ function HistoryPageContent() {
                 onOpen={handleOpen}
                 onRename={handleRename}
                 onDelete={handleDelete}
+                onViewVersions={handleViewVersions}
               />
             ))}
           </div>
@@ -363,6 +405,14 @@ function HistoryPageContent() {
         onClose={() => setShareModal({ isOpen: false, docId: "", title: "" })}
         onShare={handleShareSubmit}
         isLoading={isModalLoading}
+      />
+      <VersionHistoryModal
+        isOpen={versionModal.isOpen}
+        docId={versionModal.docId}
+        currentVersion={versionModal.currentVersion}
+        totalVersions={versionModal.totalVersions}
+        onClose={() => setVersionModal({ isOpen: false, docId: "", currentVersion: 1, totalVersions: 1 })}
+        onRestore={handleVersionRestore}
       />
     </div>
   );

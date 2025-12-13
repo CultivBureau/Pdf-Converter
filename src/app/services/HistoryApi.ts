@@ -29,9 +29,9 @@ async function handleResponse(response: Response) {
 // Make authenticated request
 async function historyRequest(path: string, init: RequestInit = {}) {
   const token = getToken();
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(init.headers || {}),
+    ...(init.headers as Record<string, string> || {}),
   };
 
   if (token) {
@@ -72,6 +72,9 @@ export interface Document {
   updated_at: string;
   shared_with: string[];
   is_public: boolean;
+  current_version?: number;
+  original_version_id?: string | null;
+  total_versions?: number;
 }
 
 export interface DocumentListResponse {
@@ -113,6 +116,39 @@ export interface ShareDocumentResponse {
   shared_with: string[];
   is_public: boolean;
   public_link?: string;
+}
+
+// Version-related types
+export interface DocumentVersion {
+  id: string;
+  document_id: string;
+  version_number: number;
+  is_original: boolean;
+  extracted_data: {
+    sections?: any[];
+    tables?: any[];
+    meta?: Record<string, any>;
+  };
+  jsx_code?: string;
+  metadata: Record<string, any>;
+  created_at: string;
+  created_by: string;
+  change_summary?: string | null;
+}
+
+export interface DocumentVersionListResponse {
+  versions: DocumentVersion[];
+  total: number;
+  document_id: string;
+}
+
+export interface DocumentVersionResponse {
+  version: DocumentVersion;
+  message?: string;
+}
+
+export interface RestoreVersionRequest {
+  change_summary?: string;
 }
 
 /**
@@ -215,5 +251,53 @@ export async function exportDocument(
     // For PDF, return blob
     return response.blob();
   }
+}
+
+/**
+ * Get all versions of a document
+ */
+export async function getDocumentVersions(
+  docId: string
+): Promise<DocumentVersionListResponse> {
+  return historyRequest(`/history/${docId}/versions`, { method: "GET" });
+}
+
+/**
+ * Get a specific version of a document
+ */
+export async function getDocumentVersion(
+  docId: string,
+  versionNumber: number
+): Promise<DocumentVersionResponse> {
+  return historyRequest(`/history/${docId}/versions/${versionNumber}`, {
+    method: "GET",
+  });
+}
+
+/**
+ * Restore document to a specific version
+ */
+export async function restoreDocumentVersion(
+  docId: string,
+  versionNumber: number,
+  changeSummary?: string
+): Promise<DocumentResponse> {
+  return historyRequest(`/history/${docId}/versions/${versionNumber}/restore`, {
+    method: "POST",
+    body: JSON.stringify({ change_summary: changeSummary || undefined }),
+  });
+}
+
+/**
+ * Reset document to original version
+ */
+export async function resetToOriginal(
+  docId: string,
+  changeSummary?: string
+): Promise<DocumentResponse> {
+  return historyRequest(`/history/${docId}/versions/original/restore`, {
+    method: "POST",
+    body: JSON.stringify({ change_summary: changeSummary || undefined }),
+  });
 }
 

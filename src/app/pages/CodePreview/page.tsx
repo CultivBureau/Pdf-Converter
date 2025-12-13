@@ -21,6 +21,7 @@ import { extractAllTablesFromDOM, updateCodeWithTableData } from "../../utils/ex
 import { isAuthenticated } from "../../services/AuthApi";
 import { saveDocument, updateDocument, getDocument } from "../../services/HistoryApi";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import VersionHistoryModal from "../../components/VersionHistoryModal";
 
 type Mode = "code" | "preview" | "split";
 
@@ -107,6 +108,9 @@ function CodePageContent() {
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
+  const [currentVersion, setCurrentVersion] = useState<number>(1);
+  const [totalVersions, setTotalVersions] = useState<number>(1);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<string>(code);
   
@@ -186,6 +190,8 @@ function CodePageContent() {
       const doc = response.document;
       
       setDocumentId(doc.id);
+      setCurrentVersion(doc.current_version || 1);
+      setTotalVersions(doc.total_versions || 1);
       if (doc.jsx_code) {
         setCode(doc.jsx_code);
       }
@@ -201,6 +207,28 @@ function CodePageContent() {
     } catch (err) {
       console.error("Failed to load document:", err);
       alert("Failed to load document");
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!documentId) return;
+    try {
+      const response = await getDocument(documentId);
+      const doc = response.document;
+      
+      setCurrentVersion(doc.current_version || 1);
+      setTotalVersions(doc.total_versions || 1);
+      if (doc.jsx_code) {
+        setCode(doc.jsx_code);
+      }
+      if (doc.metadata) {
+        setSourceMetadata({
+          filename: doc.metadata.filename || doc.original_filename,
+          uploadedAt: doc.created_at,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to refresh document after restore:", err);
     }
   };
 
@@ -597,7 +625,7 @@ function CodePageContent() {
 
       if (documentId) {
         // Update existing document
-        await updateDocument(documentId, {
+        const updateResponse = await updateDocument(documentId, {
           jsx_code: updatedCode,
           extracted_data: updatedExtractedData || (extractedData ? JSON.parse(extractedData) : {}),
           metadata: {
@@ -605,6 +633,11 @@ function CodePageContent() {
             lastSaved: new Date().toISOString(),
           },
         });
+        // Update version info after save
+        if (updateResponse.document) {
+          setCurrentVersion(updateResponse.document.current_version || 1);
+          setTotalVersions(updateResponse.document.total_versions || 1);
+        }
       } else {
         // Create new document
         const title = sourceMetadata?.filename?.replace(/\.pdf$/i, "") || "Untitled Document";
@@ -622,6 +655,8 @@ function CodePageContent() {
         
         if (response.document?.id) {
           setDocumentId(response.document.id);
+          setCurrentVersion(response.document.current_version || 1);
+          setTotalVersions(response.document.total_versions || 1);
         }
       }
 
@@ -665,6 +700,11 @@ function CodePageContent() {
                       {new Date(sourceMetadata.uploadedAt).toLocaleString()}
                     </span>
                   )}
+                  {totalVersions > 1 && (
+                    <span className="ml-2 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-semibold text-xs">
+                      v{currentVersion}/{totalVersions}
+                    </span>
+                  )}
                 </p>
               )}
             </div>
@@ -672,6 +712,18 @@ function CodePageContent() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            {isAuthenticated() && documentId && totalVersions > 1 && (
+              <button
+                onClick={() => setShowVersionHistory(true)}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm"
+                title="View version history"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Versions
+              </button>
+            )}
             {isAuthenticated() && (
               <button
                 onClick={handleSave}
@@ -852,6 +904,18 @@ function CodePageContent() {
         onClose={() => setIsCreateTableModalOpen(false)}
         onCreateTable={handleCreateTable}
       />
+
+      {/* Version History Modal */}
+      {documentId && (
+        <VersionHistoryModal
+          isOpen={showVersionHistory}
+          docId={documentId}
+          currentVersion={currentVersion}
+          totalVersions={totalVersions}
+          onClose={() => setShowVersionHistory(false)}
+          onRestore={handleRestore}
+        />
+      )}
 
       <style jsx>{`
         @keyframes slide-in {
