@@ -17,7 +17,10 @@ import CustomizationPanel, { PanelContext } from "../../components/Customization
 import CreateTableModal from "../../components/CreateTableModal";
 import AddAirplaneModal, { FlightData } from "../../components/AddAirplaneModal";
 import EditFlightModal from "../../components/EditFlightModal";
-import EditAirplaneSectionModal from "../../components/EditAirplaneSectionModal";
+import EditAirplaneSectionModal from "../../components/EditAirplaneSectionModal";;
+import AddHotelModal from "../../components/AddHotelModal";
+import EditHotelModal from "../../components/EditHotelModal";
+import EditHotelSectionModal from "../../components/EditHotelSectionModal";
 import { getElementInfo } from "../../utils/jsxParser";
 import { addSection, addNewTable, updateTableCell, updateTableColumnHeader } from "../../utils/codeManipulator";
 import { extractAllTablesFromDOM, updateCodeWithTableData } from "../../utils/extractTableData";
@@ -30,6 +33,16 @@ import {
   updateAirplaneSectionProps,
   extractFlightsFromComponent
 } from "../../utils/airplaneSectionManipulator";
+import {
+  findHotelSection,
+  updateHotelInComponent,
+  addHotelToComponent,
+  removeHotelFromComponent,
+  removeHotelSection,
+  updateHotelSectionProps,
+  extractHotelsFromComponent
+} from "../../utils/hotelSectionManipulator";
+import { Hotel } from "../../Templates/HotelsSection";
 import { guardGeneratedContent } from "../../utils/contentGuards";
 import { isAuthenticated } from "../../services/AuthApi";
 import { saveDocument, updateDocument, getDocument } from "../../services/HistoryApi";
@@ -130,6 +143,11 @@ function CodePageContent() {
   const [editingFlightIndex, setEditingFlightIndex] = useState<number | null>(null);
   const [showEditFlightModal, setShowEditFlightModal] = useState(false);
   const [showEditSectionModal, setShowEditSectionModal] = useState(false);
+  const [showAddHotelModal, setShowAddHotelModal] = useState(false);
+  const [editingHotelId, setEditingHotelId] = useState<string | null>(null);
+  const [editingHotelIndex, setEditingHotelIndex] = useState<number | null>(null);
+  const [showEditHotelModal, setShowEditHotelModal] = useState(false);
+  const [showEditHotelSectionModal, setShowEditHotelSectionModal] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<string>(code);
   
@@ -214,10 +232,88 @@ function CodePageContent() {
       }
     };
     
+    const handleHotelSectionClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      
+      // Find the button that was clicked (or its parent button)
+      const button = target.closest('button[data-action]') as HTMLButtonElement;
+      if (!button) return;
+      
+      const action = button.getAttribute('data-action');
+      const sectionId = button.getAttribute('data-hotels-section-id');
+      const hotelIndexStr = button.getAttribute('data-hotel-index');
+      
+      // Verify we have required attributes
+      if (!action || !sectionId) return;
+      
+      // CRITICAL: Verify ID starts with user_hotel_ to prevent modifying generated content
+      if (!sectionId.startsWith('user_hotel_')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Attempted to ${action} on non-user hotel section: ${sectionId}`);
+        }
+        alert('Cannot modify generated content. Only user-created hotel sections can be edited.');
+        return;
+      }
+      
+      // Prevent default and stop propagation
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Route to appropriate handler
+      switch (action) {
+        case 'edit-hotel': {
+          const hotelIndex = hotelIndexStr ? parseInt(hotelIndexStr, 10) : null;
+          if (hotelIndex === null || isNaN(hotelIndex)) {
+            console.error('Invalid hotel index for edit-hotel action');
+            return;
+          }
+          setEditingHotelId(sectionId);
+          setEditingHotelIndex(hotelIndex);
+          setShowEditHotelModal(true);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Opening edit hotel modal for section ${sectionId}, hotel ${hotelIndex}`);
+          }
+          break;
+        }
+        case 'remove-hotel': {
+          const hotelIndex = hotelIndexStr ? parseInt(hotelIndexStr, 10) : null;
+          if (hotelIndex === null || isNaN(hotelIndex)) {
+            console.error('Invalid hotel index for remove-hotel action');
+            return;
+          }
+          handleRemoveHotel(sectionId, hotelIndex);
+          break;
+        }
+        case 'add-hotel': {
+          handleAddHotel(sectionId);
+          break;
+        }
+        case 'edit-section': {
+          setEditingHotelId(sectionId);
+          setEditingHotelIndex(null);
+          setShowEditHotelSectionModal(true);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Opening edit section modal for section ${sectionId}`);
+          }
+          break;
+        }
+        case 'delete-section': {
+          handleDeleteHotelSection(sectionId);
+          break;
+        }
+        default:
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Unknown hotel section action: ${action}`);
+          }
+      }
+    };
+    
     container.addEventListener('click', handleAirplaneSectionClick);
+    container.addEventListener('click', handleHotelSectionClick);
     
     return () => {
       container.removeEventListener('click', handleAirplaneSectionClick);
+      container.removeEventListener('click', handleHotelSectionClick);
     };
   }, [code]);
   
@@ -584,6 +680,403 @@ function CodePageContent() {
     
     return null;
   }, [editingAirplaneId]);
+
+  // Handler functions for hotel section actions
+  const handleRemoveHotel = useCallback((id: string, hotelIndex: number) => {
+    try {
+      // CRITICAL: Verify ID prefix - this is the primary isolation guard
+      if (!id.startsWith('user_hotel_')) {
+        const errorMsg = `SECURITY: Attempted to remove hotel from non-user hotel section: ${id}. Only user_hotel_* sections can be modified.`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created hotel sections can be edited.');
+        return;
+      }
+      
+      // Additional guard using contentGuards utility
+      guardGeneratedContent(id, 'remove hotel from');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[HOTEL CRUD] Removing hotel ${hotelIndex} from hotel section ${id}`);
+        console.log(`[ISOLATION CHECK] ID prefix verified: user_hotel_`);
+      }
+      
+      const section = findHotelSection(codeRef.current, id);
+      if (!section) {
+        alert('Hotel section not found');
+        return;
+      }
+      
+      // Log what we're about to modify (for debugging)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[HOTEL CRUD] Found section at index ${section.startIndex}-${section.endIndex}`);
+        console.log(`[ISOLATION CHECK] Component contains ID: ${section.component.includes(id)}`);
+      }
+      
+      const updatedComponent = removeHotelFromComponent(section.component, hotelIndex);
+      const updatedCode = codeRef.current.substring(0, section.startIndex) + 
+        updatedComponent + 
+        codeRef.current.substring(section.endIndex);
+      
+      // Verify the updated code still doesn't contain any generated table deletions
+      if (process.env.NODE_ENV === 'development') {
+        const originalTableCount = (codeRef.current.match(/<DynamicTable/g) || []).length;
+        const updatedTableCount = (updatedCode.match(/<DynamicTable/g) || []).length;
+        if (originalTableCount !== updatedTableCount) {
+          console.warn(`[ISOLATION WARNING] Table count changed: ${originalTableCount} -> ${updatedTableCount}`);
+        } else {
+          console.log(`[ISOLATION CHECK] Table count preserved: ${originalTableCount}`);
+        }
+      }
+      
+      setCode(updatedCode);
+    } catch (error) {
+      console.error('[HOTEL CRUD ERROR] Error removing hotel:', error);
+      if (error instanceof Error && error.message.includes('generated content')) {
+        alert('Cannot modify generated content. This operation is blocked for security.');
+      } else {
+        alert(error instanceof Error ? error.message : 'Failed to remove hotel');
+      }
+    }
+  }, []);
+  
+  const handleAddHotel = useCallback((id: string) => {
+    try {
+      // CRITICAL: Verify ID prefix
+      if (!id.startsWith('user_hotel_')) {
+        const errorMsg = `SECURITY: Attempted to add hotel to non-user hotel section: ${id}`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created hotel sections can be edited.');
+        return;
+      }
+      
+      guardGeneratedContent(id, 'add hotel to');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[HOTEL CRUD] Adding hotel to hotel section ${id}`);
+      }
+      
+      const section = findHotelSection(codeRef.current, id);
+      if (!section) {
+        alert('Hotel section not found');
+        return;
+      }
+      
+      const newHotel: Hotel = {
+        city: "",
+        nights: 1,
+        hotelName: "",
+        hasDetailsLink: false,
+        roomDescription: {
+          includesAll: "شامل الافطار",
+          bedType: "سرير اضافي/ عدد: 2",
+          roomType: ""
+        },
+        checkInDate: new Date().toISOString().split('T')[0],
+        checkOutDate: new Date().toISOString().split('T')[0],
+        dayInfo: {
+          checkInDay: "اليوم الاول",
+          checkOutDay: "اليوم الثاني"
+        }
+      };
+      const updatedComponent = addHotelToComponent(section.component, newHotel);
+      const updatedCode = codeRef.current.substring(0, section.startIndex) + 
+        updatedComponent + 
+        codeRef.current.substring(section.endIndex);
+      setCode(updatedCode);
+    } catch (error) {
+      console.error('[HOTEL CRUD ERROR] Error adding hotel:', error);
+      if (error instanceof Error && error.message.includes('generated content')) {
+        alert('Cannot modify generated content. This operation is blocked for security.');
+      } else {
+        alert(error instanceof Error ? error.message : 'Failed to add hotel');
+      }
+    }
+  }, []);
+  
+  const handleDeleteHotelSection = useCallback((id: string) => {
+    // CRITICAL: Verify ID prefix - primary isolation guard
+    if (!id.startsWith('user_hotel_')) {
+      const errorMsg = `SECURITY: Attempted to delete non-user hotel section: ${id}`;
+      console.error(errorMsg);
+      alert('Cannot delete generated content. Only user-created sections can be deleted.');
+      return;
+    }
+    
+    // Additional guard
+    try {
+      guardGeneratedContent(id, 'delete');
+    } catch (error) {
+      console.error('[ISOLATION GUARD]', error);
+      alert('Cannot delete generated content. This operation is blocked.');
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to delete this hotel section?')) {
+      return;
+    }
+    
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[HOTEL CRUD] Deleting hotel section ${id}`);
+        console.log(`[ISOLATION CHECK] ID prefix verified: user_hotel_`);
+        
+        // Count tables before deletion
+        const originalTableCount = (codeRef.current.match(/<DynamicTable/g) || []).length;
+        const originalSectionCount = (codeRef.current.match(/<HotelsSection/g) || []).length;
+        console.log(`[ISOLATION CHECK] Before deletion - Tables: ${originalTableCount}, HotelsSections: ${originalSectionCount}`);
+      }
+      
+      const section = findHotelSection(codeRef.current, id);
+      if (!section) {
+        alert('Hotel section not found');
+        return;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[HOTEL CRUD] Found section to delete at index ${section.startIndex}-${section.endIndex}`);
+        console.log(`[ISOLATION CHECK] Component preview: ${section.component.substring(0, 100)}...`);
+      }
+      
+      const updatedCode = removeHotelSection(codeRef.current, id);
+      
+      // Verify isolation after deletion
+      if (process.env.NODE_ENV === 'development') {
+        const updatedTableCount = (updatedCode.match(/<DynamicTable/g) || []).length;
+        const updatedSectionCount = (updatedCode.match(/<HotelsSection/g) || []).length;
+        console.log(`[ISOLATION CHECK] After deletion - Tables: ${updatedTableCount}, HotelsSections: ${updatedSectionCount}`);
+        
+        if (updatedTableCount !== (codeRef.current.match(/<DynamicTable/g) || []).length) {
+          console.error(`[ISOLATION ERROR] Table count changed during hotel section deletion!`);
+          console.error(`Original: ${(codeRef.current.match(/<DynamicTable/g) || []).length}, Updated: ${updatedTableCount}`);
+          alert('ERROR: Deletion affected generated tables. Operation cancelled.');
+          return;
+        }
+        
+        if (updatedSectionCount !== (codeRef.current.match(/<HotelsSection/g) || []).length - 1) {
+          console.warn(`[ISOLATION WARNING] HotelsSection count mismatch. Expected: ${(codeRef.current.match(/<HotelsSection/g) || []).length - 1}, Got: ${updatedSectionCount}`);
+        }
+      }
+      
+      setCode(updatedCode);
+    } catch (error) {
+      console.error('[HOTEL CRUD ERROR] Error deleting section:', error);
+      if (error instanceof Error && error.message.includes('generated content')) {
+        alert('Cannot delete generated content. This operation is blocked for security.');
+      } else {
+        alert(error instanceof Error ? error.message : 'Failed to delete section');
+      }
+    }
+  }, []);
+  
+  // Handler for editing a hotel
+  const handleEditHotelSubmit = useCallback((updatedHotel: Hotel) => {
+    if (!editingHotelId || editingHotelIndex === null) {
+      return;
+    }
+    
+    try {
+      // CRITICAL: Verify ID prefix
+      if (!editingHotelId.startsWith('user_hotel_')) {
+        const errorMsg = `SECURITY: Attempted to edit hotel in non-user hotel section: ${editingHotelId}`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created hotel sections can be edited.');
+        return;
+      }
+      
+      guardGeneratedContent(editingHotelId, 'edit hotel in');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[HOTEL CRUD] Updating hotel ${editingHotelIndex} in hotel section ${editingHotelId}`);
+      }
+      
+      const section = findHotelSection(codeRef.current, editingHotelId);
+      if (!section) {
+        alert('Hotel section not found');
+        return;
+      }
+      
+      const updatedComponent = updateHotelInComponent(section.component, editingHotelIndex, updatedHotel);
+      const updatedCode = codeRef.current.substring(0, section.startIndex) + 
+        updatedComponent + 
+        codeRef.current.substring(section.endIndex);
+      setCode(updatedCode);
+      
+      setShowEditHotelModal(false);
+      setEditingHotelId(null);
+      setEditingHotelIndex(null);
+    } catch (error) {
+      console.error('[HOTEL CRUD ERROR] Error updating hotel:', error);
+      if (error instanceof Error && error.message.includes('generated content')) {
+        alert('Cannot modify generated content. This operation is blocked for security.');
+      } else {
+        alert(error instanceof Error ? error.message : 'Failed to update hotel');
+      }
+    }
+  }, [editingHotelId, editingHotelIndex]);
+  
+  // Handler for editing section properties
+  const handleEditHotelSectionSubmit = useCallback((props: {
+    title?: string;
+    showTitle?: boolean;
+    direction?: "rtl" | "ltr";
+    language?: "ar" | "en";
+    labels?: {
+      nights: string;
+      includes: string;
+      checkIn: string;
+      checkOut: string;
+      details: string;
+      count: string;
+    };
+  }) => {
+    if (!editingHotelId) {
+      return;
+    }
+    
+    try {
+      // CRITICAL: Verify ID prefix
+      if (!editingHotelId.startsWith('user_hotel_')) {
+        const errorMsg = `SECURITY: Attempted to edit non-user hotel section: ${editingHotelId}`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created hotel sections can be edited.');
+        return;
+      }
+      
+      guardGeneratedContent(editingHotelId, 'edit');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[HOTEL CRUD] Updating section properties for hotel section ${editingHotelId}`);
+      }
+      
+      const section = findHotelSection(codeRef.current, editingHotelId);
+      if (!section) {
+        alert('Hotel section not found');
+        return;
+      }
+      
+      const updatedComponent = updateHotelSectionProps(section.component, props);
+      const updatedCode = codeRef.current.substring(0, section.startIndex) + 
+        updatedComponent + 
+        codeRef.current.substring(section.endIndex);
+      setCode(updatedCode);
+      
+      setShowEditHotelSectionModal(false);
+      setEditingHotelId(null);
+    } catch (error) {
+      console.error('[HOTEL CRUD ERROR] Error updating section:', error);
+      if (error instanceof Error && error.message.includes('generated content')) {
+        alert('Cannot modify generated content. This operation is blocked for security.');
+      } else {
+        alert(error instanceof Error ? error.message : 'Failed to update section');
+      }
+    }
+  }, [editingHotelId]);
+  
+  // Get initial hotel data for edit modal
+  const getInitialHotelData = useCallback((): Hotel | null => {
+    if (!editingHotelId || editingHotelIndex === null) {
+      return null;
+    }
+    
+    try {
+      const section = findHotelSection(codeRef.current, editingHotelId);
+      if (!section) {
+        return null;
+      }
+      
+      const hotels = extractHotelsFromComponent(section.component);
+      if (editingHotelIndex >= 0 && editingHotelIndex < hotels.length) {
+        return hotels[editingHotelIndex];
+      }
+    } catch (error) {
+      console.error('Error extracting hotel data:', error);
+    }
+    
+    return null;
+  }, [editingHotelId, editingHotelIndex]);
+  
+  // Get initial section data for edit modal
+  const getInitialHotelSectionData = useCallback((): {
+    title?: string;
+    showTitle?: boolean;
+    direction?: "rtl" | "ltr";
+    language?: "ar" | "en";
+    labels?: {
+      nights: string;
+      includes: string;
+      checkIn: string;
+      checkOut: string;
+      details: string;
+      count: string;
+    };
+  } | null => {
+    if (!editingHotelId) {
+      return null;
+    }
+    
+    try {
+      const section = findHotelSection(codeRef.current, editingHotelId);
+      if (!section) {
+        return null;
+      }
+      
+      const component = section.component;
+      const data: any = {};
+      
+      // Extract title
+      const titleMatch = component.match(/title=["']([^"']*)["']/);
+      if (titleMatch) {
+        data.title = titleMatch[1].replace(/\\"/g, '"');
+      }
+      
+      // Extract showTitle
+      const showTitleMatch = component.match(/showTitle=\{?([^}]*)\}?/);
+      if (showTitleMatch) {
+        data.showTitle = showTitleMatch[1].trim() === 'true';
+      }
+      
+      // Extract direction
+      const directionMatch = component.match(/direction=["']([^"']*)["']/);
+      if (directionMatch) {
+        data.direction = directionMatch[1] as "rtl" | "ltr";
+      }
+      
+      // Extract language
+      const languageMatch = component.match(/language=["']([^"']*)["']/);
+      if (languageMatch) {
+        data.language = languageMatch[1] as "ar" | "en";
+      }
+      
+      // Extract labels
+      const labelsMatch = component.match(/labels\s*=\s*\{[\s\S]*?\}/);
+      if (labelsMatch) {
+        const labelsStr = labelsMatch[0];
+        const nightsMatch = labelsStr.match(/nights\s*:\s*["']([^"']*)["']/);
+        const includesMatch = labelsStr.match(/includes\s*:\s*["']([^"']*)["']/);
+        const checkInMatch = labelsStr.match(/checkIn\s*:\s*["']([^"']*)["']/);
+        const checkOutMatch = labelsStr.match(/checkOut\s*:\s*["']([^"']*)["']/);
+        const detailsMatch = labelsStr.match(/details\s*:\s*["']([^"']*)["']/);
+        const countMatch = labelsStr.match(/count\s*:\s*["']([^"']*)["']/);
+        
+        if (nightsMatch || includesMatch || checkInMatch || checkOutMatch || detailsMatch || countMatch) {
+          data.labels = {
+            nights: nightsMatch ? nightsMatch[1].replace(/\\"/g, '"') : "ليالي",
+            includes: includesMatch ? includesMatch[1].replace(/\\"/g, '"') : "شامل الافطار",
+            checkIn: checkInMatch ? checkInMatch[1].replace(/\\"/g, '"') : "تاريخ الدخول",
+            checkOut: checkOutMatch ? checkOutMatch[1].replace(/\\"/g, '"') : "تاريخ الخروج",
+            details: detailsMatch ? detailsMatch[1].replace(/\\"/g, '"') : "للتفاصيل",
+            count: countMatch ? countMatch[1].replace(/\\"/g, '"') : "عدد"
+          };
+        }
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error extracting hotel section data:', error);
+    }
+    
+    return null;
+  }, [editingHotelId]);
   
   // Keep code ref updated
   useEffect(() => {
@@ -1185,7 +1678,26 @@ function CodePageContent() {
     setShowAddAirplaneModal(false);
   }, [code]);
 
-  const handleAddHotel = useCallback(() => {
+  const handleAddHotelClick = useCallback(() => {
+    setShowAddHotelModal(true);
+    setShowMenuDropdown(false);
+  }, []);
+
+  const handleAddHotelSubmit = useCallback((data: {
+    title?: string;
+    showTitle?: boolean;
+    hotels: Hotel[];
+    direction?: "rtl" | "ltr";
+    language?: "ar" | "en";
+    labels?: {
+      nights: string;
+      includes: string;
+      checkIn: string;
+      checkOut: string;
+      details: string;
+      count: string;
+    };
+  }) => {
     // Generate unique ID for user element
     const elementId = `user_hotel_${Date.now()}`;
     
@@ -1204,53 +1716,125 @@ function CodePageContent() {
       }
     }
     
-    // Create the component JSX
+    // Format hotels data for JSX (matching airplane section pattern)
+    const hotelsString = data.hotels.map(hotel => {
+      const parts: string[] = [];
+      parts.push(`city: "${hotel.city.replace(/"/g, '\\"')}"`);
+      parts.push(`nights: ${hotel.nights}`);
+      if (hotel.cityBadge) {
+        parts.push(`cityBadge: "${hotel.cityBadge.replace(/"/g, '\\"')}"`);
+      }
+      parts.push(`hotelName: "${hotel.hotelName.replace(/"/g, '\\"')}"`);
+      if (hotel.hasDetailsLink !== undefined) {
+        parts.push(`hasDetailsLink: ${hotel.hasDetailsLink}`);
+      }
+      if (hotel.detailsLink) {
+        parts.push(`detailsLink: "${hotel.detailsLink.replace(/"/g, '\\"')}"`);
+      }
+      const roomTypePart = hotel.roomDescription.roomType 
+        ? `,\n              roomType: "${hotel.roomDescription.roomType.replace(/"/g, '\\"')}"`
+        : '';
+      parts.push(`roomDescription: {
+              includesAll: "${hotel.roomDescription.includesAll.replace(/"/g, '\\"')}",
+              bedType: "${hotel.roomDescription.bedType.replace(/"/g, '\\"')}"${roomTypePart}
+            }`);
+      parts.push(`checkInDate: "${hotel.checkInDate}"`);
+      parts.push(`checkOutDate: "${hotel.checkOutDate}"`);
+      parts.push(`dayInfo: {
+              checkInDay: "${hotel.dayInfo.checkInDay.replace(/"/g, '\\"')}",
+              checkOutDay: "${hotel.dayInfo.checkOutDay.replace(/"/g, '\\"')}"
+            }`);
+      
+      return `{\n            ${parts.join(',\n            ')}\n          }`;
+    }).join(',\n          ');
+    
+    // Format labels for JSX - only include if provided (component has defaults based on language)
+    // Since HotelsSection has default labels, we can omit this prop to use defaults
+    // NOTE: We avoid using labels={{}} syntax because PreviewRenderer's fixDoubleBraces
+    // incorrectly transforms it. Since component has defaults, we simply don't include it.
+    const labelsProp = ''; // Always use component defaults to avoid fixDoubleBraces issue
+    
+    // Create the component JSX (matching airplane section pattern)
+    const titleProp = data.title ? `\n          title="${data.title.replace(/"/g, '\\"')}"` : '';
     const hotelComponent = `        <HotelsSection
           id="${elementId}"
           editable={true}
-          hotels={[
-            {
-              city: "المدينة",
-              nights: 1,
-              cityBadge: "المدينة الاولى",
-              hotelName: "اسم الفندق",
-              hasDetailsLink: false,
-              roomDescription: {
-                includesAll: "شامل الافطار",
-                bedType: "سرير اضافي/ عدد: 2",
-                roomType: "غرفة"
-              },
-              checkInDate: "${new Date().toISOString().split('T')[0]}",
-              checkOutDate: "${new Date(Date.now() + 86400000).toISOString().split('T')[0]}",
-              dayInfo: {
-                checkInDay: "اليوم الاول",
-                checkOutDay: "اليوم الثاني"
-              }
-            }
-          ]}
-          title="حجز الفنادق"
-          showTitle={true}
-          direction="rtl"
-          language="ar"
+          hotels={[\n          ${hotelsString}\n          ]}${titleProp}
+          showTitle={${data.showTitle !== false}}${labelsProp}
+          direction="${data.direction || 'rtl'}"
+          language="${data.language || 'ar'}"
         />`;
     
-    // Find the return statement and insert before the last closing tag
-    const returnMatch = updatedCode.match(/(return\s*\([\s\S]*?)(<\/div>)/);
-    if (returnMatch) {
-      updatedCode = updatedCode.replace(returnMatch[0], 
-        returnMatch[1] + `\n${hotelComponent}\n      ` + returnMatch[2]);
+    // Try to find header image to insert after it (same pattern as airplane)
+    let insertionPoint = -1;
+    let indent = '        ';
+    
+    // Pattern 1: After header image tag
+    const headerImagePatterns = [
+      /(<img[^>]*(?:src=["'][^"']*(?:header|Header|happylifeHeader)[^"']*["']|alt=["'][^"']*(?:header|Header)[^"']*["'])[^>]*\/?>)/i,
+      /(<img[^>]*\/?>)/  // Any img tag as fallback
+    ];
+    
+    for (const pattern of headerImagePatterns) {
+      const headerImageMatch = updatedCode.match(pattern);
+      if (headerImageMatch && headerImageMatch.index !== undefined) {
+        insertionPoint = headerImageMatch.index + headerImageMatch[0].length;
+        const afterImage = updatedCode.substring(insertionPoint);
+        const nextLineMatch = afterImage.match(/^\s*\n(\s*)/);
+        if (nextLineMatch && nextLineMatch[1]) {
+          indent = nextLineMatch[1];
+        }
+        break;
+      }
+    }
+    
+    // Pattern 2: If no image found, look for header div or comment
+    if (insertionPoint === -1) {
+      const headerCommentPattern = /(\{\/\*.*Header.*\*\/[\s\S]*?<\/div>[\s\S]*?\n)/i;
+      const headerCommentMatch = updatedCode.match(headerCommentPattern);
+      if (headerCommentMatch && headerCommentMatch.index !== undefined) {
+        insertionPoint = headerCommentMatch.index + headerCommentMatch[0].length;
+        indent = '        ';
+      }
+    }
+    
+    // Pattern 3: Look for BaseTemplate children area
+    if (insertionPoint === -1) {
+      const baseTemplatePattern = /<BaseTemplate[^>]*>\s*\n(\s*)/;
+      const baseTemplateMatch = updatedCode.match(baseTemplatePattern);
+      if (baseTemplateMatch && baseTemplateMatch.index !== undefined) {
+        insertionPoint = baseTemplateMatch.index + baseTemplateMatch[0].length;
+        indent = baseTemplateMatch[1] || '        ';
+      }
+    }
+    
+    // Pattern 4: Look for return statement
+    if (insertionPoint === -1) {
+      const returnPattern = /return\s*\(\s*\n(\s*)/;
+      const returnMatch = updatedCode.match(returnPattern);
+      if (returnMatch && returnMatch.index !== undefined) {
+        insertionPoint = returnMatch.index + returnMatch[0].length;
+        indent = returnMatch[1] || '        ';
+      }
+    }
+    
+    // Insert the component
+    if (insertionPoint !== -1) {
+      const before = updatedCode.substring(0, insertionPoint);
+      const after = updatedCode.substring(insertionPoint);
+      updatedCode = before + '\n' + indent + hotelComponent + '\n' + after;
     } else {
-      // Fallback: append before the last closing brace
-      const lastDivIndex = updatedCode.lastIndexOf('</div>');
-      if (lastDivIndex !== -1) {
-        updatedCode = updatedCode.slice(0, lastDivIndex) + 
-          `\n${hotelComponent}\n      ` + 
-          updatedCode.slice(lastDivIndex);
+      // Fallback: append at the end before closing tag
+      const lastBrace = updatedCode.lastIndexOf('}');
+      if (lastBrace !== -1) {
+        updatedCode = updatedCode.substring(0, lastBrace) + '\n        ' + hotelComponent + '\n' + updatedCode.substring(lastBrace);
+      } else {
+        updatedCode = updatedCode + '\n        ' + hotelComponent;
       }
     }
     
     setCode(updatedCode);
-    setShowMenuDropdown(false);
+    setShowAddHotelModal(false);
   }, [code]);
 
   const handleSave = useCallback(async () => {
@@ -1493,7 +2077,7 @@ function CodePageContent() {
                     
                     {/* Add Hotel */}
                     <button
-                      onClick={handleAddHotel}
+                      onClick={handleAddHotelClick}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"
                     >
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1616,7 +2200,7 @@ function CodePageContent() {
         </div>
       </div>
     </div>
-  ), [mode, handleExportCode, handleExportPDF, handleSave, handleAddAirplaneClick, handleAddAirplaneSubmit, handleAddHotel, sourceMetadata, isSaving, saveStatus, documentId, totalVersions, currentVersion, showMenuDropdown]);
+  ), [mode, handleExportCode, handleExportPDF, handleSave, handleAddAirplaneClick, handleAddAirplaneSubmit, handleAddHotelClick, handleAddHotelSubmit, sourceMetadata, isSaving, saveStatus, documentId, totalVersions, currentVersion, showMenuDropdown]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-50 via-blue-50 to-lime-50 text-gray-900">
@@ -1770,6 +2354,36 @@ function CodePageContent() {
         }}
         onSubmit={handleEditSectionSubmit}
         initialData={getInitialSectionData()}
+      />
+
+      {/* Add Hotel Modal */}
+      <AddHotelModal
+        isOpen={showAddHotelModal}
+        onClose={() => setShowAddHotelModal(false)}
+        onSubmit={handleAddHotelSubmit}
+      />
+      
+      {/* Edit Hotel Modal */}
+      <EditHotelModal
+        isOpen={showEditHotelModal}
+        onClose={() => {
+          setShowEditHotelModal(false);
+          setEditingHotelId(null);
+          setEditingHotelIndex(null);
+        }}
+        onSubmit={handleEditHotelSubmit}
+        initialHotel={getInitialHotelData()}
+      />
+      
+      {/* Edit Hotel Section Modal */}
+      <EditHotelSectionModal
+        isOpen={showEditHotelSectionModal}
+        onClose={() => {
+          setShowEditHotelSectionModal(false);
+          setEditingHotelId(null);
+        }}
+        onSubmit={handleEditHotelSectionSubmit}
+        initialData={getInitialHotelSectionData()}
       />
 
       <style jsx>{`

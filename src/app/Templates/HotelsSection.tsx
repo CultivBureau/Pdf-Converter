@@ -65,6 +65,7 @@ export interface HotelsSectionProps {
   onRemoveHotel?: (hotelIndex: number) => void;
   onAddHotel?: () => void;
   onEditSection?: () => void;
+  onDeleteSection?: () => void;
   
   // Customization
   className?: string;
@@ -140,6 +141,7 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
   onRemoveHotel,
   onAddHotel,
   onEditSection,
+  onDeleteSection,
   className = "",
   style
 }) => {
@@ -203,16 +205,49 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
               </svg>
             </div>
           </div>
-          {editable && onEditSection && (
-            <button
-              onClick={onEditSection}
-              className={`absolute top-1/2 -translate-y-1/2 p-2.5 bg-[#3B5998] text-white rounded-full hover:bg-[#2E4A7A] transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110 z-10 ${direction === 'rtl' ? 'right-0' : 'left-0'}`}
-              title={language === 'ar' ? 'تعديل القسم' : 'Edit Section'}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
+          {editable && (
+            <div className={`absolute top-1/2 -translate-y-1/2 flex gap-2 z-10 ${direction === 'rtl' ? 'right-0' : 'left-0'}`}>
+              {onEditSection && (
+                <button
+                  onClick={(e) => {
+                    // Support prop handler if provided (for backward compatibility)
+                    // Event delegation will handle this when rendered in preview
+                    if (onEditSection) {
+                      e.stopPropagation();
+                      onEditSection();
+                    }
+                  }}
+                  data-action="edit-section"
+                  data-hotels-section-id={sectionIdValue}
+                  className="p-2.5 bg-[#3B5998] text-white rounded-full hover:bg-[#2E4A7A] transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110"
+                  title={language === 'ar' ? 'تعديل القسم' : 'Edit Section'}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              )}
+              {onDeleteSection && (
+                <button
+                  onClick={(e) => {
+                    // Support prop handler if provided (for backward compatibility)
+                    // Event delegation will handle this when rendered in preview
+                    if (onDeleteSection) {
+                      e.stopPropagation();
+                      onDeleteSection();
+                    }
+                  }}
+                  data-action="delete-section"
+                  data-hotels-section-id={sectionIdValue}
+                  className="p-2.5 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110"
+                  title={language === 'ar' ? 'حذف القسم' : 'Delete Section'}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -228,7 +263,17 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
               <div className={`absolute top-3 z-10 flex gap-2 ${direction === 'rtl' ? 'right-3' : 'left-3'}`}>
                 {onEditHotel && (
                   <button
-                    onClick={() => onEditHotel(index)}
+                    onClick={(e) => {
+                      // Support prop handler if provided (for backward compatibility)
+                      // Event delegation will handle this when rendered in preview
+                      if (onEditHotel) {
+                        e.stopPropagation();
+                        onEditHotel(index);
+                      }
+                    }}
+                    data-action="edit-hotel"
+                    data-hotels-section-id={sectionIdValue}
+                    data-hotel-index={index}
                     className="p-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110"
                     title={language === 'ar' ? 'تعديل' : 'Edit'}
                   >
@@ -239,7 +284,17 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
                 )}
                 {onRemoveHotel && hotels.length > 1 && (
                   <button
-                    onClick={() => onRemoveHotel(index)}
+                    onClick={(e) => {
+                      // Support prop handler if provided (for backward compatibility)
+                      // Event delegation will handle this when rendered in preview
+                      if (onRemoveHotel) {
+                        e.stopPropagation();
+                        onRemoveHotel(index);
+                      }
+                    }}
+                    data-action="remove-hotel"
+                    data-hotels-section-id={sectionIdValue}
+                    data-hotel-index={index}
                     className="p-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110"
                     title={language === 'ar' ? 'حذف' : 'Delete'}
                   >
@@ -371,7 +426,16 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
         {editable && onAddHotel && (
           <div className="border-2 border-dashed border-blue-300 rounded-2xl p-8 md:p-10 bg-blue-50 text-center hover:bg-blue-100 transition-colors duration-200">
             <button
-              onClick={onAddHotel}
+              onClick={(e) => {
+                // Support prop handler if provided (for backward compatibility)
+                // Event delegation will handle this when rendered in preview
+                if (onAddHotel) {
+                  e.stopPropagation();
+                  onAddHotel();
+                }
+              }}
+              data-action="add-hotel"
+              data-hotels-section-id={sectionIdValue}
               className="px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-200 text-sm md:text-base font-medium flex items-center gap-2 mx-auto shadow-md hover:shadow-lg hover:scale-105"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
