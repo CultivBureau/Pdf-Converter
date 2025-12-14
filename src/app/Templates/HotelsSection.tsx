@@ -191,7 +191,7 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
       {/* Edit/Delete Buttons - Always visible when editable, regardless of showTitle */}
       {editable && (
         <div className={`mb-4 flex ${direction === 'rtl' ? 'justify-start' : 'justify-end'} relative`}>
-          <div className={`flex gap-2 z-50 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex gap-2 z-0 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
             <button
               onClick={(e) => {
                 // Support prop handler if provided (for backward compatibility)
@@ -264,7 +264,7 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
             className="border-2 border-blue-300 rounded-2xl p-5 md:p-6 bg-white shadow-lg hover:shadow-xl transition-all duration-300 relative group"
           >
             {editable && (
-              <div className={`absolute top-3 z-50 flex gap-2 ${direction === 'rtl' ? 'right-3' : 'left-3'}`}>
+              <div className={`absolute top-3 z-0 flex gap-2 left-3`}>
                 <button
                   onClick={(e) => {
                     // Support prop handler if provided (for backward compatibility)
@@ -327,7 +327,7 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
             </div>
 
             {/* Day Info - More Visible and Prominent */}
-            <div className={`absolute top-2 z-10 text-base md:text-lg font-bold text-[#1E88E5] space-y-2 ${direction === 'rtl' ? 'right-4 text-right' : 'left-4 text-left'}`}>
+            <div className={`absolute top-2 z-0 text-base md:text-lg font-bold text-[#1E88E5] space-y-2 ${direction === 'rtl' ? 'right-4 text-right' : 'left-4 text-left'}`}>
               <div className={`flex items-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
                 <div className="bg-[#1E88E5] rounded-full p-1.5 shadow-md">
                   <svg 
