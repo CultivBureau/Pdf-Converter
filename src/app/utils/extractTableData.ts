@@ -11,6 +11,28 @@ export interface ExtractedTableData {
 }
 
 /**
+ * Check if a table element is inside an AirplaneSection component
+ * @param tableEl The table element to check
+ * @returns true if the table is inside an AirplaneSection component
+ */
+function isInsideAirplaneSection(tableEl: HTMLTableElement): boolean {
+  // Check if table is inside an element with data-airplane-section-id attribute
+  const airplaneSectionWrapper = tableEl.closest('[data-airplane-section-id]');
+  return airplaneSectionWrapper !== null;
+}
+
+/**
+ * Check if a table element belongs to a DynamicTable component
+ * @param tableEl The table element to check
+ * @returns true if the table belongs to a DynamicTable component
+ */
+function isDynamicTable(tableEl: HTMLTableElement): boolean {
+  // Check if table is inside an element with data-table-id attribute (DynamicTable wrapper)
+  const dynamicTableWrapper = tableEl.closest('[data-table-id]');
+  return dynamicTableWrapper !== null;
+}
+
+/**
  * Extract all table data from the current DOM
  * @param container Optional container element to search within (for better accuracy)
  */
@@ -83,13 +105,45 @@ export function extractAllTablesFromDOM(container?: HTMLElement | null): Extract
   
   console.log(`Found ${tableElements.length} tables in DOM`);
   
+  let skippedCount = 0;
+  let extractedCount = 0;
+  
   tableElements.forEach((tableEl, index) => {
-    const extracted = extractTableFromElement(tableEl as HTMLTableElement, index);
+    const table = tableEl as HTMLTableElement;
+    
+    // CRITICAL: Skip tables inside AirplaneSection components
+    if (isInsideAirplaneSection(table)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TABLE EXTRACTION] Skipping table ${index} - inside AirplaneSection component`);
+      }
+      skippedCount++;
+      return;
+    }
+    
+    // Only extract tables that belong to DynamicTable components
+    if (!isDynamicTable(table)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TABLE EXTRACTION] Skipping table ${index} - not a DynamicTable component`);
+      }
+      skippedCount++;
+      return;
+    }
+    
+    const extracted = extractTableFromElement(table, extractedCount);
     if (extracted) {
       tables.push(extracted);
-      console.log(`Extracted table ${index}: ${extracted.headers.length} headers, ${extracted.rows.length} rows`);
+      extractedCount++;
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TABLE EXTRACTION] Extracted DynamicTable ${extractedCount - 1}: ${extracted.headers.length} headers, ${extracted.rows.length} rows`);
+      } else {
+        console.log(`Extracted table ${extractedCount - 1}: ${extracted.headers.length} headers, ${extracted.rows.length} rows`);
+      }
     }
   });
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[TABLE EXTRACTION] Summary: ${extractedCount} DynamicTable(s) extracted, ${skippedCount} table(s) skipped (AirplaneSection or non-DynamicTable)`);
+  }
   
   return tables;
 }
@@ -99,6 +153,22 @@ export function extractAllTablesFromDOM(container?: HTMLElement | null): Extract
  */
 function extractTableFromElement(tableEl: HTMLTableElement, index: number): ExtractedTableData | null {
   try {
+    // CRITICAL: Early validation - skip if inside AirplaneSection
+    if (isInsideAirplaneSection(tableEl)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[TABLE EXTRACTION] Attempted to extract table inside AirplaneSection - skipping`);
+      }
+      return null;
+    }
+    
+    // CRITICAL: Only extract DynamicTable components
+    if (!isDynamicTable(tableEl)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[TABLE EXTRACTION] Attempted to extract non-DynamicTable - skipping`);
+      }
+      return null;
+    }
+    
     // Extract headers - look in thead or first row
     let headerRow = tableEl.querySelector('thead tr');
     if (!headerRow) {

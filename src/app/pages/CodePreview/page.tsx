@@ -1270,7 +1270,57 @@ function CodePageContent() {
       try {
         // Extract tables from the preview container
         const extractedTables = extractAllTablesFromDOM(previewContainerRef.current);
+        
+        // CRITICAL: Validate that only DynamicTable components were extracted
+        // Count DynamicTable components in the code to ensure alignment
+        let expectedTableCount = 0;
+        try {
+          const { parseJSXCode } = require('../../utils/jsxParser');
+          const parsed = parseJSXCode(code);
+          expectedTableCount = parsed.tables.length;
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[SAVE VALIDATION] Expected ${expectedTableCount} DynamicTable(s) in code, extracted ${extractedTables.length} table(s)`);
+          }
+          
+          // Validation: Ensure extracted tables count matches DynamicTable components
+          if (extractedTables.length > expectedTableCount) {
+            const warningMsg = `[SAVE VALIDATION WARNING] Extracted ${extractedTables.length} tables but only ${expectedTableCount} DynamicTable components found in code. Some tables may be from AirplaneSection components.`;
+            console.warn(warningMsg);
+            if (process.env.NODE_ENV === 'development') {
+              alert(`Warning: ${extractedTables.length - expectedTableCount} extra table(s) detected. This may indicate airplane section tables were incorrectly extracted.`);
+            }
+            // Trim to expected count to prevent overwriting
+            extractedTables.splice(expectedTableCount);
+          } else if (extractedTables.length < expectedTableCount && extractedTables.length > 0) {
+            const warningMsg = `[SAVE VALIDATION WARNING] Only extracted ${extractedTables.length} tables but ${expectedTableCount} DynamicTable components found in code. Some tables may have been skipped.`;
+            console.warn(warningMsg);
+          }
+        } catch (parseError) {
+          console.warn('[SAVE VALIDATION] Could not parse JSX code to validate table count:', parseError);
+        }
+        
         if (extractedTables.length > 0) {
+          // Additional validation: Ensure no airplane section tables were extracted
+          // This is a safety check - the extraction function should already filter these
+          const hasAirplaneSectionTables = extractedTables.some((table, index) => {
+            // Check if any extracted table has airplane section characteristics
+            // (This is a secondary check - the main filtering happens in extractAllTablesFromDOM)
+            if (process.env.NODE_ENV === 'development') {
+              const tableEl = previewContainerRef.current?.querySelectorAll('table')[index];
+              if (tableEl && tableEl.closest('[data-airplane-section-id]')) {
+                console.error(`[SAVE VALIDATION ERROR] Table ${index} appears to be inside AirplaneSection - this should have been filtered!`);
+                return true;
+              }
+            }
+            return false;
+          });
+          
+          if (hasAirplaneSectionTables) {
+            console.error('[SAVE VALIDATION ERROR] Airplane section tables detected in extracted tables! This should not happen.');
+            throw new Error('Airplane section tables were incorrectly extracted. Save aborted to prevent data corruption.');
+          }
+          
           // Update JSX code with extracted table data using updateTableCell function
           updatedCode = updateCodeWithTableData(code, extractedTables, updateTableCell, updateTableColumnHeader);
           
