@@ -149,7 +149,8 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
       import('../Templates/dynamicTableTemplate').then(m => m.default).catch(() => null),
       import('../Templates/airplaneSection').then(m => m.default).catch(() => null),
       import('../Templates/HotelsSection').then(m => m.default).catch(() => null),
-    ]).then(([BaseTemplate, SectionTemplate, DynamicTableTemplate, AirplaneSection, HotelsSection]) => {
+      import('../Templates/TransportSection').then(m => m.default).catch(() => null),
+    ]).then(([BaseTemplate, SectionTemplate, DynamicTableTemplate, AirplaneSection, HotelsSection, TransportSection]) => {
       if (!isMounted) return;
       
       const components: any = {};
@@ -158,6 +159,7 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
       if (DynamicTableTemplate) components.DynamicTableTemplate = DynamicTableTemplate;
       if (AirplaneSection) components.AirplaneSection = AirplaneSection;
       if (HotelsSection) components.HotelsSection = HotelsSection;
+      if (TransportSection) components.TransportSection = TransportSection;
       
       setTemplateComponents(components);
       setComponentsLoading(false);

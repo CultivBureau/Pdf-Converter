@@ -21,6 +21,10 @@ import EditAirplaneSectionModal from "../../components/EditAirplaneSectionModal"
 import AddHotelModal from "../../components/AddHotelModal";
 import EditHotelModal from "../../components/EditHotelModal";
 import EditHotelSectionModal from "../../components/EditHotelSectionModal";
+import AddTransportModal from "../../components/AddTransportModal";
+import EditTransportRowModal from "../../components/EditTransportRowModal";
+import EditTransportTableModal from "../../components/EditTransportTableModal";
+import EditTransportSectionModal from "../../components/EditTransportSectionModal";
 import { getElementInfo } from "../../utils/jsxParser";
 import { addSection, addNewTable, updateTableCell, updateTableColumnHeader, updateSectionContent } from "../../utils/codeManipulator";
 import { extractAllTablesFromDOM, updateCodeWithTableData } from "../../utils/extractTableData";
@@ -42,6 +46,19 @@ import {
   updateHotelSectionProps,
   extractHotelsFromComponent
 } from "../../utils/hotelSectionManipulator";
+import {
+  findTransportSection,
+  updateTransportRowInComponent,
+  addTransportRowToComponent,
+  removeTransportRowFromComponent,
+  updateTransportTableInComponent,
+  addTransportTableToComponent,
+  removeTransportTableFromComponent,
+  removeTransportSection,
+  updateTransportSectionProps,
+  extractTransportSectionData,
+  extractTransportTablesFromComponent
+} from "../../utils/transportSectionManipulator";
 import { Hotel } from "../../Templates/HotelsSection";
 import { guardGeneratedContent } from "../../utils/contentGuards";
 import { isAuthenticated } from "../../services/AuthApi";
@@ -148,8 +165,20 @@ function CodePageContent() {
   const [editingHotelIndex, setEditingHotelIndex] = useState<number | null>(null);
   const [showEditHotelModal, setShowEditHotelModal] = useState(false);
   const [showEditHotelSectionModal, setShowEditHotelSectionModal] = useState(false);
+  const [showAddTransportModal, setShowAddTransportModal] = useState(false);
+  const [editingTransportId, setEditingTransportId] = useState<string | null>(null);
+  const [editingTransportTableIndex, setEditingTransportTableIndex] = useState<number | null>(null);
+  const [editingTransportRowIndex, setEditingTransportRowIndex] = useState<number | null>(null);
+  const [showEditTransportRowModal, setShowEditTransportRowModal] = useState(false);
+  const [showEditTransportTableModal, setShowEditTransportTableModal] = useState(false);
+  const [showEditTransportSectionModal, setShowEditTransportSectionModal] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<string>(code);
+  
+  // Update codeRef when code changes
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
   
   // Event delegation for airplane section actions
   useEffect(() => {
@@ -317,12 +346,132 @@ function CodePageContent() {
       }
     };
     
+    const handleTransportSectionClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      
+      // Find the button that was clicked (or its parent button)
+      const button = target.closest('button[data-action]') as HTMLButtonElement;
+      if (!button) return;
+      
+      const action = button.getAttribute('data-action');
+      const sectionId = button.getAttribute('data-transport-section-id');
+      const tableIndexStr = button.getAttribute('data-table-index');
+      const rowIndexStr = button.getAttribute('data-row-index');
+      
+      // Verify we have required attributes
+      if (!action || !sectionId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[TRANSPORT CLICK] Missing action or sectionId', { action, sectionId });
+        }
+        return;
+      }
+      
+      // Type check: ensure sectionId is a string (getAttribute returns string | null)
+      if (typeof sectionId !== 'string') {
+        console.error('[TRANSPORT CLICK] Invalid sectionId type:', typeof sectionId, sectionId);
+        return;
+      }
+      
+      // Explicitly convert to string to ensure type safety
+      const sectionIdString = String(sectionId);
+      
+      // CRITICAL: Verify ID starts with user_transport_ to prevent modifying generated content
+      if (!sectionIdString.startsWith('user_transport_')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Attempted to ${action} on non-user transport section: ${sectionIdString}`);
+        }
+        alert('Cannot modify generated content. Only user-created transport sections can be edited.');
+        return;
+      }
+      
+      // Prevent default and stop propagation
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TRANSPORT CLICK] Action: ${action}, Section: ${sectionIdString}, Table: ${tableIndexStr}, Row: ${rowIndexStr}`);
+      }
+      
+      // Route to appropriate handler
+      switch (action) {
+        case 'edit-row': {
+          const tableIndex = tableIndexStr ? parseInt(tableIndexStr, 10) : null;
+          const rowIndex = rowIndexStr ? parseInt(rowIndexStr, 10) : null;
+          if (tableIndex === null || isNaN(tableIndex) || rowIndex === null || isNaN(rowIndex)) {
+            console.error('Invalid table/row index for edit-row action');
+            return;
+          }
+          setEditingTransportId(sectionIdString);
+          setEditingTransportTableIndex(tableIndex);
+          setEditingTransportRowIndex(rowIndex);
+          setShowEditTransportRowModal(true);
+          break;
+        }
+        case 'remove-row': {
+          const tableIndex = tableIndexStr ? parseInt(tableIndexStr, 10) : null;
+          const rowIndex = rowIndexStr ? parseInt(rowIndexStr, 10) : null;
+          if (tableIndex === null || isNaN(tableIndex) || rowIndex === null || isNaN(rowIndex)) {
+            console.error('Invalid table/row index for remove-row action');
+            return;
+          }
+          handleRemoveTransportRow(sectionIdString, tableIndex, rowIndex);
+          break;
+        }
+        case 'add-row': {
+          const tableIndex = tableIndexStr ? parseInt(tableIndexStr, 10) : null;
+          if (tableIndex === null || isNaN(tableIndex)) {
+            console.error('Invalid table index for add-row action');
+            return;
+          }
+          handleAddTransportRow(sectionIdString, tableIndex);
+          break;
+        }
+        case 'edit-table': {
+          const tableIndex = tableIndexStr ? parseInt(tableIndexStr, 10) : null;
+          if (tableIndex === null || isNaN(tableIndex)) {
+            console.error('Invalid table index for edit-table action');
+            return;
+          }
+          setEditingTransportId(sectionIdString);
+          setEditingTransportTableIndex(tableIndex);
+          setShowEditTransportTableModal(true);
+          break;
+        }
+        case 'delete-table': {
+          const tableIndex = tableIndexStr ? parseInt(tableIndexStr, 10) : null;
+          if (tableIndex === null || isNaN(tableIndex)) {
+            console.error('Invalid table index for delete-table action');
+            return;
+          }
+          handleRemoveTransportTable(sectionIdString, tableIndex);
+          break;
+        }
+        case 'edit-section': {
+          setEditingTransportId(sectionIdString);
+          setEditingTransportTableIndex(null);
+          setEditingTransportRowIndex(null);
+          setShowEditTransportSectionModal(true);
+          break;
+        }
+        case 'delete-section': {
+          handleDeleteTransportSection(sectionIdString);
+          break;
+        }
+        default:
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Unknown transport section action: ${action}`);
+          }
+      }
+    };
+    
     container.addEventListener('click', handleAirplaneSectionClick);
     container.addEventListener('click', handleHotelSectionClick);
+    container.addEventListener('click', handleTransportSectionClick);
     
     return () => {
       container.removeEventListener('click', handleAirplaneSectionClick);
       container.removeEventListener('click', handleHotelSectionClick);
+      container.removeEventListener('click', handleTransportSectionClick);
     };
   }, [code]);
   
@@ -970,6 +1119,363 @@ function CodePageContent() {
       }
     }
   }, [editingHotelId]);
+
+  // Handler functions for transport section actions
+  const handleRemoveTransportRow = useCallback((id: string, tableIndex: number, rowIndex: number) => {
+    try {
+      if (!id.startsWith('user_transport_')) {
+        const errorMsg = `SECURITY: Attempted to remove row from non-user transport section: ${id}`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created transport sections can be edited.');
+        return;
+      }
+      
+      guardGeneratedContent(id, 'remove row from');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TRANSPORT CRUD] Removing row ${rowIndex} from table ${tableIndex} in transport section ${id}`);
+      }
+      
+      // Explicitly convert to string as final safeguard
+      const idString = String(id);
+      
+      const section = findTransportSection(codeRef.current, idString);
+      if (!section) {
+        alert('Transport section not found');
+        return;
+      }
+      
+      const updatedCode = removeTransportRowFromComponent(codeRef.current, idString, tableIndex, rowIndex);
+      setCode(updatedCode);
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error removing row:', error);
+      alert(error instanceof Error ? error.message : 'Failed to remove row');
+    }
+  }, []);
+
+  const handleAddTransportRow = useCallback((id: string, tableIndex: number) => {
+    try {
+      // Explicitly convert to string as final safeguard
+      const idString = String(id);
+      
+      // Type check: ensure id is a string
+      if (!idString || typeof idString !== 'string') {
+        console.error('[TRANSPORT CRUD ERROR] Invalid ID type:', typeof id, id);
+        alert('Invalid transport section ID');
+        return;
+      }
+      
+      if (!idString.startsWith('user_transport_')) {
+        const errorMsg = `SECURITY: Attempted to add row to non-user transport section: ${idString}`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created transport sections can be edited.');
+        return;
+      }
+      
+      guardGeneratedContent(idString, 'add row to');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TRANSPORT CRUD] Adding row to table ${tableIndex} in transport section ${idString}`);
+      }
+      
+      const section = findTransportSection(codeRef.current, idString);
+      if (!section) {
+        alert('Transport section not found');
+        return;
+      }
+      
+      const tables = extractTransportTablesFromComponent(section.component);
+      if (tableIndex < 0 || tableIndex >= tables.length) {
+        alert('Invalid table index');
+        return;
+      }
+      
+      const table = tables[tableIndex];
+      const newRow: any = {
+        day: "",
+        date: new Date().toISOString().split('T')[0],
+        description: "",
+        carType: "",
+      };
+      
+      // Initialize all column values
+      table.columns.forEach(col => {
+        if (!newRow[col.key]) {
+          newRow[col.key] = "";
+        }
+      });
+      
+      const updatedCode = addTransportRowToComponent(codeRef.current, idString, tableIndex, newRow);
+      setCode(updatedCode);
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error adding row:', error);
+      alert(error instanceof Error ? error.message : 'Failed to add row');
+    }
+  }, []);
+
+  const handleRemoveTransportTable = useCallback((id: string, tableIndex: number) => {
+    try {
+      if (!id.startsWith('user_transport_')) {
+        const errorMsg = `SECURITY: Attempted to remove table from non-user transport section: ${id}`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created transport sections can be edited.');
+        return;
+      }
+      
+      guardGeneratedContent(id, 'remove table from');
+      
+      if (!confirm('Are you sure you want to delete this table?')) {
+        return;
+      }
+      
+      // Explicitly convert to string as final safeguard
+      const idString = String(id);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TRANSPORT CRUD] Removing table ${tableIndex} from transport section ${idString}`);
+      }
+      
+      const updatedCode = removeTransportTableFromComponent(codeRef.current, idString, tableIndex);
+      setCode(updatedCode);
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error removing table:', error);
+      alert(error instanceof Error ? error.message : 'Failed to remove table');
+    }
+  }, []);
+
+  const handleDeleteTransportSection = useCallback((id: string) => {
+    if (!id.startsWith('user_transport_')) {
+      const errorMsg = `SECURITY: Attempted to delete non-user transport section: ${id}`;
+      console.error(errorMsg);
+      alert('Cannot delete generated content. Only user-created sections can be deleted.');
+      return;
+    }
+    
+    try {
+      guardGeneratedContent(id, 'delete');
+    } catch (error) {
+      console.error('[ISOLATION GUARD]', error);
+      alert('Cannot delete generated content. This operation is blocked.');
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to delete this transport section?')) {
+      return;
+    }
+    
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TRANSPORT CRUD] Deleting transport section ${id}`);
+      }
+      
+      const updatedCode = removeTransportSection(codeRef.current, id);
+      setCode(updatedCode);
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error deleting section:', error);
+      if (error instanceof Error && error.message.includes('generated content')) {
+        alert('Cannot delete generated content. This operation is blocked for security.');
+      } else {
+        alert(error instanceof Error ? error.message : 'Failed to delete section');
+      }
+    }
+  }, []);
+
+  // Handler for editing a transport row
+  const handleEditTransportRowSubmit = useCallback((updatedRow: any) => {
+    if (!editingTransportId || editingTransportTableIndex === null || editingTransportRowIndex === null) {
+      return;
+    }
+    
+    try {
+      if (!editingTransportId.startsWith('user_transport_')) {
+        const errorMsg = `SECURITY: Attempted to edit row in non-user transport section: ${editingTransportId}`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created transport sections can be edited.');
+        return;
+      }
+      
+      guardGeneratedContent(editingTransportId, 'edit row in');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TRANSPORT CRUD] Updating row ${editingTransportRowIndex} in table ${editingTransportTableIndex} of transport section ${editingTransportId}`);
+      }
+      
+      const section = findTransportSection(codeRef.current, editingTransportId);
+      if (!section) {
+        alert('Transport section not found');
+        return;
+      }
+      
+      const updatedComponent = updateTransportRowInComponent(
+        section.component, 
+        editingTransportId, 
+        editingTransportTableIndex, 
+        editingTransportRowIndex, 
+        updatedRow
+      );
+      const updatedCode = codeRef.current.substring(0, section.startIndex) + 
+        updatedComponent + 
+        codeRef.current.substring(section.endIndex);
+      setCode(updatedCode);
+      
+      setShowEditTransportRowModal(false);
+      setEditingTransportId(null);
+      setEditingTransportTableIndex(null);
+      setEditingTransportRowIndex(null);
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error updating row:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update row');
+    }
+  }, [editingTransportId, editingTransportTableIndex, editingTransportRowIndex]);
+
+  // Handler for editing a transport table
+  const handleEditTransportTableSubmit = useCallback((updatedTable: any) => {
+    if (!editingTransportId || editingTransportTableIndex === null) {
+      return;
+    }
+    
+    try {
+      if (!editingTransportId.startsWith('user_transport_')) {
+        const errorMsg = `SECURITY: Attempted to edit table in non-user transport section: ${editingTransportId}`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created transport sections can be edited.');
+        return;
+      }
+      
+      guardGeneratedContent(editingTransportId, 'edit table in');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TRANSPORT CRUD] Updating table ${editingTransportTableIndex} in transport section ${editingTransportId}`);
+      }
+      
+      const section = findTransportSection(codeRef.current, editingTransportId);
+      if (!section) {
+        alert('Transport section not found');
+        return;
+      }
+      
+      const updatedComponent = updateTransportTableInComponent(
+        section.component, 
+        editingTransportId, 
+        editingTransportTableIndex, 
+        updatedTable
+      );
+      const updatedCode = codeRef.current.substring(0, section.startIndex) + 
+        updatedComponent + 
+        codeRef.current.substring(section.endIndex);
+      setCode(updatedCode);
+      
+      setShowEditTransportTableModal(false);
+      setEditingTransportId(null);
+      setEditingTransportTableIndex(null);
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error updating table:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update table');
+    }
+  }, [editingTransportId, editingTransportTableIndex]);
+
+  // Handler for editing section properties
+  const handleEditTransportSectionSubmit = useCallback((props: {
+    title?: string;
+    showTitle?: boolean;
+    direction?: "rtl" | "ltr";
+    language?: "ar" | "en";
+  }) => {
+    if (!editingTransportId) {
+      return;
+    }
+    
+    try {
+      if (!editingTransportId.startsWith('user_transport_')) {
+        const errorMsg = `SECURITY: Attempted to edit non-user transport section: ${editingTransportId}`;
+        console.error(errorMsg);
+        alert('Cannot modify generated content. Only user-created transport sections can be edited.');
+        return;
+      }
+      
+      guardGeneratedContent(editingTransportId, 'edit');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TRANSPORT CRUD] Updating section properties for transport section ${editingTransportId}`);
+      }
+      
+      const updatedCode = updateTransportSectionProps(codeRef.current, editingTransportId, props);
+      setCode(updatedCode);
+      
+      setShowEditTransportSectionModal(false);
+      setEditingTransportId(null);
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error updating section:', error);
+      if (error instanceof Error && error.message.includes('generated content')) {
+        alert('Cannot modify generated content. This operation is blocked for security.');
+      } else {
+        alert(error instanceof Error ? error.message : 'Failed to update section');
+      }
+    }
+  }, [editingTransportId]);
+
+  // Get initial transport row data for edit modal
+  const getInitialTransportRowData = useCallback((): any | null => {
+    if (!editingTransportId || editingTransportTableIndex === null || editingTransportRowIndex === null) {
+      return null;
+    }
+    
+    try {
+      const section = findTransportSection(codeRef.current, editingTransportId);
+      if (!section) {
+        return null;
+      }
+      
+      const tables = extractTransportTablesFromComponent(section.component);
+      if (editingTransportTableIndex >= 0 && editingTransportTableIndex < tables.length) {
+        const table = tables[editingTransportTableIndex];
+        if (editingTransportRowIndex >= 0 && editingTransportRowIndex < table.rows.length) {
+          return table.rows[editingTransportRowIndex];
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error getting initial row data:', error);
+      return null;
+    }
+  }, [editingTransportId, editingTransportTableIndex, editingTransportRowIndex]);
+
+  // Get initial transport table data for edit modal
+  const getInitialTransportTableData = useCallback((): any | null => {
+    if (!editingTransportId || editingTransportTableIndex === null) {
+      return null;
+    }
+    
+    try {
+      const section = findTransportSection(codeRef.current, editingTransportId);
+      if (!section) {
+        return null;
+      }
+      
+      const tables = extractTransportTablesFromComponent(section.component);
+      if (editingTransportTableIndex >= 0 && editingTransportTableIndex < tables.length) {
+        return tables[editingTransportTableIndex];
+      }
+      return null;
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error getting initial table data:', error);
+      return null;
+    }
+  }, [editingTransportId, editingTransportTableIndex]);
+
+  // Get initial transport section data for edit modal
+  const getInitialTransportSectionData = useCallback(() => {
+    if (!editingTransportId) {
+      return null;
+    }
+    
+    try {
+      return extractTransportSectionData(codeRef.current, editingTransportId);
+    } catch (error) {
+      console.error('[TRANSPORT CRUD ERROR] Error getting initial section data:', error);
+      return null;
+    }
+  }, [editingTransportId]);
   
   // Get initial hotel data for edit modal
   const getInitialHotelData = useCallback((): Hotel | null => {
@@ -1794,6 +2300,147 @@ function CodePageContent() {
     setShowAddHotelModal(false);
   }, [code]);
 
+  const handleAddTransportClick = useCallback(() => {
+    setShowAddTransportModal(true);
+    setShowMenuDropdown(false);
+  }, []);
+
+  const handleAddTransportSubmit = useCallback((data: {
+    title?: string;
+    showTitle?: boolean;
+    tables: any[];
+    direction?: "rtl" | "ltr";
+    language?: "ar" | "en";
+  }) => {
+    // Generate unique ID for user element
+    const elementId = `user_transport_${Date.now()}`;
+    
+    let updatedCode = code;
+    
+    // Check if import already exists, if not add it
+    if (!updatedCode.includes("import TransportSection")) {
+      // Find the last import statement or function declaration
+      const importMatch = updatedCode.match(/^(\s*import[^;]+;[\s\S]*?)(const|export|function)/m);
+      if (importMatch) {
+        updatedCode = updatedCode.replace(importMatch[1], 
+          importMatch[1] + `\nimport TransportSection from '@/app/Templates/TransportSection';\n`);
+      } else {
+        // Add at the beginning if no imports found
+        updatedCode = `import TransportSection from '@/app/Templates/TransportSection';\n` + updatedCode;
+      }
+    }
+    
+    // Format tables data for JSX
+    const tablesString = data.tables.map(table => {
+      const columnsString = table.columns.map((col: any) => `{
+              key: "${col.key.replace(/"/g, '\\"')}",
+              label: "${col.label.replace(/"/g, '\\"')}"
+            }`).join(',\n            ');
+      
+      const rowsString = table.rows.map((row: any) => {
+        const rowData: string[] = [];
+        table.columns.forEach((col: any) => {
+          const value = row[col.key] || '';
+          rowData.push(`${col.key}: "${String(value).replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`);
+        });
+        if (row.note) {
+          rowData.push(`note: "${row.note.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`);
+        }
+        return `{\n              ${rowData.join(',\n              ')}\n            }`;
+      }).join(',\n          ');
+      
+      return `{
+            id: "${table.id}",
+            title: "${table.title.replace(/"/g, '\\"')}",
+            backgroundColor: "${table.backgroundColor}",
+            columns: [\n            ${columnsString}\n            ],
+            rows: [\n          ${rowsString}\n          ]
+          }`;
+    }).join(',\n          ');
+    
+    // Create the component JSX
+    const titleProp = data.title ? `\n          title="${data.title.replace(/"/g, '\\"')}"` : '';
+    const transportComponent = `        <TransportSection
+          id="${elementId}"
+          editable={true}
+          tables={[\n          ${tablesString}\n          ]}${titleProp}
+          showTitle={${data.showTitle !== false}}
+          direction="${data.direction || 'rtl'}"
+          language="${data.language || 'ar'}"
+        />`;
+    
+    // Try to find header image to insert after it (same pattern as airplane/hotel)
+    let insertionPoint = -1;
+    let indent = '        ';
+    
+    // Pattern 1: After header image tag
+    const headerImagePatterns = [
+      /(<img[^>]*(?:src=["'][^"']*(?:header|Header|happylifeHeader)[^"']*["']|alt=["'][^"']*(?:header|Header)[^"']*["'])[^>]*\/?>)/i,
+      /(<img[^>]*\/?>)/  // Any img tag as fallback
+    ];
+    
+    for (const pattern of headerImagePatterns) {
+      const headerImageMatch = updatedCode.match(pattern);
+      if (headerImageMatch && headerImageMatch.index !== undefined) {
+        insertionPoint = headerImageMatch.index + headerImageMatch[0].length;
+        const afterImage = updatedCode.substring(insertionPoint);
+        const nextLineMatch = afterImage.match(/^\s*\n(\s*)/);
+        if (nextLineMatch && nextLineMatch[1]) {
+          indent = nextLineMatch[1];
+        }
+        break;
+      }
+    }
+    
+    // Pattern 2: If no image found, look for header div or comment
+    if (insertionPoint === -1) {
+      const headerCommentPattern = /(\{\/\*.*Header.*\*\/[\s\S]*?<\/div>[\s\S]*?\n)/i;
+      const headerCommentMatch = updatedCode.match(headerCommentPattern);
+      if (headerCommentMatch && headerCommentMatch.index !== undefined) {
+        insertionPoint = headerCommentMatch.index + headerCommentMatch[0].length;
+        indent = '        ';
+      }
+    }
+    
+    // Pattern 3: Look for BaseTemplate children area
+    if (insertionPoint === -1) {
+      const baseTemplatePattern = /<BaseTemplate[^>]*>\s*\n(\s*)/;
+      const baseTemplateMatch = updatedCode.match(baseTemplatePattern);
+      if (baseTemplateMatch && baseTemplateMatch.index !== undefined) {
+        insertionPoint = baseTemplateMatch.index + baseTemplateMatch[0].length;
+        indent = baseTemplateMatch[1] || '        ';
+      }
+    }
+    
+    // Pattern 4: Look for return statement
+    if (insertionPoint === -1) {
+      const returnPattern = /return\s*\(\s*\n(\s*)/;
+      const returnMatch = updatedCode.match(returnPattern);
+      if (returnMatch && returnMatch.index !== undefined) {
+        insertionPoint = returnMatch.index + returnMatch[0].length;
+        indent = returnMatch[1] || '        ';
+      }
+    }
+    
+    // Insert the component
+    if (insertionPoint !== -1) {
+      const before = updatedCode.substring(0, insertionPoint);
+      const after = updatedCode.substring(insertionPoint);
+      updatedCode = before + '\n' + indent + transportComponent + '\n' + after;
+    } else {
+      // Fallback: append at the end before closing tag
+      const lastBrace = updatedCode.lastIndexOf('}');
+      if (lastBrace !== -1) {
+        updatedCode = updatedCode.substring(0, lastBrace) + '\n        ' + transportComponent + '\n' + updatedCode.substring(lastBrace);
+      } else {
+        updatedCode = updatedCode + '\n        ' + transportComponent;
+      }
+    }
+    
+    setCode(updatedCode);
+    setShowAddTransportModal(false);
+  }, [code]);
+
   const handleSave = useCallback(async () => {
     if (!isAuthenticated()) {
       alert("Please login to save documents");
@@ -2128,6 +2775,17 @@ function CodePageContent() {
                       <span>Add Hotel</span>
                     </button>
                     
+                    {/* Add Transport */}
+                    <button
+                      onClick={handleAddTransportClick}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                      </svg>
+                      <span>Add Transport</span>
+                    </button>
+                    
                     {/* New Table */}
                     <button
                       onClick={() => {
@@ -2255,7 +2913,7 @@ function CodePageContent() {
         </div>
       </div>
     </div>
-  ), [mode, handleExportCode, handleExportPDF, handleSave, handleAddAirplaneClick, handleAddAirplaneSubmit, handleAddHotelClick, handleAddHotelSubmit, sourceMetadata, isSaving, saveStatus, documentId, totalVersions, currentVersion, showMenuDropdown]);
+  ), [mode, handleExportCode, handleExportPDF, handleSave, handleAddAirplaneClick, handleAddAirplaneSubmit, handleAddHotelClick, handleAddHotelSubmit, handleAddTransportClick, handleAddTransportSubmit, sourceMetadata, isSaving, saveStatus, documentId, totalVersions, currentVersion, showMenuDropdown]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-50 via-blue-50 to-lime-50 text-gray-900">
@@ -2406,6 +3064,13 @@ function CodePageContent() {
         onSubmit={handleAddHotelSubmit}
       />
       
+      {/* Add Transport Modal */}
+      <AddTransportModal
+        isOpen={showAddTransportModal}
+        onClose={() => setShowAddTransportModal(false)}
+        onSubmit={handleAddTransportSubmit}
+      />
+      
       {/* Edit Hotel Modal */}
       <EditHotelModal
         isOpen={showEditHotelModal}
@@ -2427,6 +3092,79 @@ function CodePageContent() {
         }}
         onSubmit={handleEditHotelSectionSubmit}
         initialData={getInitialHotelSectionData()}
+      />
+
+      {/* Edit Transport Row Modal */}
+      <EditTransportRowModal
+        isOpen={showEditTransportRowModal}
+        onClose={() => {
+          setShowEditTransportRowModal(false);
+          setEditingTransportId(null);
+          setEditingTransportTableIndex(null);
+          setEditingTransportRowIndex(null);
+        }}
+        onSubmit={handleEditTransportRowSubmit}
+        initialRow={getInitialTransportRowData()}
+        columns={(() => {
+          if (!editingTransportId || editingTransportTableIndex === null) return [];
+          try {
+            const section = findTransportSection(codeRef.current, editingTransportId);
+            if (!section) return [];
+            const tables = extractTransportTablesFromComponent(section.component);
+            if (editingTransportTableIndex >= 0 && editingTransportTableIndex < tables.length) {
+              return tables[editingTransportTableIndex].columns;
+            }
+          } catch (error) {
+            console.error('Error getting columns:', error);
+          }
+          return [];
+        })()}
+        language={(() => {
+          if (!editingTransportId) return 'ar';
+          try {
+            const data = extractTransportSectionData(codeRef.current, editingTransportId);
+            return data?.language || 'ar';
+          } catch {
+            return 'ar';
+          }
+        })()}
+      />
+
+      {/* Edit Transport Table Modal */}
+      <EditTransportTableModal
+        isOpen={showEditTransportTableModal}
+        onClose={() => {
+          setShowEditTransportTableModal(false);
+          setEditingTransportId(null);
+          setEditingTransportTableIndex(null);
+        }}
+        onSubmit={handleEditTransportTableSubmit}
+        initialTable={getInitialTransportTableData()}
+        language={(() => {
+          if (!editingTransportId) return 'ar';
+          try {
+            const data = extractTransportSectionData(codeRef.current, editingTransportId);
+            return data?.language || 'ar';
+          } catch {
+            return 'ar';
+          }
+        })()}
+      />
+
+      {/* Edit Transport Section Modal */}
+      <EditTransportSectionModal
+        isOpen={showEditTransportSectionModal}
+        onClose={() => {
+          setShowEditTransportSectionModal(false);
+          setEditingTransportId(null);
+        }}
+        onSubmit={handleEditTransportSectionSubmit}
+        onDelete={() => {
+          if (editingTransportId) {
+            handleDeleteTransportSection(editingTransportId);
+          }
+        }}
+        initialData={getInitialTransportSectionData()}
       />
 
       <style jsx>{`
