@@ -332,7 +332,6 @@ const TransportSection: React.FC<TransportSectionProps> = ({
                               className="px-4 py-3 text-center"
                             >
                               <div className={`flex items-center justify-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                                <span className="text-red-600 text-xl">🚗</span>
                                 <span className="text-red-600 text-sm md:text-base font-semibold">{row.note}</span>
                               </div>
                             </td>
