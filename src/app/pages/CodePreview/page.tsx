@@ -1835,6 +1835,13 @@ function CodePageContent() {
               return;
             }
             
+            // Skip tables inside TransportSection component
+            const isInsideTransportSection = table.closest('[data-transport-section-id]') !== null;
+            if (isInsideTransportSection) {
+              tableIndex++;
+              return;
+            }
+            
             console.log(`Setting up table ${tableIndex} (DOM index ${domIndex})`);
             tableEl.setAttribute('data-table-index', tableIndex.toString());
             tableEl.setAttribute('data-table-setup', 'true');
