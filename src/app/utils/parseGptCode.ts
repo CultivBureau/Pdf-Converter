@@ -278,7 +278,12 @@ export function fixImportPaths(code: string): string {
   }
   
   // Ensure "use client" directive for Next.js client components
-  if (!fixed.includes('"use client"') && !fixed.includes("'use client'")) {
+  // BUT: Don't add it for generated templates (they don't need it, PreviewRenderer removes it anyway)
+  // Generated templates have "export default function Template()" pattern
+  const isGeneratedTemplate = fixed.includes('export default function Template()') || 
+                               fixed.includes('export default function Template(');
+  
+  if (!isGeneratedTemplate && !fixed.includes('"use client"') && !fixed.includes("'use client'")) {
     // Add after any existing comments but before imports
     const importIndex = fixed.indexOf('import');
     if (importIndex !== -1) {

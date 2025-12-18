@@ -10,10 +10,22 @@ if (process.env.NODE_ENV !== "production" && !process.env.NEXT_PUBLIC_API_BASE_U
   );
 }
 
-// Get auth token
+// Get auth token from cookies (matching the rest of the app)
+// Note: This file is .js, so we use require for js-cookie
 function getAuthToken() {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("auth_token");
+  
+  // Use js-cookie to get token from cookies (same as AuthApi uses)
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Cookies = require("js-cookie");
+    const token = Cookies.get("auth_token");
+    return token || null;
+  } catch (error) {
+    // Fallback to localStorage for backward compatibility
+    console.warn("[PdfApi] Could not access cookies, trying localStorage:", error);
+    return localStorage.getItem("auth_token");
+  }
 }
 
 async function handleResponse(response) {
@@ -91,6 +103,21 @@ export async function uploadFile(file) {
  */
 export async function extractContent(filePath) {
   return request("/extract/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ file_path: filePath }),
+  });
+}
+
+/**
+ * Extract structured data from PDF (new endpoint)
+ * @param {string} filePath - Path returned from uploadFile
+ * @returns {Promise<{sections: Array, tables: Array, meta: Object}>}
+ */
+export async function extractStructured(filePath) {
+  return request("/extract/structured", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -186,6 +213,168 @@ export async function tableToJsx(table) {
 // Note: generateNextJs, repairTable, updateTable, tableToJsx are not part of the backend API
 // These functions are kept for backward compatibility but may not work
 // Use generateJsx and fixJsx instead which match the backend endpoints
+
+/**
+ * ============================================================================
+ * BLOCK MANAGEMENT API
+ * ============================================================================
+ * Functions for managing document blocks (sections, tables, etc.)
+ * These endpoints support the new block-based editing system.
+ */
+
+/**
+ * Get all blocks for a document
+ * @param {string} docId - Document ID
+ * @param {Object} options - Optional query parameters
+ * @param {boolean} options.includeDeleted - Include soft-deleted blocks (default: false)
+ * @param {string} options.source - Filter by source: "ocr" or "user"
+ * @returns {Promise<{blocks: Array, total: number, document_id: string}>}
+ */
+export async function getBlocks(docId, options = {}) {
+  const params = new URLSearchParams();
+  if (options.includeDeleted) {
+    params.append("include_deleted", "true");
+  }
+  if (options.source) {
+    params.append("source", options.source);
+  }
+  
+  const queryString = params.toString();
+  const path = `/history/${docId}/blocks${queryString ? `?${queryString}` : ""}`;
+  
+  return request(path, {
+    method: "GET",
+  });
+}
+
+/**
+ * Update blocks using operations array
+ * @param {string} docId - Document ID
+ * @param {Array} operations - Array of block operations
+ * @param {string} operations[].action - Operation type: "update", "add", or "delete"
+ * @param {string} [operations[].block_id] - Block ID (required for update/delete)
+ * @param {Object} [operations[].block] - Block data (required for add)
+ * @param {Object} [operations[].changes] - Changes to apply (required for update)
+ * @returns {Promise<{blocks: Array, total: number, document_id: string}>}
+ * 
+ * @example
+ * // Update a block
+ * updateBlocks(docId, [{
+ *   action: "update",
+ *   block_id: "uuid-123",
+ *   changes: {
+ *     content: { title: "New Title" },
+ *     style: { bold: true }
+ *   }
+ * }])
+ * 
+ * @example
+ * // Add a new block
+ * updateBlocks(docId, [{
+ *   action: "add",
+ *   block: {
+ *     block_id: "uuid-999",
+ *     document_id: docId,
+ *     type: "section",
+ *     content: { title: "New Section", content: "..." },
+ *     order: 5,
+ *     source: "user"
+ *   }
+ * }])
+ * 
+ * @example
+ * // Delete a block
+ * updateBlocks(docId, [{
+ *   action: "delete",
+ *   block_id: "uuid-123"
+ * }])
+ */
+export async function updateBlocks(docId, operations) {
+  return request(`/history/${docId}/blocks`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ operations }),
+  });
+}
+
+/**
+ * Reorder blocks by providing explicit order values (old method)
+ * @param {string} docId - Document ID
+ * @param {Array} blockOrders - Array of {block_id, order} objects
+ * @returns {Promise<{blocks: Array, total: number, document_id: string}>}
+ * 
+ * @example
+ * reorderBlocks(docId, [
+ *   { block_id: "uuid-1", order: 0 },
+ *   { block_id: "uuid-2", order: 1 }
+ * ])
+ */
+export async function reorderBlocks(docId, blockOrders) {
+  return request(`/history/${docId}/blocks/reorder`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ block_orders: blockOrders }),
+  });
+}
+
+/**
+ * Reorder blocks by providing array of block IDs in desired order (new simple method)
+ * This is simpler than reorderBlocks - just send the IDs in the order you want.
+ * @param {string} docId - Document ID
+ * @param {Array<string>} blockIds - Array of block IDs in desired order
+ * @returns {Promise<{blocks: Array, total: number, document_id: string}>}
+ * 
+ * @example
+ * // Reorder: block-3 first, then block-1, then block-2
+ * reorderBlocksSimple(docId, ["uuid-3", "uuid-1", "uuid-2"])
+ */
+export async function reorderBlocksSimple(docId, blockIds) {
+  return request(`/history/${docId}/blocks/order`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ block_ids: blockIds }),
+  });
+}
+
+/**
+ * Move a block before or after another block (new intuitive method)
+ * @param {string} docId - Document ID
+ * @param {string} blockId - Block ID to move
+ * @param {string} position - Position: "before" or "after"
+ * @param {string} targetBlockId - Target block ID to move relative to
+ * @returns {Promise<{blocks: Array, total: number, document_id: string}>}
+ * 
+ * @example
+ * // Move block-2 before block-1
+ * moveBlock(docId, "uuid-2", "before", "uuid-1")
+ * 
+ * @example
+ * // Move block-2 after block-1
+ * moveBlock(docId, "uuid-2", "after", "uuid-1")
+ */
+export async function moveBlock(docId, blockId, position, targetBlockId) {
+  if (position !== "before" && position !== "after") {
+    throw new Error('Position must be "before" or "after"');
+  }
+  
+  return request(`/history/${docId}/blocks/move`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      block_id: blockId,
+      position: position,
+      target_block_id: targetBlockId,
+    }),
+  });
+}
 
 /**
  * Validate JSX syntax using basic checks

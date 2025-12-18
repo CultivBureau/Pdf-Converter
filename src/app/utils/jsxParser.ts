@@ -173,20 +173,56 @@ function extract2DArrayFromProp(propValue: string): (string | number)[][] {
 
 /**
  * Extract prop value from JSX component
+ * Handles: prop="value", prop={'value'}, prop={\`value\`}, prop={value}
  */
 function extractPropValue(componentCode: string, propName: string): string | undefined {
-  // Match prop with various formats: prop="value", prop={'value'}, prop={value}
-  const patterns = [
-    new RegExp(`${propName}\\s*=\\s*["']([^"']*)["']`, 's'),
-    new RegExp(`${propName}\\s*=\\s*\\{["']([^"']*)["']\\}`, 's'),
-    new RegExp(`${propName}\\s*=\\s*\\{([^}]+)\\}`, 's'),
-  ];
+  // Pattern 1: Simple quoted strings: prop="value" or prop='value'
+  const quotedPattern = new RegExp(`${propName}\\s*=\\s*["']([^"']*)["']`, 's');
+  let match = componentCode.match(quotedPattern);
+  if (match) {
+    return match[1];
+  }
   
-  for (const pattern of patterns) {
-    const match = componentCode.match(pattern);
-    if (match) {
-      return match[1];
+  // Pattern 2: Quoted strings in braces: prop={"value"} or prop={'value'}
+  const bracedQuotedPattern = new RegExp(`${propName}\\s*=\\s*\\{["']([^"']*)["']\\}`, 's');
+  match = componentCode.match(bracedQuotedPattern);
+  if (match) {
+    return match[1];
+  }
+  
+  // Pattern 3: Template literals: prop={\`value\`}
+  // Match prop={\`...\`} - need to handle escaped backticks
+  const templateLiteralPattern = new RegExp(`${propName}\\s*=\\s*\\{\\\`([^\\\`]*(?:\\\\.[^\\\`]*)*)\\\`\\}`, 's');
+  match = componentCode.match(templateLiteralPattern);
+  if (match) {
+    // Unescape the template literal content
+    // Replace \\` with ` and \\${ with ${ and \\\\ with \
+    let content = match[1];
+    content = content.replace(/\\`/g, '`');
+    content = content.replace(/\\\$\{/g, '${');
+    content = content.replace(/\\\\/g, '\\');
+    return content;
+  }
+  
+  // Pattern 4: Any other value in braces: prop={value}
+  // This is a fallback for other formats
+  const genericPattern = new RegExp(`${propName}\\s*=\\s*\\{([^}]+)\\}`, 's');
+  match = componentCode.match(genericPattern);
+  if (match) {
+    let value = match[1].trim();
+    // If it looks like a template literal that wasn't caught, try to unescape
+    if (value.startsWith('`') && value.endsWith('`')) {
+      value = value.slice(1, -1);
+      value = value.replace(/\\`/g, '`');
+      value = value.replace(/\\\$\{/g, '${');
+      value = value.replace(/\\\\/g, '\\');
     }
+    // Remove quotes if present
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+      value = value.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+    }
+    return value;
   }
   
   return undefined;
@@ -238,13 +274,31 @@ function parseArrayBasedSections(code: string): ParsedSection[] {
         currentObject += '}';
         const objectContent = currentObject;
         
-        // Extract title (handle escaped quotes)
-        const titleMatch = objectContent.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-        const title = titleMatch ? titleMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\') : undefined;
+        // Extract title - handle both quoted strings and template literals
+        let title: string | undefined = undefined;
+        const titleQuotedMatch = objectContent.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+        if (titleQuotedMatch) {
+          title = titleQuotedMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+        } else {
+          // Try template literal: "title": `...`
+          const titleTemplateMatch = objectContent.match(/"title"\s*:\s*`((?:[^`\\]|\\.)*)`/);
+          if (titleTemplateMatch) {
+            title = titleTemplateMatch[1].replace(/\\`/g, '`').replace(/\\\$\{/g, '${').replace(/\\\\/g, '\\');
+          }
+        }
         
-        // Extract content
-        const contentMatch = objectContent.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-        const content = contentMatch ? contentMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\') : '';
+        // Extract content - handle both quoted strings and template literals
+        let content = '';
+        const contentQuotedMatch = objectContent.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+        if (contentQuotedMatch) {
+          content = contentQuotedMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+        } else {
+          // Try template literal: "content": `...`
+          const contentTemplateMatch = objectContent.match(/"content"\s*:\s*`((?:[^`\\]|\\.)*)`/);
+          if (contentTemplateMatch) {
+            content = contentTemplateMatch[1].replace(/\\`/g, '`').replace(/\\\$\{/g, '${').replace(/\\\\/g, '\\');
+          }
+        }
         
         // Extract type
         const typeMatch = objectContent.match(/"type"\s*:\s*"((?:[^"\\]|\\.)*)"/);

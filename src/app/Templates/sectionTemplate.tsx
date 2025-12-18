@@ -189,32 +189,53 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
       // Small delay to ensure selection is complete
       setTimeout(() => {
         const selection = window.getSelection();
-        if (selection && selection.toString().trim() && enableTextSplitting) {
-          const selectedText = selection.toString().trim();
+        if (!selection || !enableTextSplitting) {
+          setShowSplitButton(false);
+          return;
+        }
+
+        const selectedText = selection.toString().trim();
+        
+        // Check if selection is within our content container
+        const container = contentContainerRef.current;
+        if (!container) {
+          setShowSplitButton(false);
+          return;
+        }
+
+        // Check if the selection is within the container
+        const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+        if (!range) {
+          setShowSplitButton(false);
+          return;
+        }
+
+        // Verify selection is within our container
+        const isWithinContainer = container.contains(range.commonAncestorContainer);
+        if (!isWithinContainer) {
+          setShowSplitButton(false);
+          return;
+        }
+        
+        if (selectedText.length > 0) {
+          setSelectedText(selectedText);
           
-          if (selectedText.length > 0) {
-            setSelectedText(selectedText);
+          try {
+            setSelectionRange(range.cloneRange());
             
-            try {
-              const range = selection.getRangeAt(0);
-              setSelectionRange(range.cloneRange());
-              
-              // Get position for split button (near selection)
-              const rect = range.getBoundingClientRect();
-              const containerRect = contentContainerRef.current?.getBoundingClientRect();
-              
-              if (containerRect) {
-                setSplitButtonPosition({
-                  top: rect.top - containerRect.top - 40,
-                  left: rect.left - containerRect.left + rect.width / 2,
-                });
-                setShowSplitButton(true);
-              }
-            } catch (err) {
-              console.error('Error getting selection range:', err);
-              setShowSplitButton(false);
+            // Get position for split button (near selection)
+            const rect = range.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            
+            if (containerRect) {
+              setSplitButtonPosition({
+                top: rect.top - containerRect.top - 40,
+                left: rect.left - containerRect.left + rect.width / 2,
+              });
+              setShowSplitButton(true);
             }
-          } else {
+          } catch (err) {
+            console.error('Error getting selection range:', err);
             setShowSplitButton(false);
           }
         } else {
@@ -227,6 +248,25 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     const handleSelectionChange = () => {
       const selection = window.getSelection();
       if (!selection || !selection.toString().trim()) {
+        setShowSplitButton(false);
+        return;
+      }
+
+      // Check if selection is within our container
+      const container = contentContainerRef.current;
+      if (!container) {
+        setShowSplitButton(false);
+        return;
+      }
+
+      const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+      if (!range) {
+        setShowSplitButton(false);
+        return;
+      }
+
+      const isWithinContainer = container.contains(range.commonAncestorContainer);
+      if (!isWithinContainer) {
         setShowSplitButton(false);
       }
     };
@@ -524,38 +564,72 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
         const hasBullets = content.includes('•') || /^[\s]*[\-\*]|^\d+\./m.test(content);
         
         if (hasBullets) {
-          // For bullet content, split by single newlines to get individual items
-          const lines = content.split(/\n/).filter(line => line.trim());
+          // For bullet content, first split by " • " to handle multiple bullets on same line
+          // Example: "• Item 1 • Item 2 • Item 3" should become 3 separate items
+          let items: string[] = [];
           
-          if (lines.length === 0) return null;
-          
-          // Group consecutive bullet items together
-          const items: string[] = [];
-          let currentItem = '';
-          
-          for (const line of lines) {
-            const trimmed = line.trim();
-            // Check if this line starts a new bullet item
-            if (/^[\s]*[•\-\*]|^\d+\./.test(trimmed)) {
-              // Save previous item if exists
-              if (currentItem) {
-                items.push(currentItem);
+          // Check if content has " • " pattern (multiple bullets on same line)
+          if (content.includes(' • ')) {
+            // Split by " • " pattern
+            const parts = content.split(/\s*•\s*/);
+            for (let i = 0; i < parts.length; i++) {
+              const part = parts[i].trim();
+              if (!part) continue;
+              
+              // If first part doesn't start with bullet, it might be regular text before first bullet
+              if (i === 0 && !part.match(/^[\s]*[•\-\*]|^\d+\./)) {
+                // Check if there are actual bullets after this
+                if (parts.length > 1) {
+                  // There are bullets, so this is text before first bullet - add it as-is or with bullet
+                  items.push(`• ${part}`);
+                } else {
+                  // No bullets found, treat as regular text
+                  items.push(part);
+                }
+              } else {
+                // Add bullet prefix if not already present
+                if (part.match(/^[\s]*[•\-\*]|^\d+\./)) {
+                  items.push(part);
+                } else {
+                  items.push(`• ${part}`);
+                }
               }
-              // Start new item
-              currentItem = trimmed;
-            } else if (trimmed && currentItem) {
-              // Continue current item (wrapped text)
-              currentItem += ' ' + trimmed;
-            } else if (trimmed) {
-              // Standalone line without bullet
-              items.push(trimmed);
+            }
+          } else {
+            // No " • " pattern, split by newlines
+            const lines = content.split(/\n/).filter(line => line.trim());
+            
+            if (lines.length === 0) return null;
+            
+            // Group consecutive bullet items together
+            let currentItem = '';
+            
+            for (const line of lines) {
+              const trimmed = line.trim();
+              // Check if this line starts a new bullet item
+              if (/^[\s]*[•\-\*]|^\d+\./.test(trimmed)) {
+                // Save previous item if exists
+                if (currentItem) {
+                  items.push(currentItem);
+                }
+                // Start new item
+                currentItem = trimmed;
+              } else if (trimmed && currentItem) {
+                // Continue current item (wrapped text)
+                currentItem += ' ' + trimmed;
+              } else if (trimmed) {
+                // Standalone line without bullet
+                items.push(trimmed);
+              }
+            }
+            
+            // Add last item
+            if (currentItem) {
+              items.push(currentItem);
             }
           }
           
-          // Add last item
-          if (currentItem) {
-            items.push(currentItem);
-          }
+          if (items.length === 0) return null;
           
           return (
             <div className="content">

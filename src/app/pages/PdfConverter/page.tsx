@@ -6,13 +6,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   uploadFile, 
-  extractContent,
-  cleanStructure,
-  generateJsx,
-  fixJsx,
-  validateAndFixJsx 
+  extractStructured
 } from "../../services/PdfApi";
-import { cleanJSXCode } from "../../utils/parseGptCode";
+import { structureToJsx } from "../../utils/structureToJsx";
 import type { ExtractResponse } from "../../types/ExtractTypes";
 import { isAuthenticated } from "../../services/AuthApi";
 import { saveDocument } from "../../services/HistoryApi";
@@ -47,70 +43,26 @@ const PdfConverterContent: React.FC = () => {
         throw new Error("Upload failed: No file path returned.");
       }
 
-      // Step 2: Extract content (sections and tables)
+      // Step 2: Extract structured content (sections and tables)
       setStatus("Extracting content from PDF…");
-      const extractResponse: ExtractResponse = await extractContent(uploadResponse.file_path);
+      const extractResponse: ExtractResponse = await extractStructured(uploadResponse.file_path);
       
       if (!extractResponse.sections && !extractResponse.tables) {
         throw new Error("Extraction returned no content.");
       }
 
-      // Step 3: Clean structure (optional but recommended)
-      setStatus("Cleaning document structure…");
-      let cleanedStructure: ExtractResponse = extractResponse;
-      try {
-        cleanedStructure = await cleanStructure(extractResponse);
-        // Check if cleaning actually failed (backend returns original with warning)
-        if (cleanedStructure.meta?.cleaning_failed) {
-          console.warn("Claude cleaning unavailable, using original structure:", cleanedStructure.meta.cleaning_error);
-          // Continue with original structure - this is expected when Claude API has issues
-        }
-      } catch (cleanError: any) {
-        // Network or other errors - continue with original structure
-        console.warn("Structure cleaning failed, using original:", cleanError?.message || cleanError);
-        // Continue with original structure - this is fine, cleaning is optional
-      }
-
-      // Step 4: Generate JSX from structure
+      // Step 3: Generate JSX from structure using client-side generation
       setStatus("Generating JSX code…");
-      const jsxResponse = await generateJsx(cleanedStructure);
-      
-      if (!jsxResponse.jsxCode) {
-        throw new Error("JSX generation returned empty code.");
-      }
-
-      let generatedCode = jsxResponse.jsxCode;
-      const allWarnings = [...(jsxResponse.warnings || [])];
-
-      // Step 5: Clean and fix import paths
-      setStatus("Cleaning JSX code…");
-      generatedCode = cleanJSXCode(generatedCode);
-
-      // Step 6: Validate and fix JSX if needed
-      setStatus("Validating JSX code…");
-      const validation = await validateAndFixJsx(generatedCode);
-      
-      if (!validation.isValid && validation.fixed) {
-        generatedCode = validation.jsx;
-        allWarnings.push(...(validation.warnings || []));
-        allWarnings.push("JSX code was automatically fixed.");
-      } else if (!validation.isValid) {
-        // Try to fix using backend fix endpoint
-        try {
-          setStatus("Fixing JSX errors…");
-          const fixResponse = await fixJsx(generatedCode, validation.errors?.join(", "));
-          generatedCode = fixResponse.fixedCode;
-          allWarnings.push(...(fixResponse.warnings || []));
-          allWarnings.push(`Fixed: ${fixResponse.explanation}`);
-        } catch (fixError) {
-          console.warn("JSX fixing failed:", fixError);
-          allWarnings.push("Some JSX errors could not be automatically fixed.");
-        }
-      }
+      const generatedCode = structureToJsx(extractResponse);
+      const allWarnings: string[] = [];
 
       // Store in sessionStorage for CodePreview page
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("codePreview.initialCode", generatedCode);
+        // Remove "use client" directive before storing (PreviewRenderer will handle it, but be safe)
+        let codeToStore = generatedCode;
+        codeToStore = codeToStore.replace(/^["']use\s+client["'];?\s*\n?/gmi, '');
+        codeToStore = codeToStore.replace(/^\s*["']use\s+client["'];?\s*$/gmi, '');
+        sessionStorage.setItem("codePreview.initialCode", codeToStore);
         sessionStorage.setItem(
           "codePreview.warnings",
           JSON.stringify(allWarnings),
@@ -120,15 +72,15 @@ const PdfConverterContent: React.FC = () => {
           JSON.stringify({
             filename: uploadResponse.filename || selectedFile.name,
             uploadedAt: new Date().toISOString(),
-            sectionsCount: cleanedStructure.sections?.length || 0,
-            tablesCount: cleanedStructure.tables?.length || 0,
+            sectionsCount: extractResponse.sections?.length || 0,
+            tablesCount: extractResponse.tables?.length || 0,
           }),
         );
         
         // Store extracted data for auto-save
         sessionStorage.setItem(
           "codePreview.extractedData",
-          JSON.stringify(cleanedStructure),
+          JSON.stringify(extractResponse),
         );
         sessionStorage.setItem("codePreview.filePath", uploadResponse.file_path);
         sessionStorage.setItem("codePreview.originalFilename", uploadResponse.original_filename || selectedFile.name);
@@ -144,7 +96,7 @@ const PdfConverterContent: React.FC = () => {
             title: docTitle,
             original_filename: uploadResponse.original_filename || selectedFile.name,
             file_path: uploadResponse.file_path,
-            extracted_data: cleanedStructure,
+            extracted_data: extractResponse,
             jsx_code: generatedCode,
             metadata: {
               filename: uploadResponse.filename || selectedFile.name,

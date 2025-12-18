@@ -198,22 +198,75 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
     let src = codeToTransform.trim();
     let componentName = "Template";
 
-    // CRITICAL FIRST STEP: Remove ALL imports, require(), and "use client" BEFORE any other processing
-    // react-live doesn't support ES6 imports or CommonJS require() - components must be in scope
-    // Remove all import statement patterns
+    // CRITICAL FIRST STEP: Remove ALL imports, require(), "use client", and "export default" BEFORE any other processing
+    // react-live doesn't support ES6 imports, CommonJS require(), or export statements - components must be in scope
+    
+    // Remove "export default" FIRST (react-live doesn't understand it)
+    src = src.replace(/export\s+default\s+/g, '');
+    
+    // Remove "use client" directive (must be before imports)
+    // Use multiple strategies to ensure it's removed
+    // Strategy 1: Remove by line filtering (most reliable)
+    const lines = src.split('\n');
+    src = lines.filter(line => {
+      const trimmed = line.trim();
+      const trimmedLower = trimmed.toLowerCase();
+      // Remove lines that are just "use client" in any format
+      if (trimmedLower === '"use client"' || 
+          trimmedLower === '"use client";' ||
+          trimmedLower === "'use client'" ||
+          trimmedLower === "'use client';" ||
+          trimmedLower === 'use client' ||
+          trimmedLower === 'use client;') {
+        return false;
+      }
+      // Also remove if line contains "use client" as a standalone directive
+      if (trimmedLower.match(/^["']?use\s+client["']?;?\s*$/)) {
+        return false;
+      }
+      // Remove ALL import statements - check if line starts with "import" (case-sensitive)
+      if (trimmed.startsWith('import ') || trimmed.startsWith('import\t')) {
+        return false;
+      }
+      // Remove any remaining export statements
+      if (trimmed.startsWith('export ')) {
+        return false;
+      }
+      return true;
+    }).join('\n');
+    
+    // Strategy 2: Regex patterns as backup (remove any remaining instances)
+    src = src.replace(/^\s*["']use\s+client["'];?\s*$/gmi, '');
+    src = src.replace(/^\s*"use\s+client";?\s*$/gmi, '');
+    src = src.replace(/^\s*'use\s+client';?\s*$/gmi, '');
+    src = src.replace(/["']use\s+client["'];?\s*\n?/gmi, '');
+    
+    // Strategy 3: Aggressively remove ALL import statements (multiple patterns to catch all variations)
+    // Remove all lines that start with "import" (handles all import types)
+    src = src.split('\n').filter(line => !line.trim().startsWith('import ')).join('\n');
+    
+    // Additional regex patterns to catch any remaining imports (multi-line or edge cases)
     src = src.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
     src = src.replace(/^import\s+.*?from\s+["'].*?["'];?\s*$/gm, '');
     src = src.replace(/^import\s+.*?from\s+`.*?`;?\s*$/gm, '');
-    src = src.replace(/^import\s+\{.*?\}\s+from\s+['"`].*?['"`];?\s*$/gm, '');
+    src = src.replace(/^import\s+\{[\s\S]*?\}\s+from\s+['"`].*?['"`];?\s*$/gm, '');
     src = src.replace(/^import\s+\*\s+as\s+\w+\s+from\s+['"`].*?['"`];?\s*$/gm, '');
+    src = src.replace(/^import\s+['"`].*?['"`];?\s*$/gm, ''); // Side-effect imports
+    
+    // Remove any remaining export statements (export default, export const, etc.)
+    src = src.replace(/^export\s+default\s+/gm, '');
+    src = src.replace(/^export\s+const\s+/gm, 'const ');
+    src = src.replace(/^export\s+function\s+/gm, 'function ');
+    src = src.replace(/^export\s+/gm, '');
+    
+    // Strategy 4: Clean up any double newlines that might have been created
+    src = src.replace(/\n\n\n+/g, '\n\n');
+    
     // Remove require() calls (CommonJS, not supported in browser)
     src = src.replace(/const\s+\w+\s*=\s*require\s*\([^)]+\)\s*;?\s*/g, '');
     src = src.replace(/let\s+\w+\s*=\s*require\s*\([^)]+\)\s*;?\s*/g, '');
     src = src.replace(/var\s+\w+\s*=\s*require\s*\([^)]+\)\s*;?\s*/g, '');
     src = src.replace(/require\s*\([^)]+\)\s*;?\s*/g, '');
-    // Remove "use client" directive (not needed in react-live)
-    src = src.replace(/^"use client";?\s*/gm, '');
-    src = src.replace(/^'use client';?\s*/gm, '');
     
     // Inject handlers into AirplaneSection components with editable={true}
     // Find AirplaneSection components and add handlers if editable
@@ -259,33 +312,41 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
     src = src.replace(/\n\s*\n\s*\n+/g, '\n\n');
     src = src.trim();
 
-    // Check if code is a complete component structure (after removing imports)
-    // Has: component definition, and export default
+    // Check if code is a complete component structure (after removing imports and export default)
+    // Has: component definition (function, const, or class)
+    // Note: We've already removed "export default", so we don't check for it
     const hasComponent = /(?:const|function|class)\s+\w+\s*=?\s*(?:\(|=>|extends)/m.test(src) || 
                          /const\s+\w+\s*=\s*\(\)\s*=>/m.test(src) ||
                          /function\s+\w+\s*\(/m.test(src);
-    const hasExport = /export\s+default/m.test(src);
-    const isCompleteComponent = hasComponent && hasExport;
+    // Check if it looks like a complete component (has return statement and closing brace)
+    const hasReturn = /return\s*\(/m.test(src);
+    const hasClosingBrace = (src.match(/\{/g) || []).length > 0 && (src.match(/\}/g) || []).length > 0;
+    const isCompleteComponent = hasComponent && hasReturn && hasClosingBrace;
     
     if (isCompleteComponent) {
       // Code is already a complete component - extract component name and use it directly
-      // Extract component name from export default
-      const exportMatch = src.match(/export\s+default\s+(\w+)/);
-      if (exportMatch) {
-        componentName = exportMatch[1];
-        // CRITICAL: Ensure component name starts with uppercase (React requirement)
-        // React components must start with uppercase letter, otherwise React treats them as HTML tags
-        if (componentName && componentName.length > 0 && componentName[0] !== componentName[0].toUpperCase()) {
-          const capitalizedName = componentName.charAt(0).toUpperCase() + componentName.slice(1);
-          // Replace component name in source code
-          const nameRegex = new RegExp(`\\b${componentName}\\b`, 'g');
-          src = src.replace(nameRegex, capitalizedName);
-          componentName = capitalizedName;
-        }
+      // Extract component name from function/const/class declaration (export default already removed)
+      const functionMatch = src.match(/function\s+(\w+)\s*\(/);
+      const constMatch = src.match(/const\s+(\w+)\s*=\s*(?:\(|\(\)\s*=>)/);
+      const classMatch = src.match(/class\s+(\w+)/);
+      
+      if (functionMatch) {
+        componentName = functionMatch[1];
+      } else if (constMatch) {
+        componentName = constMatch[1];
+      } else if (classMatch) {
+        componentName = classMatch[1];
       }
       
-      // Remove export default, keep the component definition
-      src = src.replace(/export\s+default\s+/g, '');
+      // CRITICAL: Ensure component name starts with uppercase (React requirement)
+      // React components must start with uppercase letter, otherwise React treats them as HTML tags
+      if (componentName && componentName.length > 0 && componentName[0] !== componentName[0].toUpperCase()) {
+        const capitalizedName = componentName.charAt(0).toUpperCase() + componentName.slice(1);
+        // Replace component name in source code
+        const nameRegex = new RegExp(`\\b${componentName}\\b`, 'g');
+        src = src.replace(nameRegex, capitalizedName);
+        componentName = capitalizedName;
+      }
       
       // Clean up any extra whitespace
       src = src.trim();
@@ -835,12 +896,12 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
     // Check for orphan closing braces (smarter check)
     // The final closing brace of a function component on its own line is valid and expected
     // Only flag if there's an orphan brace mid-function that causes imbalance
-    const lines = src.split('\n');
+    const codeLines = src.split('\n');
     
     // Find the last non-empty line (likely the function closing brace)
     let lastNonEmptyIndex = -1;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      if (lines[i].trim() !== '') {
+    for (let i = codeLines.length - 1; i >= 0; i--) {
+      if (codeLines[i].trim() !== '') {
         lastNonEmptyIndex = i;
         break;
       }
@@ -848,12 +909,12 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
     
     // Check all lines except the last one for orphan braces
     if (lastNonEmptyIndex >= 0) {
-      const linesToCheck = lines.slice(0, lastNonEmptyIndex);
+      const linesToCheck = codeLines.slice(0, lastNonEmptyIndex);
       for (const line of linesToCheck) {
         if (/^\s*\}\s*$/.test(line.trim())) {
           // Found an orphan brace before the last line - check if it causes imbalance
-          const lineIndex = lines.indexOf(line);
-          const upToThisLine = lines.slice(0, lineIndex + 1).join('\n');
+          const lineIndex = codeLines.indexOf(line);
+          const upToThisLine = codeLines.slice(0, lineIndex + 1).join('\n');
           const openCount = (upToThisLine.match(/\{/g) || []).length;
           const closeCount = (upToThisLine.match(/\}/g) || []).length;
           
@@ -882,7 +943,22 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
     // Check if component accepts props
     const componentAcceptsProps = src.match(new RegExp(`(?:function|const)\\s+${capitalizedComponentName}\\s*[=(]\\s*\\{?\\s*[^)]*values|setValue`));
     
-    // Render component with or without props based on signature
+    // For react-live with noInline, we MUST call render() at the end
+    // This is a requirement of react-live's noInline mode
+    
+    // Clean up the code and ensure it's valid
+    src = src.trim();
+    
+    // Final validation: ensure the code doesn't have any obvious syntax issues
+    // Remove any remaining export/import statements that might have been missed
+    src = src.replace(/^\s*export\s+/gm, '');
+    src = src.replace(/^\s*import\s+/gm, '');
+    
+    // Ensure the code is properly formatted
+    src = src.trim();
+    
+    // CRITICAL: react-live with noInline REQUIRES a render() call
+    // Check if component accepts props and render accordingly
     if (componentAcceptsProps || !isCompleteComponent) {
       // Component expects props or it's a wrapped template
       return `${src}\n\nrender(<${capitalizedComponentName} values={values} setValue={setValue} />);`;

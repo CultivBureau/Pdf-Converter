@@ -9,18 +9,22 @@ interface CreateTableModalProps {
     title: string;
     columns: string[];
     rowCount: number;
+    position?: 'end' | number; // 'end' or section index to insert after
   }) => void;
+  sections?: Array<{ title?: string; index: number }>; // List of sections for position selection
 }
 
 export default function CreateTableModal({
   isOpen,
   onClose,
   onCreateTable,
+  sections = [],
 }: CreateTableModalProps) {
   const [title, setTitle] = useState("");
   const [columnCount, setColumnCount] = useState(3);
   const [rowCount, setRowCount] = useState(3);
   const [columnNames, setColumnNames] = useState<string[]>(["Column 1", "Column 2", "Column 3"]);
+  const [position, setPosition] = useState<'end' | number>('end');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Update column names array when column count changes
@@ -45,6 +49,7 @@ export default function CreateTableModal({
       setColumnCount(3);
       setRowCount(3);
       setColumnNames(["Column 1", "Column 2", "Column 3"]);
+      setPosition('end');
       setErrors({});
     }
   }, [isOpen]);
@@ -86,6 +91,7 @@ export default function CreateTableModal({
       title: title.trim() || "New Table",
       columns: columnNames.map(name => name.trim()),
       rowCount,
+      position,
     });
 
     onClose();
@@ -218,6 +224,45 @@ export default function CreateTableModal({
               <p className="text-red-500 text-xs mt-2">{errors.columnNames}</p>
             )}
           </div>
+
+          {/* Position Selection */}
+          {sections.length > 0 && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Insert Position
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="position"
+                    value="end"
+                    checked={position === 'end'}
+                    onChange={() => setPosition('end')}
+                    className="text-[#A4C639] focus:ring-[#A4C639]"
+                  />
+                  <span className="text-sm text-gray-700">Add at the end</span>
+                </label>
+                <div className="ml-6 space-y-1 max-h-48 overflow-y-auto pr-2">
+                  {sections.map((section) => (
+                    <label key={section.index} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="position"
+                        value={section.index}
+                        checked={position === section.index}
+                        onChange={() => setPosition(section.index)}
+                        className="text-[#A4C639] focus:ring-[#A4C639]"
+                      />
+                      <span className="text-sm text-gray-700">
+                        After: {section.title || `Section ${section.index + 1}`}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Preview Info */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
