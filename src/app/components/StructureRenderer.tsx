@@ -2,8 +2,9 @@
 
 import React from "react";
 import type { Structure, Section, Table, SeparatedStructure, UserElement } from "../types/ExtractTypes";
-import SectionBlock from "./SectionBlock";
-import DynamicTable from "./DynamicTable";
+import SectionTemplate from "../Templates/sectionTemplate";
+import DynamicTableTemplate from "../Templates/dynamicTableTemplate";
+import BaseTemplate from "../Templates/baseTemplate";
 import AirplaneSection from "../Templates/airplaneSection";
 import HotelsSection from "../Templates/HotelsSection";
 import { sortSectionsByOrder, getSectionHierarchy } from "../utils/formatSections";
@@ -89,25 +90,29 @@ export default function StructureRenderer({
       case 'section': {
         const section = element.data as Section;
         return (
-          <SectionBlock
+          <SectionTemplate
             key={section.id}
-            section={section}
-            level={0}
-            showStats={showStats}
-            editable={editable && false} // Generated content is read-only
-            onEdit={onSectionEdit}
+            title={section.title}
+            content={section.content}
+            type={section.type || 'section'}
+            editable={editable && false}
+            onTitleChange={onSectionEdit ? () => onSectionEdit(section) : undefined}
+            onContentChange={onSectionEdit ? () => onSectionEdit(section) : undefined}
           />
         );
       }
       case 'table': {
         const table = element.data as Table;
         return (
-          <DynamicTable
+          <DynamicTableTemplate
             key={table.id}
-            table={table}
-            showStats={showStats}
-            editable={editable && false} // Generated content is read-only
-            onEdit={onTableEdit}
+            title={table.title}
+            columns={table.columns}
+            rows={table.rows}
+            editable={editable && false}
+            onTitleChange={onTableEdit ? () => onTableEdit(table) : undefined}
+            onHeaderChange={onTableEdit ? () => onTableEdit(table) : undefined}
+            onCellChange={onTableEdit ? () => onTableEdit(table) : undefined}
           />
         );
       }
@@ -155,10 +160,11 @@ export default function StructureRenderer({
   // Use layout order if available, otherwise fall back to legacy rendering
   const useLayoutOrder = separatedStructure.layout && separatedStructure.layout.length > 0;
 
-  return (
-    <div className={`structure-renderer ${className}`}>
-      {useLayoutOrder ? (
-        // New layout order rendering
+  // Render content
+  const renderContent = () => {
+    if (useLayoutOrder) {
+      // New layout order rendering
+      return (
         <>
           {separatedStructure.layout.map((id) => {
             const element = elementMap.get(id);
@@ -171,122 +177,104 @@ export default function StructureRenderer({
               const children = separatedStructure.generated.sections.filter(s => s.parent_id === section.id);
               if (children.length > 0) {
                 return (
-                  <div key={section.id} className="mb-8">
-                    <SectionBlock
-                      section={section}
-                      level={0}
-                      showStats={showStats}
+                  <React.Fragment key={section.id}>
+                    <SectionTemplate
+                      title={section.title}
+                      content={section.content}
+                      type={section.type || 'section'}
                       editable={false}
-                      onEdit={onSectionEdit}
                     />
                     {children.map((child) => (
-                      <div key={child.id} className="ml-8 mt-4">
-                        <SectionBlock
-                          section={child}
-                          level={1}
-                          showStats={showStats}
-                          editable={false}
-                          onEdit={onSectionEdit}
-                        />
-                      </div>
+                      <SectionTemplate
+                        key={child.id}
+                        title={child.title}
+                        content={child.content}
+                        type={child.type || 'section'}
+                        editable={false}
+                      />
                     ))}
-                  </div>
+                  </React.Fragment>
                 );
               }
             }
             
-            return (
-              <div key={id} className="mb-8">
-                {renderElement(id)}
-              </div>
-            );
+            return <React.Fragment key={id}>{renderElement(id)}</React.Fragment>;
           })}
         </>
-      ) : (
-        // Legacy rendering (sections hierarchy + tables)
-        <>
-          {/* Sections */}
-          {sectionHierarchy.length > 0 && (
-            <div className="sections-container mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">الأقسام</h2>
-              {sectionHierarchy.map((section) => (
-                <div key={section.id}>
-                  <SectionBlock
-                    section={section}
-                    level={0}
-                    showStats={showStats}
-                    editable={false}
-                    onEdit={onSectionEdit}
-                  />
-                  
-                  {/* Render child sections */}
-                  {section.children && section.children.length > 0 && (
-                    <div className="ml-8 mt-4">
-                      {section.children.map((child) => (
-                        <SectionBlock
-                          key={child.id}
-                          section={child}
-                          level={1}
-                          showStats={showStats}
-                          editable={false}
-                          onEdit={onSectionEdit}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Render tables for this section */}
-                  {tablesBySection.has(section.id) && (
-                    <div className="ml-4 mt-4">
-                      {tablesBySection.get(section.id)!.map((table) => (
-                        <DynamicTable
-                          key={table.id}
-                          table={table}
-                          showStats={showStats}
-                          editable={false}
-                          onEdit={onTableEdit}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+      );
+    } else {
+      // Legacy rendering (sections + tables)
+      const content: React.ReactNode[] = [];
 
-          {/* Tables without section (orphan tables) */}
-          {tablesBySection.has(null) && tablesBySection.get(null)!.length > 0 && (
-            <div className="tables-container mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">الجداول</h2>
-              {tablesBySection.get(null)!.map((table) => (
-                <DynamicTable
-                  key={table.id}
-                  table={table}
-                  showStats={showStats}
-                  editable={false}
-                  onEdit={onTableEdit}
-                />
-              ))}
-            </div>
-          )}
+      // Add sections
+      sortedSections.forEach((section) => {
+        content.push(
+          <SectionTemplate
+            key={section.id}
+            title={section.title}
+            content={section.content}
+            type={section.type || 'section'}
+            editable={false}
+          />
+        );
 
-          {/* User elements (rendered after generated content) */}
-          {separatedStructure.user.elements.map((element) => (
-            <div key={element.id} className="mb-8">
-              {renderElement(element.id)}
-            </div>
-          ))}
-        </>
-      )}
+        // Add tables for this section
+        if (tablesBySection.has(section.id)) {
+          tablesBySection.get(section.id)!.forEach((table) => {
+            content.push(
+              <DynamicTableTemplate
+                key={table.id}
+                title={table.title}
+                columns={table.columns}
+                rows={table.rows}
+                editable={false}
+              />
+            );
+          });
+        }
+      });
 
-      {/* Empty State */}
+      // Add orphan tables (tables without section)
+      if (tablesBySection.has(null)) {
+        tablesBySection.get(null)!.forEach((table) => {
+          content.push(
+            <DynamicTableTemplate
+              key={table.id}
+              title={table.title}
+              columns={table.columns}
+              rows={table.rows}
+              editable={false}
+            />
+          );
+        });
+      }
+
+      // Add user elements
+      separatedStructure.user.elements.forEach((element) => {
+        content.push(renderElement(element.id));
+      });
+
+      return <>{content}</>;
+    }
+  };
+
+  return (
+    <BaseTemplate
+      headerImage="/happylifeHeader.jpeg"
+      footerImage="/happylifeFooter.jpg"
+      showHeader={true}
+      showFooter={true}
+      className={className}
+    >
       {separatedStructure.layout.length === 0 && 
        separatedStructure.generated.sections.length === 0 && 
        separatedStructure.generated.tables.length === 0 &&
-       separatedStructure.user.elements.length === 0 && (
+       separatedStructure.user.elements.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p className="text-lg">لا توجد أقسام أو جداول للعرض</p>
         </div>
+      ) : (
+        renderContent()
       )}
 
       {/* Statistics Summary */}
@@ -317,7 +305,7 @@ export default function StructureRenderer({
           </div>
         </div>
       )}
-    </div>
+    </BaseTemplate>
   );
 }
 

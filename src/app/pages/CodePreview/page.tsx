@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import CodeEditor from "../../components/CodeEditor";
 import PreviewRenderer from "../../components/PreviewRenderer";
+import StructureRenderer from "../../components/StructureRenderer";
 import ToggleSwitch from "../../components/ToggleSwitch";
 import CustomizationPanel, { PanelContext } from "../../components/CustomizationPanel";
 import CreateTableModal from "../../components/CreateTableModal";
@@ -65,6 +66,7 @@ import { isAuthenticated } from "../../services/AuthApi";
 import { saveDocument, updateDocument, getDocument } from "../../services/HistoryApi";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import VersionHistoryModal from "../../components/VersionHistoryModal";
+import type { ExtractResponse, Structure } from "../../types/ExtractTypes";
 
 type Mode = "code" | "preview" | "split";
 
@@ -172,6 +174,7 @@ function CodePageContent() {
   const [showEditTransportRowModal, setShowEditTransportRowModal] = useState(false);
   const [showEditTransportTableModal, setShowEditTransportTableModal] = useState(false);
   const [showEditTransportSectionModal, setShowEditTransportSectionModal] = useState(false);
+  const [structuredData, setStructuredData] = useState<ExtractResponse | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<string>(code);
   
@@ -1609,6 +1612,19 @@ function CodePageContent() {
       }
       sessionStorage.removeItem("codePreview.processedTables");
     }
+
+    // Load structured data from sessionStorage
+    const storedExtractedData = sessionStorage.getItem("codePreview.extractedData");
+    if (storedExtractedData) {
+      try {
+        const parsed = JSON.parse(storedExtractedData);
+        if (parsed && (parsed.sections || parsed.tables)) {
+          setStructuredData(parsed as ExtractResponse);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
   }, [searchParams]);
 
   const loadDocument = async (docId: string) => {
@@ -1621,6 +1637,10 @@ function CodePageContent() {
       setTotalVersions(doc.total_versions || 1);
       if (doc.jsx_code) {
         setCode(doc.jsx_code);
+      }
+      // Load structured data if available
+      if (doc.extracted_data && (doc.extracted_data.sections || doc.extracted_data.tables)) {
+        setStructuredData(doc.extracted_data as ExtractResponse);
       }
       if (doc.metadata) {
         setSourceMetadata({
@@ -3001,7 +3021,15 @@ function CodePageContent() {
               ref={previewContainerRef}
               className="preview-content max-w-full"
             >
-              <PreviewRenderer code={code} values={values} setValue={setValue} />
+              {structuredData ? (
+                <StructureRenderer 
+                  structure={structuredData as Structure}
+                  showStats={false}
+                  editable={false}
+                />
+              ) : (
+                <PreviewRenderer code={code} values={values} setValue={setValue} />
+              )}
             </div>
           </div>
         )}

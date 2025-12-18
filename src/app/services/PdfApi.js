@@ -85,12 +85,12 @@ export async function uploadFile(file) {
 }
 
 /**
- * Extract text and tables from uploaded PDF
+ * Extract structured data (sections and tables) from uploaded PDF
  * @param {string} filePath - Path returned from uploadFile
  * @returns {Promise<{sections: Array, tables: Array, meta: Object}>}
  */
-export async function extractContent(filePath) {
-  return request("/extract/", {
+export async function extractStructured(filePath) {
+  return request("/extract/structured", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -99,73 +99,15 @@ export async function extractContent(filePath) {
   });
 }
 
-/**
- * Clean and enhance document structure using Claude AI
- * @param {Object} structure - Structure with sections and tables
- * @param {Object} options - Optional parameters (model, max_retries, timeout, temperature)
- * @returns {Promise<{sections: Array, tables: Array, meta: Object}>}
- */
-export async function cleanStructure(structure, options = {}) {
-  return request("/ai/clean-structure", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      structure,
-      ...options,
-    }),
-  });
-}
-
-/**
- * Generate JSX code from document structure using GPT
- * @param {Object} structure - Structure with sections and tables
- * @param {Object} options - Optional parameters (model, max_retries, timeout, temperature)
- * @returns {Promise<{jsxCode: string, componentsUsed: Array, warnings: Array, metadata: Object}>}
- */
-export async function generateJsx(structure, options = {}) {
-  return request("/ai/generate-jsx", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      structure,
-      ...options,
-    }),
-  });
-}
-
-/**
- * Fix JSX syntax errors using GPT
- * @param {string} jsxCode - JSX code that may contain syntax errors
- * @param {string} errorMessage - Optional error message from compiler
- * @param {Object} options - Optional parameters (model, max_retries, timeout, temperature)
- * @returns {Promise<{fixedCode: string, explanation: string, errors: Array, warnings: Array, changes: Array}>}
- */
-export async function fixJsx(jsxCode, errorMessage = null, options = {}) {
-  return request("/ai/fix-jsx", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      jsx_code: jsxCode,
-      error_message: errorMessage,
-      ...options,
-    }),
-  });
-}
 
 /**
  * Legacy functions - kept for backward compatibility
  * These may not match backend endpoints exactly
  */
 export async function generateNextJs(extractedText) {
-  console.warn("[PdfApi] generateNextJs is deprecated. Use generateJsx instead.");
+  console.warn("[PdfApi] generateNextJs is deprecated. Use static structureToJsx utility instead.");
   // This endpoint doesn't exist in backend - return error
-  throw new Error("generateNextJs endpoint not available. Use generateJsx with structure instead.");
+  throw new Error("generateNextJs endpoint not available. Use structureToJsx utility with structured data instead.");
 }
 
 export async function repairTable(tableData) {
@@ -185,7 +127,6 @@ export async function tableToJsx(table) {
 
 // Note: generateNextJs, repairTable, updateTable, tableToJsx are not part of the backend API
 // These functions are kept for backward compatibility but may not work
-// Use generateJsx and fixJsx instead which match the backend endpoints
 
 /**
  * Validate JSX syntax using basic checks
@@ -245,57 +186,19 @@ export function validateJsxSyntax(jsxCode) {
 }
 
 /**
- * Auto-fix JSX by calling the fix endpoint if validation fails
+ * Validate JSX syntax (client-side only, no API calls)
  * 
- * @param {string} jsxCode - JSX code to validate and fix
- * @param {number} maxRetries - Maximum number of fix attempts (default: 2)
- * @returns {Promise<Object>} Fixed JSX code and warnings
+ * @param {string} jsxCode - JSX code to validate
+ * @returns {Object} Validation result with isValid, errors, and warnings
  */
-export async function validateAndFixJsx(jsxCode, maxRetries = 2) {
-  let currentCode = jsxCode;
-  let attempts = 0;
-  const allWarnings = [];
-  let lastValidation = null;
-  
-  while (attempts < maxRetries) {
-    const validation = validateJsxSyntax(currentCode);
-    lastValidation = validation; // Store for final return
-    
-    if (validation.isValid) {
-      return {
-        jsx: currentCode,
-        warnings: allWarnings,
-        fixed: attempts > 0,
-      };
-    }
-    
-    // If validation failed and we haven't exceeded retries, try to fix
-    if (attempts < maxRetries - 1) {
-      try {
-        const fixResponse = await fixJsx(currentCode);
-        // Backend returns fixedCode, not jsx
-        if (fixResponse.fixedCode) {
-          currentCode = fixResponse.fixedCode;
-          allWarnings.push(...(fixResponse.warnings || []));
-          allWarnings.push(`Fix attempt ${attempts + 1}: ${validation.errors.join(', ')}`);
-          attempts++;
-          continue;
-        }
-      } catch (error) {
-        allWarnings.push(`Fix attempt ${attempts + 1} failed: ${error.message}`);
-        break;
-      }
-    } else {
-      // Last attempt failed
-      allWarnings.push(`Validation failed after ${maxRetries} attempts: ${validation.errors.join(', ')}`);
-      break;
-    }
-  }
+export function validateAndFixJsx(jsxCode) {
+  const validation = validateJsxSyntax(jsxCode);
   
   return {
-    jsx: currentCode,
-    warnings: allWarnings,
-    fixed: attempts > 0,
-    errors: lastValidation ? lastValidation.errors : [],
+    jsx: jsxCode,
+    warnings: validation.isValid ? [] : [`JSX validation issues: ${validation.errors.join(', ')}`],
+    fixed: false,
+    errors: validation.errors,
+    isValid: validation.isValid,
   };
 }

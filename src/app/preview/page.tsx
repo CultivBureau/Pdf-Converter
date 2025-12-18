@@ -7,7 +7,7 @@ import Link from "next/link";
 import PreviewEditor from "./PreviewEditor";
 import PdfViewer from "@/app/components/PdfViewer";
 import { codeReducer, initialCodeState } from "@/app/Store/codeSlice";
-import { generateJsx } from "@/app/services/PdfApi";
+import { structureToJsx } from "@/app/utils/structureToJsx";
 import type { Structure } from "@/app/types/ExtractTypes";
 
 /**
@@ -49,8 +49,8 @@ export default function PreviewPage() {
     }
   }, []);
 
-  // Generate JSX from structure
-  const handleGenerateJSX = async () => {
+  // Generate JSX from structure (static generation)
+  const handleGenerateJSX = () => {
     if (!structure) {
       setGenerationError("لا توجد بيانات للتحويل");
       return;
@@ -60,19 +60,23 @@ export default function PreviewPage() {
     setGenerationError(null);
 
     try {
-      const response = await generateJsx(structure);
+      const jsxCode = structureToJsx(structure);
       
-      if (response.jsxCode) {
-        dispatch({ type: "SET_ORIGINAL_CODE", payload: response.jsxCode });
+      if (jsxCode) {
+        dispatch({ type: "SET_ORIGINAL_CODE", payload: jsxCode });
         dispatch({
           type: "SET_GENERATION_METADATA",
           payload: {
             generatedAt: new Date(),
-            metadata: response.metadata || {},
+            metadata: {
+              method: "static",
+              sectionsCount: structure.sections?.length || 0,
+              tablesCount: structure.tables?.length || 0,
+            },
           },
         });
       } else {
-        throw new Error("لم يتم إرجاع كود JSX");
+        throw new Error("فشل توليد كود JSX");
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "فشل توليد JSX";

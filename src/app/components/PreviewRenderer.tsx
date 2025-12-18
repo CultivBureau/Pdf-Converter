@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { LiveProvider, LivePreview, LiveError } from "react-live";
 import EditableText from "./EditableText";
-import { fixJsx, validateJsxSyntax } from "../services/PdfApi";
+import { validateJsxSyntax } from "../services/PdfApi";
 
 type PreviewRendererProps = {
   code: string;
@@ -30,103 +30,21 @@ export default function PreviewRenderer({ code, values, setValue }: PreviewRende
     }
   }, [values]);
 
-  // Auto-fix code if it has syntax errors (only for AI-generated code, not user edits)
+  // Validate code for syntax errors (client-side only, no API calls)
   useEffect(() => {
-    // Only auto-fix if code changed and it's likely AI-generated (contains export default)
+    // Only validate if code changed
     if (code === lastCodeRef.current || isFixing) return;
     
-    // Check if this looks like AI-generated code (has export default)
-    const isAiGenerated = code.includes('export default function Template');
+    lastCodeRef.current = code;
     
-    if (isAiGenerated && code !== lastCodeRef.current) {
-      lastCodeRef.current = code;
-      
-      // Validate the code
-      const validation = validateJsxSyntax(code);
-      
-      if (!validation.isValid) {
-        console.log('⚠️ Detected syntax errors in AI-generated code, attempting auto-fix...');
-        console.log('Validation errors:', validation.errors);
-        setIsFixing(true);
-        
-        // Extract just the JSX content (inner part) for fixing
-        // Find return statement and extract content between parentheses (handling nested parentheses)
-        const returnIndex = code.indexOf('return (');
-        let jsxContent = code;
-        let extractedStartIndex = 0;
-        let extractedEndIndex = code.length;
-        let foundClosing = false;
-        
-        if (returnIndex !== -1) {
-          // Find the matching closing parenthesis for return (
-          let parenDepth = 0;
-          const startIndex = returnIndex + 'return ('.length;
-          let endIndex = startIndex;
-          
-          for (let i = startIndex; i < code.length; i++) {
-            const char = code[i];
-            const prevChar = i > 0 ? code[i - 1] : '';
-            
-            // Skip escaped characters
-            if (prevChar === '\\') continue;
-            
-            if (char === '(') {
-              parenDepth++;
-            } else if (char === ')') {
-              if (parenDepth === 0) {
-                // Found the matching closing parenthesis
-                endIndex = i;
-                foundClosing = true;
-                extractedStartIndex = startIndex;
-                extractedEndIndex = endIndex;
-                break;
-              }
-              parenDepth--;
-            }
-          }
-          
-          if (foundClosing) {
-            // Extract JSX content between return ( and closing )
-            jsxContent = code.substring(extractedStartIndex, extractedEndIndex);
-          }
-        }
-        
-        // Call fix-jsx endpoint with JSX fragment
-        fixJsx(jsxContent)
-          .then((response) => {
-            if (response.jsx) {
-              // Reconstruct the full component with fixed JSX
-              let fixedFullCode = code;
-              
-              if (returnIndex !== -1 && foundClosing) {
-                // Replace the JSX content in return statement
-                const beforeReturn = code.substring(0, returnIndex + 'return ('.length);
-                const afterReturn = code.substring(extractedEndIndex);
-                fixedFullCode = beforeReturn + '\n' + response.jsx + '\n  ' + afterReturn;
-              } else {
-                // Fallback: try to replace in function body
-                fixedFullCode = code.replace(
-                  /return\s*\([\s\S]*\)/,
-                  `return (\n${response.jsx}\n  )`
-                );
-              }
-              
-              setFixedCode(fixedFullCode);
-              console.log('✅ Code auto-fixed successfully');
-            } else {
-              setFixedCode(null);
-            }
-          })
-          .catch((error) => {
-            console.error('Failed to auto-fix code:', error);
-            setFixedCode(null);
-          })
-          .finally(() => {
-            setIsFixing(false);
-          });
-      } else {
-        setFixedCode(null);
-      }
+    // Validate the code
+    const validation = validateJsxSyntax(code);
+    
+    if (!validation.isValid) {
+      console.warn('⚠️ Detected syntax errors in code:');
+      console.warn('Validation errors:', validation.errors);
+      // Don't try to fix - just log warnings
+      setFixedCode(null);
     } else {
       setFixedCode(null);
     }
