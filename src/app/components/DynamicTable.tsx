@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { Table } from "../types/ExtractTypes";
-import { tableToDynamicTableRows, formatTable } from "../utils/formatTables";
+import DynamicTableTemplate from "../Templates/dynamicTableTemplate";
 
 interface TableCell {
   content: string;
@@ -35,6 +35,8 @@ interface DynamicTableProps {
   showStats?: boolean;
   editable?: boolean;
   onEdit?: (table: Table) => void;
+  onDelete?: (table: Table) => void;
+  onAddAfter?: (table: Table) => void;
 }
 
 const DynamicTable: React.FC<DynamicTableProps> = ({
@@ -48,25 +50,50 @@ const DynamicTable: React.FC<DynamicTableProps> = ({
   showStats = false,
   editable = false,
   onEdit,
+  onDelete,
+  onAddAfter,
 }) => {
-  // Phase 3: Support Table object
-  let displayHeaders: string[] = [];
-  let displayRows: TableRow[] = [];
-  let tableTitle = title;
-  let formattedTable = null;
+  // Use table object if available, otherwise use legacy props
+  const tableColumns = table?.columns || propsHeaders || [];
+  const tableRows = table?.rows || (propsRows?.map(row => row.cells.map(cell => cell.content)) || []);
+  const tableTitle = title || table?.id || '';
 
-  if (table) {
-    formattedTable = formatTable(table);
-    displayHeaders = formattedTable.displayColumns;
-    displayRows = tableToDynamicTableRows(table);
-    tableTitle = tableTitle || `جدول ${table.id}`;
-  } else if (propsHeaders && propsRows) {
-    // Legacy support
-    displayHeaders = propsHeaders;
-    displayRows = propsRows;
-  }
+  const handleCellChange = (rowIndex: number, cellIndex: number, newValue: string) => {
+    if (table && onEdit) {
+      const updatedRows = [...table.rows];
+      if (updatedRows[rowIndex]) {
+        updatedRows[rowIndex] = [...updatedRows[rowIndex]];
+        updatedRows[rowIndex][cellIndex] = newValue;
+      }
+      onEdit({
+        ...table,
+        rows: updatedRows,
+      });
+    }
+  };
 
-  if (displayRows.length === 0) {
+  const handleHeaderChange = (headerIndex: number, newValue: string) => {
+    if (table && onEdit) {
+      const updatedColumns = [...table.columns];
+      updatedColumns[headerIndex] = newValue;
+      onEdit({
+        ...table,
+        columns: updatedColumns,
+      });
+    }
+  };
+
+  const handleTitleChange = (newTitle: string) => {
+    // Table title is stored in meta or we can update it
+    if (table && onEdit) {
+      onEdit({
+        ...table,
+        // Title might be in meta or we handle it separately
+      });
+    }
+  };
+
+  if (tableColumns.length === 0 && tableRows.length === 0) {
     return (
       <div className={`w-full p-4 bg-gray-50 rounded-lg border border-gray-200 ${className}`}>
         <p className="text-gray-500 text-center">الجدول فارغ</p>
@@ -76,107 +103,55 @@ const DynamicTable: React.FC<DynamicTableProps> = ({
 
   return (
     <div
-      className={`w-full max-w-full mb-6 ${className}`}
+      className={`w-full max-w-full relative ${className}`}
       data-table-id={table?.id}
       data-table-order={table?.order}
     >
-      {/* Table Title */}
-      {tableTitle && (
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900 text-center flex-1">
-            {tableTitle}
-          </h3>
-          
-          {editable && onEdit && table && (
-            <button
-              onClick={() => onEdit(table)}
-              className="ml-4 p-2 text-gray-600 hover:text-[#A4C639] hover:bg-gray-100 rounded transition-colors"
-              title="تعديل الجدول"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Responsive Table Container */}
-      <div className="overflow-x-auto -mx-4 sm:mx-0">
-        <div className="inline-block min-w-full align-middle px-4 sm:px-0">
-          <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-            <table className="w-full max-w-full border-collapse border border-gray-400 table-auto min-w-[640px] sm:min-w-0">
-          {displayHeaders && displayHeaders.length > 0 && (
-            <thead>
-              <tr className="bg-[#A4C639]">
-                {displayHeaders.map((header, index) => (
-                  <th
-                    key={index}
-                    className={`border border-gray-400 px-2 sm:px-4 py-2 sm:py-3 text-center font-bold text-white text-xs sm:text-sm whitespace-nowrap ${headerClassName}`}
-                  >
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-          )}
-          <tbody>
-            {displayRows.map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                className={`${row.className || ''} ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-lime-50 transition-colors`}
-              >
-                {row.cells.map((cell, cellIndex) => {
-                  const CellTag = cell.isHeader ? 'th' : 'td';
-                  const baseClass = cell.isHeader
-                    ? 'bg-green-100 font-bold text-gray-900'
-                    : 'text-gray-800';
-                  
-                  return (
-                    <CellTag
-                      key={cellIndex}
-                      rowSpan={cell.rowSpan}
-                      colSpan={cell.colSpan}
-                      className={`border border-gray-400 px-2 sm:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm ${baseClass} ${cell.className || ''} ${cellClassName} break-words`}
-                    >
-                      <div className="max-w-[200px] sm:max-w-none mx-auto">
-                        {cell.content}
-                      </div>
-                    </CellTag>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-          </div>
-        </div>
-      </div>
-      
-      {/* Mobile-friendly card view hint */}
-      <div className="sm:hidden mt-2 text-xs text-gray-500 text-center">
-        <span className="inline-flex items-center gap-1">
+      {/* Delete Icon - Top Right */}
+      {editable && onDelete && table && (
+        <button
+          onClick={() => onDelete(table)}
+          className="absolute top-2 right-2 z-10 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110"
+          title="Delete Table"
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
-          اسحب لرؤية المزيد
-        </span>
-      </div>
-
-      {/* Statistics (optional) */}
-      {showStats && formattedTable && (
-        <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500 flex gap-4 justify-center">
-          <span>الصفوف: {formattedTable.rowCount}</span>
-          <span>الأعمدة: {formattedTable.columnCount}</span>
-          <span>الخلايا: {formattedTable.cellCount}</span>
-          {table && <span>الترتيب: {table.order}</span>}
-        </div>
+        </button>
       )}
 
-      {/* Table Metadata (debug) */}
-      {process.env.NODE_ENV === "development" && table && (
-        <div className="mt-2 text-xs text-gray-400 font-mono text-center">
-          ID: {table.id} | Order: {table.order} | Section: {table.section_id || "none"}
+      <DynamicTableTemplate
+        columns={tableColumns}
+        rows={tableRows}
+        title={tableTitle}
+        editable={editable}
+        onCellChange={editable ? handleCellChange : undefined}
+        onHeaderChange={editable ? handleHeaderChange : undefined}
+        onTitleChange={editable ? handleTitleChange : undefined}
+        showTitle={!!tableTitle}
+      />
+      
+      {/* Add Icon - Bottom Center */}
+      {editable && onAddAfter && table && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => onAddAfter(table)}
+            className="p-3 bg-[#A4C639] text-white rounded-full hover:bg-[#8FB02E] transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110"
+            title="Add New Table After This"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+      )}
+      
+      {/* Statistics (optional) */}
+      {showStats && table && (
+        <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 flex gap-4 justify-center">
+          <span>Rows: {tableRows.length}</span>
+          <span>Columns: {tableColumns.length}</span>
+          <span>Order: {table.order}</span>
         </div>
       )}
     </div>

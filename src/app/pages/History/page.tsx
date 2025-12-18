@@ -75,8 +75,8 @@ function HistoryPageContent() {
   const filteredDocuments = getFilteredDocuments();
 
   const handleOpen = (docId: string) => {
-    // Store document ID and navigate to editor
-    router.push(`/pages/CodePreview?docId=${docId}`);
+    // Store document ID and navigate to document view
+    router.push(`/pages/DocumentView?docId=${docId}`);
   };
 
   const handleRename = (docId: string) => {

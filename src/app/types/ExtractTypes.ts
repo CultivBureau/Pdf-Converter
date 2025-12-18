@@ -149,10 +149,32 @@ export interface HotelsSectionData {
   [key: string]: any;
 }
 
+export interface TransportSectionData {
+  tables?: {
+    id: string;
+    title: string;
+    backgroundColor?: 'dark-blue' | 'dark-red' | 'pink';
+    columns: { key: string; label: string }[];
+    rows: {
+      day: string;
+      date: string;
+      description: string;
+      carType: string;
+      note?: string;
+      [key: string]: any;
+    }[];
+  }[];
+  title?: string;
+  showTitle?: boolean;
+  direction?: "rtl" | "ltr";
+  language?: "ar" | "en";
+  [key: string]: any;
+}
+
 export interface UserElement {
-  id: string;  // user_airplane_* or user_hotel_*
-  type: "airplane" | "hotel";
-  data: AirplaneSectionData | HotelsSectionData;
+  id: string;  // user_airplane_* or user_hotel_* or user_transport_*
+  type: "airplane" | "hotel" | "transport";
+  data: AirplaneSectionData | HotelsSectionData | TransportSectionData;
   created_at?: string;
   order?: number;
 }

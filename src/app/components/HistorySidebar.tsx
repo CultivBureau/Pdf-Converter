@@ -46,7 +46,7 @@ export default function HistorySidebar() {
   
   // Handle document click
   const handleDocumentClick = (docId: string) => {
-    router.push(`/pages/CodePreview?docId=${docId}`);
+    router.push(`/pages/DocumentView?docId=${docId}`);
     // Close sidebar on mobile after selection
     if (window.innerWidth < 1024) {
       toggleSidebar();

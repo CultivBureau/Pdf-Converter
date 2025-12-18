@@ -122,7 +122,10 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
     luggage: "Luggage"
   });
   
-  const formatTravelers = (travelers: { adults: number; children: number; infants: number }) => {
+  const formatTravelers = (travelers: { adults: number; children: number; infants: number } | undefined) => {
+    if (!travelers) {
+      return null;
+    }
     const parts = [];
     if (travelers.adults > 0) {
       parts.push(
@@ -267,7 +270,11 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
 
           {/* Data Rows */}
           <tbody>
-            {flights.map((flight, index) => (
+            {flights.map((flight, index) => {
+              // Ensure travelers has default values
+              const safeTravelers = flight.travelers || { adults: 0, children: 0, infants: 0 };
+              
+              return (
                 <tr 
                   key={index} 
                   className="bg-[#E8E8E8] hover:bg-[#D8D8D8] transition-colors duration-200 border-b-2 border-white group"
@@ -351,7 +358,7 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
                 </td>
                   <td className="px-4 py-4 text-center text-gray-800 font-semibold text-sm md:text-base border-r-2 border-white/50">
                     <div className="flex items-center justify-center">
-                      {formatTravelers(flight.travelers)}
+                      {formatTravelers(safeTravelers)}
                     </div>
                 </td>
                   <td className="px-4 py-4 text-center text-gray-800 font-semibold text-sm md:text-base">
@@ -364,11 +371,12 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
                       >
                         <path d="M19 7h-3V6a4 4 0 00-8 0v1H5a1 1 0 00-1 1v11a3 3 0 003 3h10a3 3 0 003-3V8a1 1 0 00-1-1zM10 6a2 2 0 014 0v1h-4V6zm8 13a1 1 0 01-1 1H7a1 1 0 01-1-1V9h12v10z"/>
                       </svg>
-                      <span className="text-[#2D3748]">{flight.luggage}</span>
+                      <span className="text-[#2D3748]">{flight.luggage || ''}</span>
                     </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {editable && (
                 <tr className="bg-gray-50 hover:bg-gray-100 transition-colors">
                   <td colSpan={editable ? 6 : 5} className="px-4 py-5 text-center">

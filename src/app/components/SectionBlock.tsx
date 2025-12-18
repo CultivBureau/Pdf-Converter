@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { Section } from "../types/ExtractTypes";
-import { formatSection } from "../utils/formatSections";
+import SectionTemplate from "../Templates/sectionTemplate";
 
 interface SectionBlockProps {
   section: Section;
@@ -11,19 +11,14 @@ interface SectionBlockProps {
   showStats?: boolean;
   editable?: boolean;
   onEdit?: (section: Section) => void;
+  onDelete?: (section: Section) => void;
+  onAddAfter?: (section: Section) => void;
 }
 
 /**
  * Section Block Component
- * Phase 3: Receiving Extracted Data
- * 
- * Displays a section with title and content
+ * Uses SectionTemplate with all editing features (bold, split, etc.)
  */
-// Helper function to detect Arabic text
-function hasArabic(text: string): boolean {
-  return /[\u0600-\u06FF]/.test(text);
-}
-
 export default function SectionBlock({
   section,
   level = 0,
@@ -31,79 +26,100 @@ export default function SectionBlock({
   showStats = false,
   editable = false,
   onEdit,
+  onDelete,
+  onAddAfter,
 }: SectionBlockProps) {
-  const formatted = formatSection(section);
-  
-  // Detect Arabic content for RTL support
-  const isArabic = hasArabic(section.title + section.content);
-  const textDirection = isArabic ? 'rtl' : 'ltr';
-  
-  // Determine heading level based on hierarchy level
-  const HeadingTag = level === 0 ? "h2" : level === 1 ? "h3" : level === 2 ? "h4" : "h5";
-  const headingSize = level === 0 ? "text-2xl" : level === 1 ? "text-xl" : level === 2 ? "text-lg" : "text-base";
-  
+  const handleContentChange = (newContent: string) => {
+    if (onEdit) {
+      onEdit({
+        ...section,
+        content: newContent,
+      });
+    }
+  };
+
+  const handleTitleChange = (newTitle: string) => {
+    if (onEdit) {
+      onEdit({
+        ...section,
+        title: newTitle,
+      });
+    }
+  };
+
+  // Determine section type based on title/content patterns
+  const getSectionType = (): 'section' | 'day' | 'included' | 'excluded' | 'notes' => {
+    const titleLower = section.title.toLowerCase();
+    const contentLower = section.content.toLowerCase();
+    
+    if (titleLower.includes('day') || titleLower.includes('يوم')) {
+      return 'day';
+    }
+    if (titleLower.includes('included') || titleLower.includes('يشمل') || contentLower.includes('included')) {
+      return 'included';
+    }
+    if (titleLower.includes('excluded') || titleLower.includes('لا يشمل') || contentLower.includes('excluded')) {
+      return 'excluded';
+    }
+    if (titleLower.includes('note') || titleLower.includes('ملاحظ') || titleLower.includes('تنبيه')) {
+      return 'notes';
+    }
+    return 'section';
+  };
+
   return (
     <div
-      className={`section-block mb-6 p-6 bg-white rounded-lg shadow-md border border-gray-200 ${className}`}
+      className={`section-block relative ${className}`}
       data-section-id={section.id}
       data-section-order={section.order}
     >
-      {/* Section Title */}
-      {formatted.displayTitle && (
-        <div className="flex items-center justify-between mb-4" dir={textDirection}>
-          <HeadingTag
-            className={`${headingSize} font-bold text-gray-900 mb-2`}
-            style={{ marginLeft: `${level * 1.5}rem` }}
-          >
-            {formatted.displayTitle}
-          </HeadingTag>
-          
-          {editable && onEdit && (
-            <button
-              onClick={() => onEdit(section)}
-              className="ml-4 p-2 text-gray-600 hover:text-[#A4C639] hover:bg-gray-100 rounded transition-colors"
-              title="تعديل القسم"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Section Content */}
-      {formatted.hasContent && (
-        <div
-          className="section-content text-gray-700 leading-relaxed whitespace-pre-wrap"
-          style={{ marginLeft: `${level * 1.5}rem` }}
-          dir={textDirection}
+      {/* Delete Icon - Top Right */}
+      {editable && onDelete && (
+        <button
+          onClick={() => onDelete(section)}
+          className="absolute top-2 right-2 z-10 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110"
+          title="Delete Section"
         >
-          {formatted.displayContent}
-        </div>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
       )}
 
-      {/* Empty State */}
-      {!formatted.hasContent && (
-        <div className="text-gray-400 italic text-sm" style={{ marginLeft: `${level * 1.5}rem` }}>
-          لا يوجد محتوى في هذا القسم
+      <SectionTemplate
+        title={section.title}
+        content={section.content}
+        type={getSectionType()}
+        editable={editable}
+        onContentChange={editable ? handleContentChange : undefined}
+        onTitleChange={editable ? handleTitleChange : undefined}
+        showTitle={!!section.title}
+        titleLevel={level === 0 ? 2 : level === 1 ? 3 : 4}
+        enableTextSplitting={editable}
+        preserveWhitespace={true}
+        parseParagraphs={true}
+      />
+      
+      {/* Add Icon - Bottom Center */}
+      {editable && onAddAfter && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => onAddAfter(section)}
+            className="p-3 bg-[#A4C639] text-white rounded-full hover:bg-[#8FB02E] transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110"
+            title="Add New Section After This"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
         </div>
       )}
-
+      
       {/* Statistics (optional) */}
       {showStats && (
-        <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500 flex gap-4">
-          <span>الكلمات: {formatted.wordCount}</span>
-          <span>الأحرف: {formatted.charCount}</span>
-          <span>الترتيب: {section.order}</span>
-          {section.parent_id && <span>الأب: {section.parent_id}</span>}
-        </div>
-      )}
-
-      {/* Section Metadata (debug) */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="mt-2 text-xs text-gray-400 font-mono">
-          ID: {section.id} | Order: {section.order} | Level: {level}
+        <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 flex gap-4">
+          <span>Order: {section.order}</span>
+          {section.parent_id && <span>Parent: {section.parent_id}</span>}
         </div>
       )}
     </div>

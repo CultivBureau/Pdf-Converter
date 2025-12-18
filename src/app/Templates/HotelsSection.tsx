@@ -327,34 +327,36 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
             </div>
 
             {/* Day Info - More Visible and Prominent */}
-            <div className={`absolute top-2 z-0 text-base md:text-lg font-bold text-[#1E88E5] space-y-2 ${direction === 'rtl' ? 'right-4 text-right' : 'left-4 text-left'}`}>
-              <div className={`flex items-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                <div className="bg-[#1E88E5] rounded-full p-1.5 shadow-md">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 24 24" 
-                    fill="currentColor" 
-                    className="w-5 h-5 text-white shrink-0"
-                  >
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-                  </svg>
+            {hotel.dayInfo && (
+              <div className={`absolute top-2 z-0 text-base md:text-lg font-bold text-[#1E88E5] space-y-2 ${direction === 'rtl' ? 'right-4 text-right' : 'left-4 text-left'}`}>
+                <div className={`flex items-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                  <div className="bg-[#1E88E5] rounded-full p-1.5 shadow-md">
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 24 24" 
+                      fill="currentColor" 
+                      className="w-5 h-5 text-white shrink-0"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                    </svg>
+                  </div>
+                  <span className="font-bold">{hotel.dayInfo.checkInDay || ''}</span>
                 </div>
-                <span className="font-bold">{hotel.dayInfo.checkInDay}</span>
-              </div>
-              <div className={`flex items-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                <div className="bg-[#1E88E5] rounded-full p-1.5 shadow-md">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 24 24" 
-                    fill="currentColor" 
-                    className="w-5 h-5 text-white shrink-0"
-                  >
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-                  </svg>
+                <div className={`flex items-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                  <div className="bg-[#1E88E5] rounded-full p-1.5 shadow-md">
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 24 24" 
+                      fill="currentColor" 
+                      className="w-5 h-5 text-white shrink-0"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                    </svg>
+                  </div>
+                  <span className="font-bold">{hotel.dayInfo.checkOutDay || ''}</span>
                 </div>
-                <span className="font-bold">{hotel.dayInfo.checkOutDay}</span>
               </div>
-            </div>
+            )}
 
             {/* Hotel Name Bar */}
             <div className={`mt-8 w-1/2 mx-auto bg-[#1E88E5] text-white px-5 py-3 rounded-xl flex items-center justify-center shadow-md ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>

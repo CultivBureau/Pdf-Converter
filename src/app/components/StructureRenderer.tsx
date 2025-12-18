@@ -6,6 +6,7 @@ import SectionBlock from "./SectionBlock";
 import DynamicTable from "./DynamicTable";
 import AirplaneSection from "../Templates/airplaneSection";
 import HotelsSection from "../Templates/HotelsSection";
+import TransportSection from "../Templates/TransportSection";
 import { sortSectionsByOrder, getSectionHierarchy } from "../utils/formatSections";
 import { sortTablesByOrder, groupTablesBySection } from "../utils/formatTables";
 import { isSeparatedStructure, isLegacyStructure, migrateToSeparatedStructure } from "../utils/structureMigration";
@@ -17,8 +18,26 @@ interface StructureRendererProps {
   editable?: boolean;
   onSectionEdit?: (section: Section) => void;
   onTableEdit?: (table: Table) => void;
+  onSectionDelete?: (section: Section) => void;
+  onTableDelete?: (table: Table) => void;
+  onSectionAddAfter?: (section: Section) => void;
+  onTableAddAfter?: (table: Table) => void;
   onUserElementEdit?: (element: UserElement) => void;
   onUserElementDelete?: (id: string) => void;
+  // Airplane section handlers
+  onEditFlight?: (sectionId: string, flightIndex: number) => void;
+  onRemoveFlight?: (sectionId: string, flightIndex: number) => void;
+  onAddFlight?: (sectionId: string) => void;
+  // Hotel section handlers
+  onEditHotel?: (sectionId: string, hotelIndex: number) => void;
+  onRemoveHotel?: (sectionId: string, hotelIndex: number) => void;
+  onAddHotel?: (sectionId: string) => void;
+  // Transport section handlers
+  onEditTransportRow?: (sectionId: string, tableIndex: number, rowIndex: number) => void;
+  onRemoveTransportRow?: (sectionId: string, tableIndex: number, rowIndex: number) => void;
+  onAddTransportRow?: (sectionId: string, tableIndex: number) => void;
+  onEditTransportTable?: (sectionId: string, tableIndex: number) => void;
+  onDeleteTransportTable?: (sectionId: string, tableIndex: number) => void;
   className?: string;
 }
 
@@ -35,8 +54,23 @@ export default function StructureRenderer({
   editable = false,
   onSectionEdit,
   onTableEdit,
+  onSectionDelete,
+  onTableDelete,
+  onSectionAddAfter,
+  onTableAddAfter,
   onUserElementEdit,
   onUserElementDelete,
+  onEditFlight,
+  onRemoveFlight,
+  onAddFlight,
+  onEditHotel,
+  onRemoveHotel,
+  onAddHotel,
+  onEditTransportRow,
+  onRemoveTransportRow,
+  onAddTransportRow,
+  onEditTransportTable,
+  onDeleteTransportTable,
   className = "",
 }: StructureRendererProps) {
   // Normalize structure to SeparatedStructure format
@@ -94,8 +128,10 @@ export default function StructureRenderer({
             section={section}
             level={0}
             showStats={showStats}
-            editable={editable && false} // Generated content is read-only
+            editable={editable} // Allow editing when editable prop is true
             onEdit={onSectionEdit}
+            onDelete={onSectionDelete}
+            onAddAfter={onSectionAddAfter}
           />
         );
       }
@@ -106,8 +142,10 @@ export default function StructureRenderer({
             key={table.id}
             table={table}
             showStats={showStats}
-            editable={editable && false} // Generated content is read-only
+            editable={editable} // Allow editing when editable prop is true
             onEdit={onTableEdit}
+            onDelete={onTableDelete}
+            onAddAfter={onTableAddAfter}
           />
         );
       }
@@ -132,6 +170,10 @@ export default function StructureRenderer({
               {...userElement.data}
               editable={editable}
               onEditSection={handleEdit}
+              onDeleteSection={handleDelete}
+              onEditFlight={onEditFlight ? (index) => onEditFlight(userElement.id, index) : undefined}
+              onRemoveFlight={onRemoveFlight ? (index) => onRemoveFlight(userElement.id, index) : undefined}
+              onAddFlight={onAddFlight ? () => onAddFlight(userElement.id) : undefined}
             />
           );
         } else if (userElement.type === 'hotel') {
@@ -142,6 +184,26 @@ export default function StructureRenderer({
               {...userElement.data}
               editable={editable}
               onEditSection={handleEdit}
+              onDeleteSection={handleDelete}
+              onEditHotel={onEditHotel ? (index) => onEditHotel(userElement.id, index) : undefined}
+              onRemoveHotel={onRemoveHotel ? (index) => onRemoveHotel(userElement.id, index) : undefined}
+              onAddHotel={onAddHotel ? () => onAddHotel(userElement.id) : undefined}
+            />
+          );
+        } else if (userElement.type === 'transport') {
+          return (
+            <TransportSection
+              key={userElement.id}
+              id={userElement.id}
+              {...userElement.data}
+              editable={editable}
+              onEditSection={handleEdit}
+              onDeleteSection={handleDelete}
+              onEditRow={onEditTransportRow ? (tableIndex, rowIndex) => onEditTransportRow(userElement.id, tableIndex, rowIndex) : undefined}
+              onRemoveRow={onRemoveTransportRow ? (tableIndex, rowIndex) => onRemoveTransportRow(userElement.id, tableIndex, rowIndex) : undefined}
+              onAddRow={onAddTransportRow ? (tableIndex) => onAddTransportRow(userElement.id, tableIndex) : undefined}
+              onEditTable={onEditTransportTable ? (tableIndex) => onEditTransportTable(userElement.id, tableIndex) : undefined}
+              onDeleteTable={onDeleteTransportTable ? (tableIndex) => onDeleteTransportTable(userElement.id, tableIndex) : undefined}
             />
           );
         }
@@ -176,8 +238,10 @@ export default function StructureRenderer({
                       section={section}
                       level={0}
                       showStats={showStats}
-                      editable={false}
+                      editable={editable}
                       onEdit={onSectionEdit}
+                      onDelete={onSectionDelete}
+                      onAddAfter={onSectionAddAfter}
                     />
                     {children.map((child) => (
                       <div key={child.id} className="ml-8 mt-4">
@@ -185,8 +249,10 @@ export default function StructureRenderer({
                           section={child}
                           level={1}
                           showStats={showStats}
-                          editable={false}
+                          editable={editable}
                           onEdit={onSectionEdit}
+                          onDelete={onSectionDelete}
+                          onAddAfter={onSectionAddAfter}
                         />
                       </div>
                     ))}
@@ -215,8 +281,10 @@ export default function StructureRenderer({
                     section={section}
                     level={0}
                     showStats={showStats}
-                    editable={false}
+                    editable={editable}
                     onEdit={onSectionEdit}
+                    onDelete={onSectionDelete}
+                    onAddAfter={onSectionAddAfter}
                   />
                   
                   {/* Render child sections */}
@@ -228,8 +296,10 @@ export default function StructureRenderer({
                           section={child}
                           level={1}
                           showStats={showStats}
-                          editable={false}
+                          editable={editable}
                           onEdit={onSectionEdit}
+                          onDelete={onSectionDelete}
+                          onAddAfter={onSectionAddAfter}
                         />
                       ))}
                     </div>
@@ -243,8 +313,10 @@ export default function StructureRenderer({
                           key={table.id}
                           table={table}
                           showStats={showStats}
-                          editable={false}
+                          editable={editable}
                           onEdit={onTableEdit}
+                          onDelete={onTableDelete}
+                          onAddAfter={onTableAddAfter}
                         />
                       ))}
                     </div>
@@ -263,8 +335,10 @@ export default function StructureRenderer({
                   key={table.id}
                   table={table}
                   showStats={showStats}
-                  editable={false}
+                  editable={editable}
                   onEdit={onTableEdit}
+                  onDelete={onTableDelete}
+                  onAddAfter={onTableAddAfter}
                 />
               ))}
             </div>

@@ -136,33 +136,7 @@ function HomeContent() {
           </div>
 
           {/* Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Link 
-              href="/pages/CodePreview" 
-              className="group block rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-blue-400 hover:-translate-y-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/50 relative overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-              <div className="flex flex-col h-full">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                    </svg>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">Code Editor</h2>
-                </div>
-                <p className="text-gray-600 mb-4 grow leading-relaxed">
-                  Open the live React + Tailwind template editor. Design and customize your travel packages with real-time preview.
-                </p>
-                <div className="flex items-center text-blue-600 font-bold group-hover:gap-3 transition-all">
-                  <span>Start Editing</span>
-                  <svg className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-              </div>
-            </Link>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
             <Link
               href="/pages/PdfConverter"
               className="group block rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-orange-400 hover:-translate-y-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-400/50 relative overflow-hidden"

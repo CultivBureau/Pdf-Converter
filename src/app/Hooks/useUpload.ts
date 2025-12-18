@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { uploadFile, extractContent } from "@/app/services/PdfApi";
+import { uploadFile, extractStructuredContent } from "@/app/services/PdfApi";
 import type { UploadResponse, ExtractResponse } from "@/app/types/ExtractTypes";
 
 export interface UseUploadReturn {
@@ -91,7 +91,7 @@ export function useUpload(): UseUploadReturn {
     setStatus("جاري استخراج المحتوى...");
 
     try {
-      const response = await extractContent(filePath);
+      const response = await extractStructuredContent(filePath);
       
       if (!response.sections && !response.tables) {
         throw new Error("لم يتم استخراج أي محتوى من الملف.");
