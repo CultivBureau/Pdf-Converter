@@ -210,7 +210,7 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
             </div>
           </div>
           {editable && (
-            <div className={`absolute top-1/2 -translate-y-1/2 flex gap-2 z-10 ${direction === 'rtl' ? 'right-0' : 'left-0'}`}>
+            <div className={`absolute top-1/2 -translate-y-1/2 flex gap-2  ${direction === 'rtl' ? 'right-0' : 'left-0'}`}>
               <button
                 onClick={(e) => {
                   // Support prop handler if provided (for backward compatibility)
