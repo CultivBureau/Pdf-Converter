@@ -23,6 +23,7 @@ export interface DynamicTableTemplateProps {
   onCellChange?: (rowIndex: number, cellIndex: number, newValue: string) => void;
   onHeaderChange?: (headerIndex: number, newValue: string) => void;
   onTitleChange?: (newTitle: string) => void;
+  onDelete?: () => void;
   
   // Table Title
   title?: string;
@@ -93,6 +94,7 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
   onCellChange,
   onHeaderChange,
   onTitleChange,
+  onDelete,
   // Title
   title,
   titleClassName = "",
@@ -233,7 +235,37 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={wrapperClasses} style={style}>
+    <div className={`${wrapperClasses} relative`} style={style}>
+      {/* Delete Button - Top Right */}
+      {editable && onDelete && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (window.confirm('Are you sure you want to delete this table?')) {
+              onDelete();
+            }
+          }}
+          className="absolute top-2 right-2 z-50 p-1.5 rounded-lg transition-all duration-200 hover:bg-red-50 group no-pdf-export"
+          title="Delete table"
+          aria-label="Delete this table"
+        >
+          <svg
+            className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </button>
+      )}
+      
       {/* Table Title - Compact */}
       {showTitle && title && (
         <div className="mb-3">

@@ -2134,6 +2134,28 @@ function CodePageContent() {
                   };
                 });
               }}
+              onSectionDelete={(id) => {
+                // Remove section from structure
+                setStructure(prev => ({
+                  ...prev,
+                  generated: {
+                    ...prev.generated,
+                    sections: prev.generated.sections.filter(s => s.id !== id)
+                  },
+                  layout: prev.layout.filter(lid => lid !== id)
+                }));
+              }}
+              onTableDelete={(id) => {
+                // Remove table from structure
+                setStructure(prev => ({
+                  ...prev,
+                  generated: {
+                    ...prev.generated,
+                    tables: prev.generated.tables.filter(t => t.id !== id)
+                  },
+                  layout: prev.layout.filter(lid => lid !== id)
+                }));
+              }}
               onUserElementEdit={(element) => {
                 // Handle user element edit
                 if (element.type === 'airplane') {
