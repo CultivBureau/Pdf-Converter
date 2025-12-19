@@ -1452,6 +1452,20 @@ function CodePageContent() {
       }
       sessionStorage.removeItem("codePreview.extractedData");
     }
+
+    // Load uploaded JSON from home page
+    const uploadedStructure = sessionStorage.getItem("uploadedStructure");
+    if (uploadedStructure) {
+      try {
+        const parsed = JSON.parse(uploadedStructure);
+        if (parsed && parsed.generated && parsed.user && parsed.layout) {
+          setStructure(parsed as SeparatedStructure);
+        }
+      } catch {
+        // ignore parse errors
+      }
+      sessionStorage.removeItem("uploadedStructure");
+    }
   }, [searchParams]);
 
   const loadDocument = async (docId: string) => {
@@ -1949,7 +1963,7 @@ function CodePageContent() {
                     
                     <div className="border-t border-gray-200 my-1"></div>
                     
-                    {/* Export Code */}
+                    {/* Export JSON */}
                     <button
                       onClick={() => {
                         handleExportCode();
@@ -1960,7 +1974,7 @@ function CodePageContent() {
                       <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
-                      <span>Export Code</span>
+                      <span>Export JSON</span>
                     </button>
                     
                     {/* Export PDF */}
