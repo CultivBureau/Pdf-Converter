@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 
 /**
  * Customizable Dynamic Table Template Component
@@ -146,6 +147,9 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
   className = "",
   style,
 }) => {
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  
   // Use 'columns' from JSON or fallback to 'headers'
   const tableHeaders = columns || headers || [];
 
@@ -238,32 +242,40 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
     <div className={`${wrapperClasses} relative`} style={style}>
       {/* Delete Button - Top Right */}
       {editable && onDelete && (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (window.confirm('Are you sure you want to delete this table?')) {
-              onDelete();
-            }
-          }}
-          className="absolute top-2 right-2 z-50 p-1.5 rounded-lg transition-all duration-200 hover:bg-red-50 group no-pdf-export"
-          title="Delete table"
-          aria-label="Delete this table"
-        >
-          <svg
-            className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowDeleteModal(true);
+            }}
+            className="absolute top-2 right-2  p-1.5 rounded-lg transition-all duration-200 hover:bg-red-50 group no-pdf-export"
+            title="Delete table"
+            aria-label="Delete this table"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
-        </button>
+            <svg
+              className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+          
+          <DeleteConfirmationModal
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={onDelete}
+            title="Delete Table"
+            message="Are you sure you want to delete this table? This action cannot be undone."
+          />
+        </>
       )}
       
       {/* Table Title - Compact */}

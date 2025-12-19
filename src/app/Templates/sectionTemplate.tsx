@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 
 /**
  * Customizable Section Template Component
@@ -126,6 +127,9 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
   const [showSplitButton, setShowSplitButton] = useState(false);
   const [splitButtonPosition, setSplitButtonPosition] = useState({ top: 0, left: 0 });
   const contentContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   // Determine heading tag
   const HeadingTag = `h${titleLevel}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -770,32 +774,40 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     <section className={containerClasses} style={containerStyle}>
       {/* Delete Button - Top Right */}
       {editable && onDelete && (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (window.confirm('Are you sure you want to delete this section?')) {
-              onDelete();
-            }
-          }}
-          className="absolute top-2 right-2 z-50 p-1.5 rounded-lg transition-all duration-200 hover:bg-red-50 group no-pdf-export"
-          title="Delete section"
-          aria-label="Delete this section"
-        >
-          <svg
-            className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowDeleteModal(true);
+            }}
+            className="absolute top-2 right-2 p-1.5 rounded-lg transition-all duration-200 hover:bg-red-50 group no-pdf-export"
+            title="Delete section"
+            aria-label="Delete this section"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
-        </button>
+            <svg
+              className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+          
+          <DeleteConfirmationModal
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={onDelete}
+            title="Delete Section"
+            message="Are you sure you want to delete this section? This action cannot be undone."
+          />
+        </>
       )}
       
       {/* Top Divider */}
