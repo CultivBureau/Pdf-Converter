@@ -712,7 +712,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
       
       return (
         <div 
-          className={preserveWhitespace ? "whitespace-pre-wrap leading-snug" : ""} 
+          className={`${preserveWhitespace ? "whitespace-pre-wrap leading-snug" : ""} ${editable ? 'cursor-text hover:bg-gray-50 rounded px-1 py-0.5 transition-colors min-h-[1.5em]' : ''}`}
           style={{ fontSize: '11px', lineHeight: '1.4' }}
           contentEditable={editable}
           suppressContentEditableWarning={true}
@@ -720,6 +720,11 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
           onBlur={(e) => {
             if (editable && onContentChange) {
               onContentChange(e.currentTarget.innerHTML || '');
+            }
+          }}
+          onClick={(e) => {
+            if (editable && e.currentTarget !== document.activeElement) {
+              e.currentTarget.focus();
             }
           }}
         />
@@ -757,13 +762,18 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
       {showTitle && title && (
         <div className="mb-3">
           <h2 
-            className={titleClasses} 
+            className={`${titleClasses} ${editable ? 'cursor-text hover:bg-gray-50 rounded px-1 py-0.5 transition-colors' : ''}`}
             style={{ fontSize: '13px', lineHeight: '1.3' }}
             contentEditable={editable}
             suppressContentEditableWarning={true}
             onBlur={(e) => {
               if (editable && onTitleChange) {
                 onTitleChange(e.currentTarget.textContent || '');
+              }
+            }}
+            onClick={(e) => {
+              if (editable && e.currentTarget !== document.activeElement) {
+                e.currentTarget.focus();
               }
             }}
           >

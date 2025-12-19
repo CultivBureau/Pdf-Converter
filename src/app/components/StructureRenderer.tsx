@@ -95,9 +95,13 @@ export default function StructureRenderer({
             title={section.title}
             content={section.content}
             type={section.type || 'section'}
-            editable={editable && false}
-            onTitleChange={onSectionEdit ? () => onSectionEdit(section) : undefined}
-            onContentChange={onSectionEdit ? () => onSectionEdit(section) : undefined}
+            editable={editable}
+            onTitleChange={onSectionEdit ? (newTitle: string) => {
+              onSectionEdit({ ...section, title: newTitle });
+            } : undefined}
+            onContentChange={onSectionEdit ? (newContent: string) => {
+              onSectionEdit({ ...section, content: newContent });
+            } : undefined}
           />
         );
       }
@@ -109,10 +113,44 @@ export default function StructureRenderer({
             title={table.title}
             columns={table.columns}
             rows={table.rows}
-            editable={editable && false}
-            onTitleChange={onTableEdit ? () => onTableEdit(table) : undefined}
-            onHeaderChange={onTableEdit ? () => onTableEdit(table) : undefined}
-            onCellChange={onTableEdit ? () => onTableEdit(table) : undefined}
+            editable={editable}
+            onTitleChange={onTableEdit ? (newTitle: string) => {
+              onTableEdit({ ...table, title: newTitle });
+            } : undefined}
+            onHeaderChange={onTableEdit ? (headerIndex: number, newValue: string) => {
+              const updatedColumns = Array.isArray(table.columns) 
+                ? table.columns.map((col: any, idx: number) => {
+                    if (idx === headerIndex) {
+                      if (typeof col === 'string') {
+                        return newValue;
+                      } else if (col && typeof col === 'object') {
+                        return { ...col, label: newValue };
+                      } else {
+                        return newValue;
+                      }
+                    }
+                    return col;
+                  })
+                : [];
+              onTableEdit({ ...table, columns: updatedColumns });
+            } : undefined}
+            onCellChange={onTableEdit ? (rowIndex: number, cellIndex: number, newValue: string) => {
+              const updatedRows = table.rows.map((row: any, rIdx: number) => {
+                if (rIdx === rowIndex) {
+                  if (Array.isArray(row)) {
+                    const newRow = [...row];
+                    newRow[cellIndex] = newValue;
+                    return newRow;
+                  } else if (typeof row === 'object') {
+                    const col = table.columns[cellIndex];
+                    const key = typeof col === 'string' ? col : (col?.key || col?.label || `col_${cellIndex}`);
+                    return { ...row, [key]: newValue };
+                  }
+                }
+                return row;
+              });
+              onTableEdit({ ...table, rows: updatedRows });
+            } : undefined}
           />
         );
       }

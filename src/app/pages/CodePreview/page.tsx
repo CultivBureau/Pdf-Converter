@@ -2104,6 +2104,36 @@ function CodePageContent() {
               structure={structure}
                   showStats={false}
               editable={true}
+              onSectionEdit={(section) => {
+                // Update section in structure
+                setStructure(prev => {
+                  const updatedSections = prev.generated.sections.map(s => 
+                    s.id === section.id ? section : s
+                  );
+                  return {
+                    ...prev,
+                    generated: {
+                      ...prev.generated,
+                      sections: updatedSections
+                    }
+                  };
+                });
+              }}
+              onTableEdit={(table) => {
+                // Update table in structure
+                setStructure(prev => {
+                  const updatedTables = prev.generated.tables.map(t => 
+                    t.id === table.id ? table : t
+                  );
+                  return {
+                    ...prev,
+                    generated: {
+                      ...prev.generated,
+                      tables: updatedTables
+                    }
+                  };
+                });
+              }}
               onUserElementEdit={(element) => {
                 // Handle user element edit
                 if (element.type === 'airplane') {

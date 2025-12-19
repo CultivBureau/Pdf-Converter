@@ -238,12 +238,17 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
       {showTitle && title && (
         <div className="mb-3">
           <h3 
-            className="text-base font-bold text-gray-900"
+            className={`text-base font-bold text-gray-900 ${editable ? 'cursor-text hover:bg-gray-50 rounded px-1 py-0.5 transition-colors inline-block' : ''}`}
             contentEditable={editable}
             suppressContentEditableWarning={true}
             onBlur={(e) => {
               if (editable && onTitleChange) {
                 onTitleChange(e.currentTarget.textContent || '');
+              }
+            }}
+            onClick={(e) => {
+              if (editable && e.currentTarget !== document.activeElement) {
+                e.currentTarget.focus();
               }
             }}
           >
@@ -270,13 +275,18 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                   }}
                 >
                   <div 
-                    className="wrap-break-word hyphens-auto" 
+                    className={`wrap-break-word hyphens-auto ${editable ? 'cursor-text hover:bg-green-100/50 rounded px-1 py-0.5 transition-colors' : ''}`}
                     style={{ wordBreak: 'break-word' }}
                     contentEditable={editable}
                     suppressContentEditableWarning={true}
                     onBlur={(e) => {
                       if (editable && onHeaderChange) {
                         onHeaderChange(index, e.currentTarget.textContent || '');
+                      }
+                    }}
+                    onClick={(e) => {
+                      if (editable && e.currentTarget !== document.activeElement) {
+                        e.currentTarget.focus();
                       }
                     }}
                   >
@@ -311,13 +321,18 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                         }}
                       >
                         <div 
-                          className="wrap-break-word font-medium" 
+                          className={`wrap-break-word font-medium ${editable ? 'cursor-text hover:bg-green-50 rounded px-1 py-0.5 transition-colors min-h-[1.2em]' : ''}`}
                           style={{ wordBreak: 'break-word' }}
                           contentEditable={editable}
                           suppressContentEditableWarning={true}
                           onBlur={(e) => {
                             if (editable && onCellChange) {
                               onCellChange(rowIndex, cellIndex, e.currentTarget.textContent || '');
+                            }
+                          }}
+                          onClick={(e) => {
+                            if (editable && e.currentTarget !== document.activeElement) {
+                              e.currentTarget.focus();
                             }
                           }}
                         >
