@@ -1696,7 +1696,7 @@ function CodePageContent() {
       user: {
         elements: [...prev.user.elements, newElement]
       },
-      layout: [...prev.layout, elementId]
+      layout: [elementId, ...prev.layout]
     }));
     
     setShowAddAirplaneModal(false);
@@ -1744,7 +1744,7 @@ function CodePageContent() {
       user: {
         elements: [...prev.user.elements, newElement]
       },
-      layout: [...prev.layout, elementId]
+      layout: [elementId, ...prev.layout]
     }));
     
     setShowAddHotelModal(false);
@@ -1785,7 +1785,7 @@ function CodePageContent() {
       user: {
         elements: [...prev.user.elements, newElement]
       },
-      layout: [...prev.layout, elementId]
+      layout: [elementId, ...prev.layout]
     }));
     
     setShowAddTransportModal(false);
