@@ -23,6 +23,7 @@ export interface SectionTemplateProps {
   onContentChange?: (newContent: string) => void;
   onTitleChange?: (newTitle: string) => void;
   onDelete?: () => void;
+  onAddAfter?: () => void;
   
   // Title Configuration
   titleLevel?: 1 | 2 | 3 | 4 | 5 | 6;
@@ -82,6 +83,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
   onContentChange,
   onTitleChange,
   onDelete,
+  onAddAfter,
   // Title
   titleLevel = 2,
   titleClassName = "",
@@ -938,6 +940,34 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
       {/* Bottom Divider */}
       {showDivider && dividerPosition === "bottom" && (
         <div className={`border-t ${borderColor} mt-6`} />
+      )}
+      
+      {/* Add Section Button - Bottom Center */}
+      {editable && onAddAfter && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onAddAfter();
+          }}
+          className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 z-[100] w-6 h-6 rounded-full bg-white border-2 border-[#A4C639] flex items-center justify-center transition-all duration-200 hover:bg-[#A4C639] hover:scale-110 group no-pdf-export shadow-md"
+          title="Add section below"
+          aria-label="Add new section after this one"
+        >
+          <svg
+            className="w-3.5 h-3.5 text-[#A4C639] group-hover:text-white transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={3}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+        </button>
       )}
     </section>
   );

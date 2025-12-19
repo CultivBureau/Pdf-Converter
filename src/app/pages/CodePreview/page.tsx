@@ -2156,6 +2156,39 @@ function CodePageContent() {
                   layout: prev.layout.filter(lid => lid !== id)
                 }));
               }}
+              onSectionAddAfter={(afterId) => {
+                // Add new section after the specified section
+                const newSectionId = `gen_sec_${Date.now()}`;
+                const newSection = {
+                  id: newSectionId,
+                  title: 'New Section',
+                  content: 'Enter section content here...',
+                  type: 'section' as const,
+                  order: structure.generated.sections.length
+                };
+                
+                setStructure(prev => {
+                  // Find the index of the section to add after
+                  const afterIndex = prev.layout.findIndex(id => id === afterId);
+                  
+                  // Create new layout with the new section inserted after
+                  const newLayout = [...prev.layout];
+                  if (afterIndex !== -1) {
+                    newLayout.splice(afterIndex + 1, 0, newSectionId);
+                  } else {
+                    newLayout.push(newSectionId);
+                  }
+                  
+                  return {
+                    ...prev,
+                    generated: {
+                      ...prev.generated,
+                      sections: [...prev.generated.sections, newSection]
+                    },
+                    layout: newLayout
+                  };
+                });
+              }}
               onUserElementEdit={(element) => {
                 // Handle user element edit
                 if (element.type === 'airplane') {

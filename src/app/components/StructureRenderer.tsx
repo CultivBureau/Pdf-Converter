@@ -20,6 +20,7 @@ interface StructureRendererProps {
   onTableEdit?: (table: Table) => void;
   onSectionDelete?: (id: string) => void;
   onTableDelete?: (id: string) => void;
+  onSectionAddAfter?: (sectionId: string) => void;
   onUserElementEdit?: (element: UserElement) => void;
   onUserElementDelete?: (id: string) => void;
   className?: string;
@@ -40,6 +41,7 @@ export default function StructureRenderer({
   onTableEdit,
   onSectionDelete,
   onTableDelete,
+  onSectionAddAfter,
   onUserElementEdit,
   onUserElementDelete,
   className = "",
@@ -108,6 +110,9 @@ export default function StructureRenderer({
             } : undefined}
             onDelete={onSectionDelete ? () => {
               onSectionDelete(section.id);
+            } : undefined}
+            onAddAfter={onSectionAddAfter ? () => {
+              onSectionAddAfter(section.id);
             } : undefined}
           />
         );
