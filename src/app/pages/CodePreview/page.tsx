@@ -520,6 +520,40 @@ function CodePageContent() {
     }
   }, [deletePendingId]);
   
+  // Handler for moving element up in the layout
+  const handleMoveUp = useCallback((id: string) => {
+    setStructure(prev => {
+      const currentIndex = prev.layout.indexOf(id);
+      if (currentIndex <= 0) return prev; // Already at top or not found
+      
+      const newLayout = [...prev.layout];
+      // Swap with previous element
+      [newLayout[currentIndex - 1], newLayout[currentIndex]] = [newLayout[currentIndex], newLayout[currentIndex - 1]];
+      
+      return {
+        ...prev,
+        layout: newLayout
+      };
+    });
+  }, []);
+  
+  // Handler for moving element down in the layout
+  const handleMoveDown = useCallback((id: string) => {
+    setStructure(prev => {
+      const currentIndex = prev.layout.indexOf(id);
+      if (currentIndex === -1 || currentIndex >= prev.layout.length - 1) return prev; // Already at bottom or not found
+      
+      const newLayout = [...prev.layout];
+      // Swap with next element
+      [newLayout[currentIndex], newLayout[currentIndex + 1]] = [newLayout[currentIndex + 1], newLayout[currentIndex]];
+      
+      return {
+        ...prev,
+        layout: newLayout
+      };
+    });
+  }, []);
+  
   // Handler for editing a flight
   const handleEditFlightSubmit = useCallback((updatedFlight: FlightData) => {
     if (!editingAirplaneId || editingFlightIndex === null) {
@@ -2098,6 +2132,8 @@ function CodePageContent() {
               structure={structure}
                   showStats={false}
               editable={true}
+              onMoveUp={handleMoveUp}
+              onMoveDown={handleMoveDown}
               onSectionEdit={(section) => {
                 // Update section in structure
                 setStructure(prev => {

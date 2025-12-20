@@ -24,6 +24,8 @@ interface StructureRendererProps {
   onSectionAddAfter?: (sectionId: string) => void;
   onUserElementEdit?: (element: UserElement) => void;
   onUserElementDelete?: (id: string) => void;
+  onMoveUp?: (id: string) => void;
+  onMoveDown?: (id: string) => void;
   className?: string;
 }
 
@@ -45,6 +47,8 @@ export default function StructureRenderer({
   onSectionAddAfter,
   onUserElementEdit,
   onUserElementDelete,
+  onMoveUp,
+  onMoveDown,
   className = "",
 }: StructureRendererProps) {
   // Normalize structure to SeparatedStructure format
@@ -230,9 +234,11 @@ export default function StructureRenderer({
       // New layout order rendering
       return (
         <>
-          {separatedStructure.layout.map((id) => {
+          {separatedStructure.layout.map((id, index) => {
             const element = elementMap.get(id);
             if (!element) return null;
+            const isFirst = index === 0;
+            const isLast = index === separatedStructure.layout.length - 1;
 
             // For sections, render with hierarchy if they have children
             if (element.type === 'section') {
@@ -262,7 +268,38 @@ export default function StructureRenderer({
               }
             }
             
-            return <React.Fragment key={id}>{renderElement(id)}</React.Fragment>;
+            return (
+              <div key={id} className="relative group mb-6">
+                {/* Reorder Controls */}
+                {(onMoveUp || onMoveDown) && (
+                  <div className="absolute -left-12 top-4 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    {!isFirst && onMoveUp && (
+                      <button
+                        onClick={() => onMoveUp(id)}
+                        className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded shadow-lg transition-colors"
+                        title="Move up"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      </button>
+                    )}
+                    {!isLast && onMoveDown && (
+                      <button
+                        onClick={() => onMoveDown(id)}
+                        className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded shadow-lg transition-colors"
+                        title="Move down"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                )}
+                {renderElement(id)}
+              </div>
+            );
           })}
         </>
       );
