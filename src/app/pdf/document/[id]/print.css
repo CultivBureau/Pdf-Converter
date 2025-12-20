@@ -1,0 +1,149 @@
+/* Print-optimized CSS for PDF generation */
+/* This CSS ensures 100% accuracy when generating PDFs with Playwright */
+
+/* CRITICAL: Page size (required for preferCSSPageSize) */
+@page {
+  size: A4;
+  margin: 1cm;
+}
+
+/* Base styles - ensure white background */
+body.pdf-document-body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Cairo', 'IBM Plex Arabic', system-ui, sans-serif;
+}
+
+/* Container for PDF content */
+.pdf-container {
+  width: 100%;
+  max-width: 100%;
+  background: #ffffff;
+  padding: 0;
+  margin: 0;
+}
+
+/* Structure renderer - remove all interactive elements */
+.pdf-structure-renderer {
+  width: 100%;
+  background: #ffffff;
+}
+
+/* Disable all animations and transitions */
+* {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Hide non-PDF elements (buttons, navigation, etc.) */
+.no-print,
+button,
+[role="button"],
+nav,
+header:not(.pdf-header),
+footer:not(.pdf-footer),
+aside,
+[class*="sidebar"],
+[class*="menu"],
+[class*="toolbar"] {
+  display: none !important;
+}
+
+/* Page break control */
+.page-break {
+  page-break-after: always;
+  break-after: page;
+}
+
+.no-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* CRITICAL: Table page break prevention (Chromium bug fix) */
+table {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+thead {
+  display: table-header-group;
+}
+
+tfoot {
+  display: table-footer-group;
+}
+
+/* Ensure images don't break pages */
+img {
+  max-width: 100%;
+  height: auto;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Prevent orphaned text */
+p, h1, h2, h3, h4, h5, h6 {
+  orphans: 3;
+  widows: 3;
+}
+
+/* Remove shadows and borders for print */
+* {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Ensure proper text alignment for RTL/LTR */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="ltr"] {
+  text-align: left;
+}
+
+/* Print media query - additional rules */
+@media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Ensure no content clipping */
+  * {
+    overflow: visible !important;
+  }
+
+  /* Remove all interactive elements */
+  a {
+    color: #000000;
+    text-decoration: underline;
+  }
+
+  /* Ensure tables render correctly */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  /* Section styling for print */
+  section,
+  [class*="section"] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+

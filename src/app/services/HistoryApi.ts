@@ -210,7 +210,8 @@ export async function saveDocument(
 }
 
 /**
- * Get a specific document
+ * Get a specific document (client-side version)
+ * For server-side usage, use getDocumentServer from HistoryApiServer.ts
  */
 export async function getDocument(docId: string): Promise<DocumentResponse> {
   return historyRequest(`/history/${docId}`, { method: "GET" });

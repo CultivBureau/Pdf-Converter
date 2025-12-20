@@ -26,6 +26,7 @@ import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { Hotel } from "../../Templates/HotelsSection";
 import { isAuthenticated } from "../../services/AuthApi";
 import { saveDocument, updateDocument, getDocument } from "../../services/HistoryApi";
+import { generatePDFWithPlaywright, downloadPDFBlob } from "../../services/PdfApi";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import VersionHistoryModal from "../../components/VersionHistoryModal";
 import type { SeparatedStructure, UserElement } from "../../types/ExtractTypes";
@@ -78,6 +79,7 @@ function CodePageContent() {
   const [showEditTransportSectionModal, setShowEditTransportSectionModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePendingId, setDeletePendingId] = useState<string | null>(null);
+  const [isExportingPlaywright, setIsExportingPlaywright] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   
   // Event delegation for airplane section actions
@@ -1678,6 +1680,155 @@ function CodePageContent() {
     }
   }, []);
 
+  const handleSave = useCallback(async () => {
+    if (!isAuthenticated()) {
+      alert("Please login to save documents");
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveStatus("idle");
+
+    try {
+      const filePath = sessionStorage.getItem("codePreview.filePath");
+      const originalFilename = sessionStorage.getItem("codePreview.originalFilename");
+
+      if (documentId) {
+        // Update existing document with current structure
+        const updateResponse = await updateDocument(documentId, {
+          extracted_data: structure, // Save full v2 structure
+          metadata: {
+            ...sourceMetadata,
+            lastSaved: new Date().toISOString(),
+          },
+        });
+        
+        // Update version info after save
+        if (updateResponse.document) {
+          setCurrentVersion(updateResponse.document.current_version || 1);
+          setTotalVersions(updateResponse.document.total_versions || 1);
+        }
+      } else {
+        // Create new document
+        const title = sourceMetadata?.filename?.replace(/\.pdf$/i, "") || "Untitled Document";
+        const response = await saveDocument({
+          title,
+          original_filename: originalFilename || "document.pdf",
+          file_path: filePath || "",
+          extracted_data: structure, // Save full v2 structure
+          metadata: {
+            ...sourceMetadata,
+            savedAt: new Date().toISOString(),
+          },
+        });
+        
+        if (response.document?.id) {
+          setDocumentId(response.document.id);
+          setCurrentVersion(response.document.current_version || 1);
+          setTotalVersions(response.document.total_versions || 1);
+        }
+      }
+
+      setSaveStatus("success");
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    } catch (err) {
+      console.error("Save failed:", err);
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [structure, documentId, sourceMetadata]);
+
+  const handleExportPDFWithPlaywright = useCallback(async () => {
+    // Ensure document is saved first
+    let currentDocId = documentId;
+    
+    if (!currentDocId) {
+      const shouldSave = confirm('Document must be saved before generating PDF. Save now?');
+      if (!shouldSave) {
+        return;
+      }
+
+      // Save document inline
+      if (!isAuthenticated()) {
+        alert("Please login to save documents");
+        return;
+      }
+
+      setIsSaving(true);
+      setSaveStatus("idle");
+
+      try {
+        const filePath = sessionStorage.getItem("codePreview.filePath");
+        const originalFilename = sessionStorage.getItem("codePreview.originalFilename");
+        const title = sourceMetadata?.filename?.replace(/\.pdf$/i, "") || "Untitled Document";
+        
+        console.log('Saving document before PDF export...');
+        const response = await saveDocument({
+          title,
+          original_filename: originalFilename || "document.pdf",
+          file_path: filePath || "",
+          extracted_data: structure,
+          metadata: {
+            ...sourceMetadata,
+            savedAt: new Date().toISOString(),
+          },
+        });
+        
+        console.log('Save response:', response);
+        
+        if (response.document?.id) {
+          currentDocId = response.document.id;
+          setDocumentId(response.document.id);
+          setCurrentVersion(response.document.current_version || 1);
+          setTotalVersions(response.document.total_versions || 1);
+          console.log('Document saved with ID:', currentDocId);
+        } else {
+          console.error('No document ID in response:', response);
+          alert('Failed to save document: No ID returned. Please try again.');
+          setSaveStatus("error");
+          setTimeout(() => setSaveStatus("idle"), 3000);
+          return;
+        }
+
+        setSaveStatus("success");
+        setTimeout(() => setSaveStatus("idle"), 3000);
+      } catch (err) {
+        console.error("Save failed:", err);
+        setSaveStatus("error");
+        setTimeout(() => setSaveStatus("idle"), 3000);
+        alert("Failed to save document. Please try again.");
+        return;
+      } finally {
+        setIsSaving(false);
+      }
+
+      // Wait longer for database to commit
+      console.log('Waiting for database commit...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      if (!currentDocId) {
+        alert('Failed to get document ID after saving. Please try again.');
+        return;
+      }
+    }
+
+    console.log('Starting PDF generation with document ID:', currentDocId);
+    setIsExportingPlaywright(true);
+    try {
+      const pdfBlob = await generatePDFWithPlaywright(currentDocId, 'A4');
+      const filename = sourceMetadata?.filename?.replace(/\.pdf$/i, '') || 'document';
+      downloadPDFBlob(pdfBlob, filename);
+      console.log('PDF export successful');
+    } catch (error) {
+      console.error('Playwright PDF export error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to export PDF with Playwright');
+    } finally {
+      setIsExportingPlaywright(false);
+    }
+  }, [documentId, sourceMetadata, structure]);
+
   const handleAddAirplaneClick = useCallback(() => {
     setShowAddAirplaneModal(true);
     setShowMenuDropdown(false);
@@ -1821,66 +1972,6 @@ function CodePageContent() {
     /* OLD JSX CODE REMOVED - Now works with JSON structure */
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!isAuthenticated()) {
-      alert("Please login to save documents");
-      return;
-    }
-
-    setIsSaving(true);
-    setSaveStatus("idle");
-
-    try {
-      const filePath = sessionStorage.getItem("codePreview.filePath");
-      const originalFilename = sessionStorage.getItem("codePreview.originalFilename");
-
-      if (documentId) {
-        // Update existing document with current structure
-        const updateResponse = await updateDocument(documentId, {
-          extracted_data: structure, // Save full v2 structure
-          metadata: {
-            ...sourceMetadata,
-            lastSaved: new Date().toISOString(),
-          },
-        });
-        
-        // Update version info after save
-        if (updateResponse.document) {
-          setCurrentVersion(updateResponse.document.current_version || 1);
-          setTotalVersions(updateResponse.document.total_versions || 1);
-        }
-      } else {
-        // Create new document
-        const title = sourceMetadata?.filename?.replace(/\.pdf$/i, "") || "Untitled Document";
-        const response = await saveDocument({
-          title,
-          original_filename: originalFilename || "document.pdf",
-          file_path: filePath || "",
-          extracted_data: structure, // Save full v2 structure
-          metadata: {
-            ...sourceMetadata,
-            savedAt: new Date().toISOString(),
-          },
-        });
-        
-        if (response.document?.id) {
-          setDocumentId(response.document.id);
-          setCurrentVersion(response.document.current_version || 1);
-          setTotalVersions(response.document.total_versions || 1);
-        }
-      }
-
-      setSaveStatus("success");
-      setTimeout(() => setSaveStatus("idle"), 3000);
-    } catch (err) {
-      console.error("Save failed:", err);
-      setSaveStatus("error");
-      setTimeout(() => setSaveStatus("idle"), 3000);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [structure, documentId, sourceMetadata]);
-
   const header = useMemo(() => (
     <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-md">
       <div className="max-w-7xl mx-auto px-6 py-4">
@@ -2011,7 +2102,7 @@ function CodePageContent() {
                       <span>Export JSON</span>
                     </button>
                     
-                    {/* Export PDF */}
+                    {/* Export PDF (Client-side) */}
                     <button
                       onClick={() => {
                         handleExportPDF();
@@ -2022,8 +2113,39 @@ function CodePageContent() {
                       <svg className="w-4 h-4 text-[#A4C639]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      <span>Export PDF</span>
+                      <span>Export PDF (Client)</span>
                     </button>
+                    
+                    {/* Export PDF with Playwright (Server-side - 100% accurate) */}
+                    {isAuthenticated() && (
+                      <button
+                        onClick={() => {
+                          handleExportPDFWithPlaywright();
+                          setShowMenuDropdown(false);
+                        }}
+                        disabled={isExportingPlaywright}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Generate PDF using Playwright for 100% accuracy"
+                      >
+                        {isExportingPlaywright ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4 text-[#A4C639]" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Generating PDF...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 text-[#A4C639]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>Export PDF (Playwright)</span>
+                            <span className="ml-auto text-xs text-green-600 font-semibold">100%</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                     
                     {/* Versions - only show if authenticated and has versions */}
                     {isAuthenticated() && documentId && totalVersions > 1 && (
@@ -2107,7 +2229,7 @@ function CodePageContent() {
         </div>
       </div>
     </div>
-  ), [handleExportCode, handleExportPDF, handleSave, handleAddAirplaneClick, handleAddAirplaneSubmit, handleAddHotelClick, handleAddHotelSubmit, handleAddTransportClick, handleAddTransportSubmit, sourceMetadata, isSaving, saveStatus, documentId, totalVersions, currentVersion, showMenuDropdown]);
+  ), [handleExportCode, handleExportPDF, handleExportPDFWithPlaywright, handleSave, handleAddAirplaneClick, handleAddAirplaneSubmit, handleAddHotelClick, handleAddHotelSubmit, handleAddTransportClick, handleAddTransportSubmit, sourceMetadata, isSaving, saveStatus, documentId, totalVersions, currentVersion, showMenuDropdown, isExportingPlaywright]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-50 via-blue-50 to-lime-50 text-gray-900">
