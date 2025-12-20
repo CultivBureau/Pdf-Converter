@@ -292,7 +292,7 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={`${wrapperClasses} relative`} style={style}>
+    <div className={`${wrapperClasses} relative px-4 py-3`} style={style}>
       {/* Action Buttons - Top Right */}
       {editable && (
         <div className="absolute -top-1 right-2 flex gap-2 no-pdf-export">
@@ -325,7 +325,7 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
             
             {/* Edit Settings Dropdown */}
             {showColorPicker && (
-              <div className="absolute top-full right-0 z-10 mt-3 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 min-w-[240px] backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute top-full right-0 z-100 mt-3 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 min-w-[240px] backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="mb-4">
                   <p className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,20 +385,6 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                         <span className="text-sm font-semibold text-green-700">Add</span>
                       </button>
                     )}
-                    {onRemoveColumn && cleanHeaders.length > 1 && (
-                      <button
-                        onClick={() => {
-                          onRemoveColumn(cleanHeaders.length - 1);
-                          setShowColorPicker(false);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 border border-red-200 rounded-xl transition-all duration-200 hover:shadow-md"
-                      >
-                        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                        </svg>
-                        <span className="text-sm font-semibold text-red-700">Remove Last</span>
-                      </button>
-                    )}
                   </div>
                 </div>
                 
@@ -423,20 +409,6 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
                         <span className="text-sm font-semibold text-purple-700">Add</span>
-                      </button>
-                    )}
-                    {onRemoveRow && normalizedRows.length > 0 && (
-                      <button
-                        onClick={() => {
-                          onRemoveRow(normalizedRows.length - 1);
-                          setShowColorPicker(false);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 border border-orange-200 rounded-xl transition-all duration-200 hover:shadow-md"
-                      >
-                        <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                        </svg>
-                        <span className="text-sm font-semibold text-orange-700">Remove Last</span>
                       </button>
                     )}
                   </div>
@@ -509,8 +481,8 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
       )}
 
       {/* Table Container - NO overflow, perfect compression */}
-      <div className={`w-full rounded-2xl border-2 ${colorClasses.border} overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300`}>
-        <table className="dynamic-table w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+      <div className={`w-full rounded-2xl border-2 ${colorClasses.border} shadow-lg hover:shadow-xl transition-shadow duration-300`}>
+        <table className="dynamic-table w-full border-collapse rounded-2xl" style={{ tableLayout: 'fixed' }}>
           {/* Table Header */}
           <thead>
             <tr style={{ background: `linear-gradient(to right, ${colorClasses.from}, ${colorClasses.to})` }}>
@@ -533,11 +505,11 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                         e.stopPropagation();
                         onRemoveColumn(index);
                       }}
-                      className="absolute top-0 right-0 p-0.5 bg-red-500 hover:bg-red-600 text-white rounded-bl opacity-0 group-hover:opacity-100 transition-opacity duration-200 no-pdf-export"
+                      className="absolute -top-6 right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg z-10 no-pdf-export"
                       title="Delete this column"
                     >
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   )}
@@ -595,10 +567,10 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                               e.stopPropagation();
                               onRemoveRow(rowIndex);
                             }}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full p-1 bg-red-500 hover:bg-red-600 text-white rounded-l opacity-0 group-hover:opacity-100 transition-opacity duration-200 no-pdf-export"
+                            className="absolute -left-6 top-1/2 -translate-y-1/2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg z-10 no-pdf-export"
                             title="Delete this row"
                           >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </button>
