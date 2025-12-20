@@ -505,7 +505,7 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                         e.stopPropagation();
                         onRemoveColumn(index);
                       }}
-                      className="absolute -top-6 right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg z-10 no-pdf-export"
+                      className="absolute -top-6 right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg  no-pdf-export"
                       title="Delete this column"
                     >
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -567,7 +567,7 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
                               e.stopPropagation();
                               onRemoveRow(rowIndex);
                             }}
-                            className="absolute -left-6 top-1/2 -translate-y-1/2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg z-10 no-pdf-export"
+                            className="absolute -left-6 top-1/2 -translate-y-1/2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg  no-pdf-export"
                             title="Delete this row"
                           >
                             <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

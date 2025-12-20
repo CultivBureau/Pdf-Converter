@@ -325,7 +325,7 @@ export default function StructureRenderer({
               <div key={id} className="relative group mb-6">
                 {/* Reorder Controls */}
                 {(onMoveUp || onMoveDown) && (
-                  <div className="absolute -left-12 top-4 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <div className="absolute -left-12 top-4 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity ">
                     {!isFirst && onMoveUp && (
                       <button
                         onClick={() => onMoveUp(id)}
