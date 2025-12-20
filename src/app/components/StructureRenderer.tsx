@@ -175,6 +175,55 @@ export default function StructureRenderer({
             onDelete={onTableDelete ? () => {
               onTableDelete(table.id);
             } : undefined}
+            onAddColumn={onTableEdit ? () => {
+              const newColumns = Array.isArray(table.columns) ? [...table.columns] : [];
+              newColumns.push(`Column ${newColumns.length + 1}`);
+              
+              const updatedRows = table.rows.map((row: any) => {
+                if (Array.isArray(row)) {
+                  return [...row, ''];
+                } else if (typeof row === 'object') {
+                  return { ...row, [`col_${newColumns.length - 1}`]: '' };
+                }
+                return row;
+              });
+              
+              onTableEdit({ ...table, columns: newColumns, rows: updatedRows });
+            } : undefined}
+            onRemoveColumn={onTableEdit ? (columnIndex: number) => {
+              if (!Array.isArray(table.columns) || table.columns.length <= 1) return;
+              
+              const newColumns = table.columns.filter((_: any, idx: number) => idx !== columnIndex);
+              
+              const updatedRows = table.rows.map((row: any) => {
+                if (Array.isArray(row)) {
+                  return row.filter((_: any, idx: number) => idx !== columnIndex);
+                } else if (typeof row === 'object') {
+                  const col = table.columns[columnIndex];
+                  const key = typeof col === 'string' ? col : (col?.key || col?.label || `col_${columnIndex}`);
+                  const newRow = { ...row };
+                  delete newRow[key];
+                  return newRow;
+                }
+                return row;
+              });
+              
+              onTableEdit({ ...table, columns: newColumns, rows: updatedRows });
+            } : undefined}
+            onAddRow={onTableEdit ? () => {
+              const newRow = Array.isArray(table.columns) 
+                ? Array(table.columns.length).fill('')
+                : {};
+              
+              const updatedRows = [...table.rows, newRow];
+              onTableEdit({ ...table, rows: updatedRows });
+            } : undefined}
+            onRemoveRow={onTableEdit ? (rowIndex: number) => {
+              if (table.rows.length === 0) return;
+              
+              const updatedRows = table.rows.filter((_: any, idx: number) => idx !== rowIndex);
+              onTableEdit({ ...table, rows: updatedRows });
+            } : undefined}
           />
         );
       }
