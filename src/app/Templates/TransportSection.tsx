@@ -276,7 +276,7 @@ const TransportSection: React.FC<TransportSectionProps> = ({
                     {table.rows.map((row, rowIndex) => (
                       <React.Fragment key={rowIndex}>
                         <tr 
-                          className={`${rowIndex % 2 === 0 ? 'bg-[#E8E8E8]' : 'bg-white'} hover:bg-[#D8D8D8] transition-colors duration-200 border-b-2 border-white group`}
+                          className="bg-[#E8E8E8] hover:bg-[#D8D8D8] transition-colors duration-200 border-b-2 border-white group"
                         >
                           {editable && (
                             <td className="px-3 py-4 border-r-2 border-white/50">
