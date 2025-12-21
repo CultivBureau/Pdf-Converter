@@ -2013,6 +2013,52 @@ function CodePageContent() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            {/* Save Button - only show if authenticated */}
+            {isAuthenticated() && (
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className={`px-4 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm ${
+                  saveStatus === "success"
+                    ? "bg-green-500 text-white hover:bg-green-600"
+                    : saveStatus === "error"
+                    ? "bg-red-500 text-white hover:bg-red-600"
+                    : "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isSaving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Saving...</span>
+                  </>
+                ) : saveStatus === "success" ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Saved!</span>
+                  </>
+                ) : saveStatus === "error" ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>Failed</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    <span>Save</span>
+                  </>
+                )}
+              </button>
+            )}
+            
             {/* Menu Dropdown */}
             <div className="relative">
               <button
@@ -2102,21 +2148,7 @@ function CodePageContent() {
                       <span>Export JSON</span>
                     </button>
                     
-                    {/* Export PDF (Client-side) */}
-                    <button
-                      onClick={() => {
-                        handleExportPDF();
-                        setShowMenuDropdown(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"
-                    >
-                      <svg className="w-4 h-4 text-[#A4C639]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span>Export PDF (Client)</span>
-                    </button>
-                    
-                    {/* Export PDF with Playwright (Server-side - 100% accurate) */}
+                    {/* Export to PDF (Server-side - 100% accurate) */}
                     {isAuthenticated() && (
                       <button
                         onClick={() => {
@@ -2140,7 +2172,7 @@ function CodePageContent() {
                             <svg className="w-4 h-4 text-[#A4C639]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <span>Export PDF (Playwright)</span>
+                            <span>Export to PDF</span>
                             <span className="ml-auto text-xs text-green-600 font-semibold">100%</span>
                           </>
                         )}
@@ -2165,58 +2197,6 @@ function CodePageContent() {
                           <span className="ml-auto px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-semibold">
                             v{currentVersion}/{totalVersions}
                           </span>
-                        </button>
-                      </>
-                    )}
-                    
-                    {/* Save - only show if authenticated */}
-                    {isAuthenticated() && (
-                      <>
-                        <div className="border-t border-gray-200 my-1"></div>
-                        <button
-                          onClick={() => {
-                            handleSave();
-                            setShowMenuDropdown(false);
-                          }}
-                          disabled={isSaving}
-                          className={`w-full text-left px-4 py-2 text-sm flex items-center gap-3 transition-colors ${
-                            saveStatus === "success"
-                              ? "text-green-700 bg-green-50 hover:bg-green-100"
-                              : saveStatus === "error"
-                              ? "text-red-700 bg-red-50 hover:bg-red-100"
-                              : "text-purple-700 hover:bg-gray-100"
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {isSaving ? (
-                            <>
-                              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              <span>Saving...</span>
-                            </>
-                          ) : saveStatus === "success" ? (
-                            <>
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                              <span>Saved!</span>
-                            </>
-                          ) : saveStatus === "error" ? (
-                            <>
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                              <span>Failed</span>
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                              </svg>
-                              <span>Save</span>
-                            </>
-                          )}
                         </button>
                       </>
                     )}
