@@ -358,7 +358,9 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     const newContent = textBefore + replacementText + textAfter;
     
     // Update content - only plain text with bullet, no HTML
-    onContentChange(newContent);
+    if (onContentChange) {
+      onContentChange(newContent);
+    }
     
     // Clear selection
     window.getSelection()?.removeAllRanges();
@@ -500,6 +502,54 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     return /\*\*.*?\*\*/.test(text) || /__.*?__/.test(text);
   };
 
+  // Helper function to check if cursor is at the start of an element
+  const isCursorAtStart = (): boolean => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return false;
+    
+    const range = selection.getRangeAt(0);
+    // Check if cursor is at position 0 and selection is collapsed (no text selected)
+    return range.collapsed && range.startOffset === 0;
+  };
+
+  // Handle backspace at start of line to merge with previous line
+  const handleKeyDownForMerge = (
+    e: React.KeyboardEvent<HTMLElement>,
+    currentIndex: number,
+    items: string[],
+    isBulletList: boolean
+  ) => {
+    if (e.key === 'Backspace' && isCursorAtStart() && currentIndex > 0) {
+      e.preventDefault();
+      
+      // Get current item's text
+      const currentText = e.currentTarget.textContent || '';
+      const previousItem = items[currentIndex - 1];
+      
+      // Merge: previous item + current item (without bullet if it's a bullet list)
+      const mergedItems = [...items];
+      
+      if (isBulletList) {
+        // For bullet lists, merge the content
+        const prevContent = previousItem.replace(/^[\s]*[•\-\*]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+        const currContent = currentText.trim();
+        mergedItems[currentIndex - 1] = `• ${prevContent}${currContent}`;
+      } else {
+        // For regular paragraphs, just concatenate
+        mergedItems[currentIndex - 1] = previousItem + currentText;
+      }
+      
+      // Remove current item
+      mergedItems.splice(currentIndex, 1);
+      
+      // Update content
+      if (onContentChange) {
+        const newContent = mergedItems.join('\n');
+        onContentChange(newContent);
+      }
+    }
+  };
+
   // Format content with bullet points and line breaks - Enhanced for our JSON structure
   const renderContent = () => {
     if (typeof content === "string") {
@@ -596,14 +646,19 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                       contentEditable={editable}
                       suppressContentEditableWarning={true}
                       {...(shouldUseHTML ? { dangerouslySetInnerHTML: { __html: displayItem } } : { children: cleanItem })}
+                      onKeyDown={(e) => {
+                        if (editable) {
+                          handleKeyDownForMerge(e, index, items, true);
+                        }
+                      }}
                       onBlur={(e) => {
                         if (editable && onContentChange) {
                           // Get all list items and reconstruct content
                           const ul = e.currentTarget.parentElement;
                           if (ul) {
                             const items = Array.from(ul.children).map((li) => {
-                              const html = li.innerHTML;
-                              return `• ${html}`;
+                              const text = (li as HTMLElement).textContent || (li as HTMLElement).innerText || '';
+                              return `• ${text}`;
                             }).join('\n');
                             onContentChange(items);
                           }
@@ -638,6 +693,9 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                         const displayPText = pHasBoldMarkers ? convertBoldMarkersToHTML(pText) : pText;
                         const shouldUsePHTML = pHasHTML || pHasBoldMarkers;
                         
+                        // Get all lines for merge functionality
+                        const allLines = trimmed.split(/\n/).filter(p => p.trim());
+                        
                         return (
                           <p 
                             key={idx} 
@@ -646,9 +704,21 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                             contentEditable={editable}
                             suppressContentEditableWarning={true}
                             {...(shouldUsePHTML ? { dangerouslySetInnerHTML: { __html: displayPText } } : { children: pText })}
+                            onKeyDown={(e) => {
+                              if (editable) {
+                                handleKeyDownForMerge(e, idx, allLines, false);
+                              }
+                            }}
                             onBlur={(e) => {
                               if (editable && onContentChange) {
-                                onContentChange(e.currentTarget.innerHTML || '');
+                                // Reconstruct all paragraphs from the parent container
+                                const container = e.currentTarget.parentElement;
+                                if (container) {
+                                  const paragraphs = Array.from(container.children).map((p) => {
+                                    return (p as HTMLElement).textContent || (p as HTMLElement).innerText || '';
+                                  }).join('\n');
+                                  onContentChange(paragraphs);
+                                }
                               }
                             }}
                           />
@@ -672,11 +742,21 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                     contentEditable={editable}
                     suppressContentEditableWarning={true}
                     {...(shouldUseParagraphHTML ? { dangerouslySetInnerHTML: { __html: displayParagraph } } : { children: trimmed })}
+                    onKeyDown={(e) => {
+                      if (editable) {
+                        handleKeyDownForMerge(e, pIndex, paragraphs, false);
+                      }
+                    }}
                     onBlur={(e) => {
                       if (editable && onContentChange) {
-                        // Extract plain text content, preserving line breaks and bullets
-                        const textContent = e.currentTarget.textContent || e.currentTarget.innerText || '';
-                        onContentChange(textContent);
+                        // Reconstruct all paragraphs from the parent container
+                        const container = e.currentTarget.parentElement;
+                        if (container) {
+                          const allParagraphs = Array.from(container.children).map((p) => {
+                            return (p as HTMLElement).textContent || (p as HTMLElement).innerText || '';
+                          }).join('\n\n');
+                          onContentChange(allParagraphs);
+                        }
                       }
                     }}
                   />
