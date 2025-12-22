@@ -27,6 +27,19 @@ import { getDocument } from "@/app/services/HistoryApi";
 function HistoryPageContent() {
   const router = useRouter();
   const { user, isSuperAdmin, isCompanyAdmin } = useAuth();
+  
+  // Determine page title and description based on user role
+  const pageTitle = isSuperAdmin 
+    ? "All Documents" 
+    : isCompanyAdmin 
+    ? "Company Documents" 
+    : "My Documents";
+  
+  const pageDescription = isSuperAdmin
+    ? "View and manage all documents across all companies in the platform"
+    : isCompanyAdmin
+    ? "View and manage all documents created by users in your company"
+    : "Manage and organize all your converted documents";
   const {
     documents,
     isLoading,
@@ -235,9 +248,9 @@ function HistoryPageContent() {
             </div>
             <div>
               <h1 className="text-5xl font-black bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
-                Document History
+                {pageTitle}
               </h1>
-              <p className="text-slate-600 mt-2 text-lg font-medium">Manage and organize all your converted documents</p>
+              <p className="text-slate-600 mt-2 text-lg font-medium">{pageDescription}</p>
             </div>
           </div>
         </div>

@@ -161,7 +161,7 @@ function HomeContent() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        My Documents
+                        {isSuperAdmin ? "All Documents" : isCompanyAdmin ? "Company Documents" : "My Documents"}
                       </span>
                     </Link>
                     <button
@@ -291,10 +291,16 @@ function HomeContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900">My History</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {isSuperAdmin ? "All Documents" : isCompanyAdmin ? "Company Documents" : "My Documents"}
+                    </h2>
                   </div>
                   <p className="text-gray-600 mb-4 grow leading-relaxed">
-                    Access all your converted documents. View, edit, share, and manage your PDF history in one place.
+                    {isSuperAdmin 
+                      ? "View and manage all documents across all companies in the platform. Filter by company, search, and organize documents."
+                      : isCompanyAdmin
+                      ? "View and manage all documents created by users in your company. See who created each document."
+                      : "Access all your converted documents. View, edit, share, and manage your PDF history in one place."}
                   </p>
                   <div className="flex items-center text-purple-600 font-bold group-hover:gap-3 transition-all">
                     <span>View Documents</span>
