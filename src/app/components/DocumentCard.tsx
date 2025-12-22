@@ -15,6 +15,8 @@ interface DocumentCardProps {
     is_public?: boolean;
     current_version?: number;
     total_versions?: number;
+    creator_name?: string | null;
+    creator_email?: string | null;
     metadata?: {
       sectionsCount?: number;
       tablesCount?: number;
@@ -25,6 +27,7 @@ interface DocumentCardProps {
   onRename: (docId: string) => void;
   onDelete: (docId: string) => void;
   onViewVersions?: (docId: string) => void;
+  showCreator?: boolean; // Whether to show creator information
 }
 
 export default function DocumentCard({
@@ -33,6 +36,7 @@ export default function DocumentCard({
   onRename,
   onDelete,
   onViewVersions,
+  showCreator = false,
 }: DocumentCardProps) {
   const { favorites, toggleFavorite } = useHistory();
   const [showActions, setShowActions] = useState(false);
@@ -106,6 +110,22 @@ export default function DocumentCard({
       <p className="text-xs text-gray-500 mb-3 truncate" title={document.original_filename}>
         {document.original_filename}
       </p>
+
+      {/* Creator Info */}
+      {showCreator && document.creator_name && (
+        <div className="mb-3 pb-3 border-b border-gray-100">
+          <p className="text-xs text-gray-600 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="font-semibold text-gray-700">Created by:</span>
+            <span className="text-gray-600">{document.creator_name}</span>
+            {document.creator_email && (
+              <span className="text-gray-500">({document.creator_email})</span>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Metadata */}
       <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-4 pb-4 border-b border-gray-100">

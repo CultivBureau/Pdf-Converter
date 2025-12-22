@@ -81,6 +81,8 @@ export interface Document {
   current_version?: number;
   original_version_id?: string | null;
   total_versions?: number;
+  creator_name?: string | null;
+  creator_email?: string | null;
 }
 
 export interface DocumentListResponse {

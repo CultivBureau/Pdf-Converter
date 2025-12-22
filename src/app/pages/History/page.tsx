@@ -14,6 +14,7 @@ import {
 } from "@/app/services/HistoryApi";
 import { getAllCompanies, type Company } from "@/app/services/CompanyApi";
 import DocumentCard from "@/app/components/DocumentCard";
+import DocumentTableView from "@/app/components/DocumentTableView";
 import RenameModal from "@/app/components/RenameModal";
 import ShareModal from "@/app/components/ShareModal";
 import VersionHistoryModal from "@/app/components/VersionHistoryModal";
@@ -25,7 +26,7 @@ import { getDocument } from "@/app/services/HistoryApi";
 
 function HistoryPageContent() {
   const router = useRouter();
-  const { user, isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin, isCompanyAdmin } = useAuth();
   const {
     documents,
     isLoading,
@@ -41,7 +42,7 @@ function HistoryPageContent() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [localSearch, setLocalSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -326,6 +327,7 @@ function HistoryPageContent() {
                     ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md scale-105"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
+                title="Card View"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -337,19 +339,20 @@ function HistoryPageContent() {
                 </svg>
               </button>
               <button
-                onClick={() => setViewMode("list")}
+                onClick={() => setViewMode("table")}
                 className={`px-4 py-2.5 rounded-xl transition-all duration-300 font-semibold ${
-                  viewMode === "list"
+                  viewMode === "table"
                     ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md scale-105"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
+                title="Table View"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
+                    d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                   />
                 </svg>
               </button>
@@ -396,26 +399,34 @@ function HistoryPageContent() {
           </div>
         )}
 
-        {/* Documents Grid */}
+        {/* Documents View */}
         {filteredDocuments.length > 0 ? (
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                : "flex flex-col gap-4"
-            }
-          >
-            {filteredDocuments.map((doc) => (
-              <DocumentCard
-                key={doc.id}
-                document={doc}
-                onOpen={handleOpen}
-                onRename={handleRename}
-                onDelete={handleDelete}
-                onViewVersions={handleViewVersions}
-              />
-            ))}
-          </div>
+          viewMode === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredDocuments.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  document={doc}
+                  onOpen={handleOpen}
+                  onRename={handleRename}
+                  onDelete={handleDelete}
+                  onViewVersions={handleViewVersions}
+                  showCreator={isSuperAdmin || isCompanyAdmin}
+                />
+              ))}
+            </div>
+          ) : (
+            <DocumentTableView
+              documents={filteredDocuments}
+              onOpen={handleOpen}
+              onRename={handleRename}
+              onDelete={handleDelete}
+              onViewVersions={handleViewVersions}
+              showCreator={isSuperAdmin || isCompanyAdmin}
+              showCompany={isSuperAdmin}
+              companies={companies}
+            />
+          )
         ) : (
           /* Empty State */
           <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-200">
