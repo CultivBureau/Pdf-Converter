@@ -41,9 +41,9 @@ export default function RegisterPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
             <Image
-              src="/logoHappylife.jpg"
-              alt="HappyLife Travel & Tourism"
-              width={150}
+         src="/logo.png"
+              alt="Buearau logo"
+              width={140}
               height={50}
               className="object-contain"
               priority

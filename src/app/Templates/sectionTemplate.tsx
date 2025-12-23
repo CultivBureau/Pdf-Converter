@@ -369,87 +369,41 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     setSelectionRange(null);
   };
 
-  // Handle bold text formatting - Simple string-based approach
+  // Handle bold text formatting
   const handleBoldText = () => {
-    if (!selectedText || typeof content !== 'string') {
-      setShowSplitButton(false);
+    if (!selectedText) {
+      return;
+    }
+    
+    if (typeof content !== 'string') {
       return;
     }
     
     const trimmedText = selectedText.trim();
+    
     if (trimmedText.length === 0) {
       setShowSplitButton(false);
       return;
     }
     
-    // Simple approach: find the selected text and toggle bold
-    const boldVersion = `**${trimmedText}**`;
-    let newContent: string;
+    // Check if text is already bold (wrapped in **)
+    const isBold = trimmedText.startsWith('**') && trimmedText.endsWith('**');
     
-    // Check if already bold (exact match with markers)
-    if (content.includes(boldVersion)) {
-      // Remove bold - replace **text** with text
-      newContent = content.replace(boldVersion, trimmedText);
+    let replacementText: string;
+    let searchText: string;
+    
+    if (isBold) {
+      // Remove bold markers
+      replacementText = trimmedText.slice(2, -2);
+      searchText = trimmedText;
     } else {
-      // Need to find the text and add bold markers
-      // First, remove any existing ** markers to get clean content for searching
-      const cleanContent = content.replace(/\*\*/g, '');
-      
-      if (!cleanContent.includes(trimmedText)) {
-        // Text not found
-        console.warn('Selected text not found in content:', trimmedText);
-        setShowSplitButton(false);
-        return;
-      }
-      
-      // Find position in clean content
-      const posInClean = cleanContent.indexOf(trimmedText);
-      
-      // Map position back to original content (accounting for ** markers)
-      let originalPos = 0;
-      let cleanPos = 0;
-      
-      for (let i = 0; i < content.length && cleanPos < posInClean; i++) {
-        if (content.substring(i, i + 2) === '**') {
-          i++; // Skip the second *
-          continue;
-        }
-        originalPos = i + 1;
-        cleanPos++;
-      }
-      
-      // Find the actual start in original content
-      let actualStart = 0;
-      let charCount = 0;
-      for (let i = 0; i < content.length; i++) {
-        if (content.substring(i, i + 2) === '**') {
-          i++; // Skip **
-          continue;
-        }
-        if (charCount === posInClean) {
-          actualStart = i;
-          break;
-        }
-        charCount++;
-      }
-      
-      // Find the actual end
-      let actualEnd = actualStart;
-      let textCharCount = 0;
-      for (let i = actualStart; i < content.length && textCharCount < trimmedText.length; i++) {
-        if (content.substring(i, i + 2) === '**') {
-          i++; // Skip **
-          continue;
-        }
-        actualEnd = i + 1;
-        textCharCount++;
-      }
-      
-      // Insert bold markers
-      newContent = content.substring(0, actualStart) + '**' + 
-                   content.substring(actualStart, actualEnd) + '**' + 
-                   content.substring(actualEnd);
+      // Add bold markers using markdown-style ** **
+      replacementText = `**${trimmedText}**`;
+      searchText = trimmedText;
     }
+    
+    // Simple string replacement in the content
+    const newContent = content.replace(searchText, replacementText);
     
     // Update content
     if (onContentChange) {
@@ -461,97 +415,43 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     setShowSplitButton(false);
     setSelectedText("");
     setSelectionRange(null);
-  };
-  
-  // Helper function to rebuild content with bold markers at specified ranges (kept for compatibility)
-  const rebuildContentWithBold = (
-    cleanContent: string, 
-    boldRanges: Array<{start: number, end: number}>
-  ): string => {
-    if (boldRanges.length === 0) return cleanContent;
-    
-    // Sort ranges by start position (descending) to insert from end to start
-    const sortedRanges = [...boldRanges].sort((a, b) => b.start - a.start);
-    
-    let result = cleanContent;
-    for (const range of sortedRanges) {
-      const before = result.slice(0, range.start);
-      const boldText = result.slice(range.start, range.end);
-      const after = result.slice(range.end);
-      result = before + '**' + boldText + '**' + after;
-    }
-    
-    return result;
   };
 
-  // Handle underline text formatting - Simple string-based approach
+  // Handle underline text formatting
   const handleUnderlineText = () => {
-    if (!selectedText || typeof content !== 'string') {
-      setShowSplitButton(false);
+    if (!selectedText) {
+      return;
+    }
+    
+    if (typeof content !== 'string') {
       return;
     }
     
     const trimmedText = selectedText.trim();
+    
     if (trimmedText.length === 0) {
       setShowSplitButton(false);
       return;
     }
     
-    // Simple approach: find the selected text and toggle underline
-    const underlineVersion = `__${trimmedText}__`;
-    let newContent: string;
+    // Check if text is already underlined (wrapped in __)
+    const isUnderlined = trimmedText.startsWith('__') && trimmedText.endsWith('__');
     
-    // Check if already underlined (exact match with markers)
-    if (content.includes(underlineVersion)) {
-      // Remove underline - replace __text__ with text
-      newContent = content.replace(underlineVersion, trimmedText);
+    let replacementText: string;
+    let searchText: string;
+    
+    if (isUnderlined) {
+      // Remove underline markers
+      replacementText = trimmedText.slice(2, -2);
+      searchText = trimmedText;
     } else {
-      // Need to find the text and add underline markers
-      // First, remove any existing __ markers to get clean content for searching
-      const cleanContent = content.replace(/__/g, '');
-      
-      if (!cleanContent.includes(trimmedText)) {
-        // Text not found
-        console.warn('Selected text not found in content:', trimmedText);
-        setShowSplitButton(false);
-        return;
-      }
-      
-      // Find position in clean content
-      const posInClean = cleanContent.indexOf(trimmedText);
-      
-      // Find the actual start in original content (skip __ markers)
-      let actualStart = 0;
-      let charCount = 0;
-      for (let i = 0; i < content.length; i++) {
-        if (content.substring(i, i + 2) === '__') {
-          i++; // Skip __
-          continue;
-        }
-        if (charCount === posInClean) {
-          actualStart = i;
-          break;
-        }
-        charCount++;
-      }
-      
-      // Find the actual end
-      let actualEnd = actualStart;
-      let textCharCount = 0;
-      for (let i = actualStart; i < content.length && textCharCount < trimmedText.length; i++) {
-        if (content.substring(i, i + 2) === '__') {
-          i++; // Skip __
-          continue;
-        }
-        actualEnd = i + 1;
-        textCharCount++;
-      }
-      
-      // Insert underline markers
-      newContent = content.substring(0, actualStart) + '__' + 
-                   content.substring(actualStart, actualEnd) + '__' + 
-                   content.substring(actualEnd);
+      // Add underline markers using __ __
+      replacementText = `__${trimmedText}__`;
+      searchText = trimmedText;
     }
+    
+    // Simple string replacement in the content
+    const newContent = content.replace(searchText, replacementText);
     
     // Update content
     if (onContentChange) {
@@ -563,26 +463,6 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     setShowSplitButton(false);
     setSelectedText("");
     setSelectionRange(null);
-  };
-  
-  // Helper function to rebuild content with underline markers (kept for compatibility)
-  const rebuildContentWithUnderline = (
-    cleanContent: string, 
-    underlineRanges: Array<{start: number, end: number}>
-  ): string => {
-    if (underlineRanges.length === 0) return cleanContent;
-    
-    const sortedRanges = [...underlineRanges].sort((a, b) => b.start - a.start);
-    
-    let result = cleanContent;
-    for (const range of sortedRanges) {
-      const before = result.slice(0, range.start);
-      const underlineText = result.slice(range.start, range.end);
-      const after = result.slice(range.end);
-      result = before + '__' + underlineText + '__' + after;
-    }
-    
-    return result;
   };
 
   // Build underline classes
@@ -609,46 +489,17 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     return tempDiv.textContent || tempDiv.innerText || '';
   };
   
-  // Helper function to convert HTML back to markdown markers for JSON storage
-  const convertHTMLToMarkdown = (html: string): string => {
-    let result = html;
-    
-    // Convert <strong> and <b> tags back to **
-    result = result.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-    result = result.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
-    
-    // Convert <u> tags back to __
-    result = result.replace(/<u[^>]*>(.*?)<\/u>/gi, '__$1__');
-    
-    // Remove any other HTML tags but keep content
-    result = result.replace(/<[^>]+>/g, '');
-    
-    // Decode HTML entities
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = result;
-    result = tempDiv.textContent || tempDiv.innerText || result;
-    
-    return result;
-  };
-  
   // Helper function to convert markdown-style bold (**text**) and underline (__text__) to HTML
   const convertBoldMarkersToHTML = (text: string): string => {
-    // Replace **text** with <strong> tags (non-greedy match)
-    // Use a more robust regex that handles multiple occurrences correctly
-    let result = text;
-    
-    // Handle bold markers: **text**
-    result = result.replace(/\*\*([^*]+)\*\*/g, '<strong style="font-weight: 700">$1</strong>');
-    
-    // Handle underline markers: __text__
-    result = result.replace(/__([^_]+)__/g, '<u style="text-decoration: underline">$1</u>');
-    
+    // Replace **text** with <strong> tags and __text__ with <u> tags
+    let result = text.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 900">$1</strong>');
+    result = result.replace(/__(.*?)__/g, '<u style="text-decoration: underline">$1</u>');
     return result;
   };
   
   // Helper function to check if text contains bold or underline markers
   const hasBoldMarkers = (text: string): boolean => {
-    return /\*\*[^*]+\*\*/.test(text) || /__[^_]+__/.test(text);
+    return /\*\*.*?\*\*/.test(text) || /__.*?__/.test(text);
   };
 
   // Helper function to check if cursor is at the start of an element
@@ -802,14 +653,12 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                       }}
                       onBlur={(e) => {
                         if (editable && onContentChange) {
-                          // Get all list items and reconstruct content with markdown formatting preserved
+                          // Get all list items and reconstruct content
                           const ul = e.currentTarget.parentElement;
                           if (ul) {
                             const items = Array.from(ul.children).map((li) => {
-                              // Convert HTML back to markdown for storage
-                              const htmlContent = (li as HTMLElement).innerHTML || '';
-                              const markdownText = convertHTMLToMarkdown(htmlContent);
-                              return `• ${markdownText}`;
+                              const text = (li as HTMLElement).textContent || (li as HTMLElement).innerText || '';
+                              return `• ${text}`;
                             }).join('\n');
                             onContentChange(items);
                           }
@@ -862,12 +711,11 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                             }}
                             onBlur={(e) => {
                               if (editable && onContentChange) {
-                                // Reconstruct all paragraphs with markdown formatting preserved
+                                // Reconstruct all paragraphs from the parent container
                                 const container = e.currentTarget.parentElement;
                                 if (container) {
                                   const paragraphs = Array.from(container.children).map((p) => {
-                                    const htmlContent = (p as HTMLElement).innerHTML || '';
-                                    return convertHTMLToMarkdown(htmlContent);
+                                    return (p as HTMLElement).textContent || (p as HTMLElement).innerText || '';
                                   }).join('\n');
                                   onContentChange(paragraphs);
                                 }
@@ -901,12 +749,11 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                     }}
                     onBlur={(e) => {
                       if (editable && onContentChange) {
-                        // Reconstruct all paragraphs with markdown formatting preserved
+                        // Reconstruct all paragraphs from the parent container
                         const container = e.currentTarget.parentElement;
                         if (container) {
                           const allParagraphs = Array.from(container.children).map((p) => {
-                            const htmlContent = (p as HTMLElement).innerHTML || '';
-                            return convertHTMLToMarkdown(htmlContent);
+                            return (p as HTMLElement).textContent || (p as HTMLElement).innerText || '';
                           }).join('\n\n');
                           onContentChange(allParagraphs);
                         }
@@ -959,15 +806,10 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
           {...(shouldUseHTML ? { dangerouslySetInnerHTML: { __html: finalDisplayContent } } : { children: displayContent })}
           onBlur={(e) => {
             if (editable && onContentChange) {
-              // Convert HTML formatting back to markdown markers for JSON storage
-              const htmlContent = e.currentTarget.innerHTML || '';
-              const markdownContent = convertHTMLToMarkdown(htmlContent);
-              
-              // Only update if content actually changed (not just from bold/underline operations)
-              // The bold/underline handlers already update content directly
-              if (markdownContent !== content && !markdownContent.includes('<')) {
-                onContentChange(markdownContent);
-              }
+              // Extract plain text content, preserving line breaks and bullets
+              // This ensures JSON only contains plain text with bullets, not HTML
+              const textContent = e.currentTarget.textContent || e.currentTarget.innerText || '';
+              onContentChange(textContent);
             }
           }}
           onClick={(e) => {

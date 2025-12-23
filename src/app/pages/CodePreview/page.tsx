@@ -2022,10 +2022,10 @@ function CodePageContent() {
           {/* Logo and Title */}
           <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
             <Image
-              src="/logoHappylife.jpg"
-              alt="HappyLife Travel & Tourism"
+              src="/logo.png"
+              alt="Buearau logo"
               width={140}
-              height={47}
+              height={50}
               className="object-contain"
               priority
             />

@@ -204,10 +204,10 @@ function HistoryPageContent() {
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
               <Image
-                src="/logoHappylife.jpg"
-                alt="HappyLife Travel & Tourism"
-                width={160}
-                height={55}
+              src="/logo.png"
+              alt="Buearau logo"
+                width={140}
+                height={50}
                 className="object-contain"
                 priority
               />
@@ -215,7 +215,7 @@ function HistoryPageContent() {
             <div className="flex items-center gap-6">
               {user && (
                 <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl border border-slate-200">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-8 h-8 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-full flex items-center justify-center text-white font-bold text-sm">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm font-semibold text-slate-700">Welcome, {user.name}</span>
@@ -223,7 +223,7 @@ function HistoryPageContent() {
               )}
               <Link
                 href="/pages/PdfConverter"
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all duration-300 text-sm shadow-lg"
+                className="px-6 py-2.5 bg-gradient-to-br from-[#C4B454] to-[#B8A040] text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all duration-300 text-sm shadow-lg"
               >
                 <span className="flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,13 +241,13 @@ function HistoryPageContent() {
         {/* Page Title */}
         <div className="mb-10">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30">
+            <div className="w-16 h-16 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl flex items-center justify-center shadow-xl shadow-[#C4B454]/30">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <div>
-              <h1 className="text-5xl font-black bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
+              <h1 className="text-5xl font-black bg-gradient-to-r from-slate-900 via-[#B8A040] to-[#C4B454] bg-clip-text text-transparent">
                 {pageTitle}
               </h1>
               <p className="text-slate-600 mt-2 text-lg font-medium">{pageDescription}</p>
@@ -259,17 +259,17 @@ function HistoryPageContent() {
         <div className="mb-8 flex flex-col lg:flex-row gap-5">
           {/* Search */}
           <div className="relative flex-1">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-2xl blur-xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/10 rounded-2xl blur-xl"></div>
             <div className="relative">
               <input
                 type="text"
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
                 placeholder="Search by title, date, or content..."
-                className="w-full pl-14 pr-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 text-slate-700 placeholder-slate-400 font-medium shadow-lg hover:shadow-xl"
+                className="w-full pl-14 pr-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-[#C4B454]/20 focus:border-[#C4B454] transition-all duration-300 text-slate-700 placeholder-slate-400 font-medium shadow-lg hover:shadow-xl"
               />
               <div className="absolute left-5 top-1/2 transform -translate-y-1/2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -281,12 +281,12 @@ function HistoryPageContent() {
           {/* Company Filter (Super Admin Only) */}
           {isSuperAdmin && (
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl blur-xl"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/10 rounded-2xl blur-xl"></div>
               <div className="relative">
                 <select
                   value={companyFilter || ""}
                   onChange={(e) => setCompanyFilter(e.target.value || null)}
-                  className="w-full pl-14 pr-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-300 text-slate-700 font-medium shadow-lg hover:shadow-xl appearance-none cursor-pointer"
+                  className="w-full pl-14 pr-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-[#C4B454]/20 focus:border-[#C4B454] transition-all duration-300 text-slate-700 font-medium shadow-lg hover:shadow-xl appearance-none cursor-pointer"
                 >
                   <option value="">All Companies</option>
                   {loadingCompanies ? (
@@ -300,7 +300,7 @@ function HistoryPageContent() {
                   )}
                 </select>
                 <div className="absolute left-5 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
@@ -321,8 +321,8 @@ function HistoryPageContent() {
               onClick={() => setShowFilters(!showFilters)}
               className={`px-6 py-4 rounded-2xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl ${
                 showFilters
-                  ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white scale-105"
-                  : "bg-white text-slate-700 border-2 border-slate-200 hover:border-blue-500"
+                  ? "bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white scale-105"
+                  : "bg-white text-slate-700 border-2 border-slate-200 hover:border-[#C4B454]"
               }`}
             >
               <span className="flex items-center gap-3">
@@ -337,7 +337,7 @@ function HistoryPageContent() {
                 onClick={() => setViewMode("grid")}
                 className={`px-4 py-2.5 rounded-xl transition-all duration-300 font-semibold ${
                   viewMode === "grid"
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md scale-105"
+                    ? "bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white shadow-md scale-105"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
                 title="Card View"
@@ -355,7 +355,7 @@ function HistoryPageContent() {
                 onClick={() => setViewMode("table")}
                 className={`px-4 py-2.5 rounded-xl transition-all duration-300 font-semibold ${
                   viewMode === "table"
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md scale-105"
+                    ? "bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white shadow-md scale-105"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
                 title="Table View"
@@ -400,14 +400,14 @@ function HistoryPageContent() {
 
         {/* Documents Count */}
         {filteredDocuments.length > 0 && (
-          <div className="mb-6 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50 shadow-sm">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+          <div className="mb-6 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/5 rounded-2xl border border-[#C4B454]/30 shadow-sm">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <div className="text-sm font-semibold text-slate-700">
-              Showing <span className="text-lg font-black text-blue-600">{filteredDocuments.length}</span> of <span className="font-bold text-slate-900">{documents.length}</span> documents
+              Showing <span className="text-lg font-black text-[#B8A040]">{filteredDocuments.length}</span> of <span className="font-bold text-slate-900">{documents.length}</span> documents
             </div>
           </div>
         )}
@@ -467,7 +467,7 @@ function HistoryPageContent() {
             {!searchQuery && (
               <Link
                 href="/pages/PdfConverter"
-                className="inline-block px-6 py-3 bg-gradient-to-r from-[#A4C639] to-emerald-500 text-white rounded-xl font-bold hover:shadow-lg transition-all duration-200"
+                className="inline-block px-6 py-3 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-xl font-bold hover:shadow-lg transition-all duration-200"
               >
                 Upload PDF
               </Link>

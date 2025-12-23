@@ -238,10 +238,10 @@ function CompanySettingsContent() {
           <div className="flex items-center gap-4">
             <Link href="/">
               <Image
-                src="/logoHappylife.jpg"
-                alt="HappyLife Travel & Tourism"
-                width={180}
-                height={60}
+               src="/logo.png"
+              alt="Buearau logo"
+                width={140}
+                height={50}
                 className="object-contain cursor-pointer"
                 priority
               />
@@ -254,10 +254,10 @@ function CompanySettingsContent() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  <div className="w-8 h-8 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-full flex items-center justify-center text-white font-semibold">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm font-medium text-gray-700">{user.name}</span>
+                  <span className="text-sm font-medium text-black">{user.name}</span>
                   <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -285,10 +285,10 @@ function CompanySettingsContent() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold text-black mb-2">
             Company Settings
           </h1>
-          <p className="text-gray-600">Manage your company settings and view usage statistics</p>
+          <p className="text-gray-700 text-lg">Manage your company settings and view usage statistics</p>
         </div>
 
         {/* Messages */}
@@ -305,15 +305,15 @@ function CompanySettingsContent() {
 
         {isLoading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">Loading settings...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#C4B454]"></div>
+            <p className="mt-2 text-black font-medium">Loading settings...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Company Info */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200">
+              <h2 className="text-2xl font-bold text-black mb-6 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
@@ -323,7 +323,7 @@ function CompanySettingsContent() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-black mb-2">
                     Company Name
                   </label>
                   {editingName ? (
@@ -332,12 +332,12 @@ function CompanySettingsContent() {
                         type="text"
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
-                        className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500"
+                        className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-[#C4B454]/20 focus:border-[#C4B454] text-black font-medium"
                       />
                       <button
                         onClick={handleUpdateName}
                         disabled={isUpdating}
-                        className="px-4 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50"
+                        className="px-4 py-3 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-50"
                       >
                         {isUpdating ? "Saving..." : "Save"}
                       </button>
@@ -346,17 +346,17 @@ function CompanySettingsContent() {
                           setEditingName(false);
                           setFormName(settings?.name || "");
                         }}
-                        className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200"
+                        className="px-4 py-3 bg-gray-100 text-black rounded-xl font-semibold hover:bg-gray-200"
                       >
                         Cancel
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                      <span className="text-lg font-semibold text-gray-900">{settings?.name}</span>
+                      <span className="text-lg font-semibold text-black">{settings?.name}</span>
                       <button
                         onClick={() => setEditingName(true)}
-                        className="px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-medium"
+                        className="px-3 py-2 text-sm bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium"
                       >
                         Edit
                       </button>
@@ -365,7 +365,7 @@ function CompanySettingsContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-black mb-2">
                     Status
                   </label>
                   <div className="p-4 bg-gray-50 rounded-xl">
@@ -384,19 +384,19 @@ function CompanySettingsContent() {
 
               {/* Branding Images Section */}
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Branding Images</h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <h3 className="text-lg font-bold text-black mb-4">Branding Images</h3>
+                <p className="text-sm text-black mb-4">
                   Upload header and footer images that will appear on all PDF documents generated for your company.
                 </p>
 
                 {/* Header Image */}
                 <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-black mb-2">
                     Header Image
                   </label>
-                  <div className="mb-2 p-1.5 bg-blue-50 border border-blue-200 rounded text-xs max-h-16 overflow-y-auto">
-                    <p className="text-blue-900 font-semibold text-xs leading-tight mb-0.5">📏 Recommended Size:</p>
-                    <p className="text-blue-700 text-xs leading-tight">1200×200px or similar wide format (16:3 ratio) for best results</p>
+                  <div className="mb-2 p-1.5 bg-[#C4B454]/10 border border-[#C4B454]/30 rounded text-xs max-h-16 overflow-y-auto">
+                    <p className="text-black font-semibold text-xs leading-tight mb-0.5">📏 Recommended Size:</p>
+                    <p className="text-black text-xs leading-tight">1200×200px or similar wide format (16:3 ratio) for best results</p>
                   </div>
                   {settings?.header_image ? (
                     <div className="space-y-2">
@@ -410,7 +410,7 @@ function CompanySettingsContent() {
                         }}
                       />
                       <div className="flex gap-2">
-                        <label className="flex-1 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-medium text-center cursor-pointer">
+                        <label className="flex-1 px-3 py-2 text-sm bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium text-center cursor-pointer">
                           Change
                           <input
                             type="file"
@@ -431,7 +431,7 @@ function CompanySettingsContent() {
                         <button
                           onClick={handleUploadHeaderImage}
                           disabled={isUploadingImages}
-                          className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
+                          className="w-full px-4 py-2 text-sm bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-lg hover:shadow-lg font-medium disabled:opacity-50"
                         >
                           {isUploadingImages ? "Uploading..." : "Upload New Header Image"}
                         </button>
@@ -439,8 +439,8 @@ function CompanySettingsContent() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <label className="block w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-500 transition-colors text-center">
-                        <span className="text-sm text-gray-600">Click to upload header image</span>
+                      <label className="block w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#C4B454] transition-colors text-center">
+                        <span className="text-sm text-black">Click to upload header image</span>
                         <input
                           type="file"
                           accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
@@ -452,24 +452,24 @@ function CompanySettingsContent() {
                         <button
                           onClick={handleUploadHeaderImage}
                           disabled={isUploadingImages}
-                          className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
+                          className="w-full px-4 py-2 text-sm bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-lg hover:shadow-lg font-medium disabled:opacity-50"
                         >
                           {isUploadingImages ? "Uploading..." : "Upload Header Image"}
                         </button>
                       )}
                     </div>
                   )}
-                  <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF, or WEBP (Max 5MB)</p>
+                  <p className="text-xs text-black mt-1">JPG, PNG, GIF, or WEBP (Max 5MB)</p>
                 </div>
 
                 {/* Footer Image */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-black mb-2">
                     Footer Image
                   </label>
-                  <div className="mb-2 p-1.5 bg-blue-50 border border-blue-200 rounded text-xs max-h-16 overflow-y-auto">
-                    <p className="text-blue-900 font-semibold text-xs leading-tight mb-0.5">📏 Recommended Size:</p>
-                    <p className="text-blue-700 text-xs leading-tight">1200×100px or similar wide format (12:1 ratio) for best results</p>
+                  <div className="mb-2 p-1.5 bg-[#C4B454]/10 border border-[#C4B454]/30 rounded text-xs max-h-16 overflow-y-auto">
+                    <p className="text-black font-semibold text-xs leading-tight mb-0.5">📏 Recommended Size:</p>
+                    <p className="text-black text-xs leading-tight">1200×100px or similar wide format (12:1 ratio) for best results</p>
                   </div>
                   {settings?.footer_image ? (
                     <div className="space-y-2">
@@ -483,7 +483,7 @@ function CompanySettingsContent() {
                         }}
                       />
                       <div className="flex gap-2">
-                        <label className="flex-1 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-medium text-center cursor-pointer">
+                        <label className="flex-1 px-3 py-2 text-sm bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium text-center cursor-pointer">
                           Change
                           <input
                             type="file"
@@ -504,7 +504,7 @@ function CompanySettingsContent() {
                         <button
                           onClick={handleUploadFooterImage}
                           disabled={isUploadingImages}
-                          className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
+                          className="w-full px-4 py-2 text-sm bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-lg hover:shadow-lg font-medium disabled:opacity-50"
                         >
                           {isUploadingImages ? "Uploading..." : "Upload New Footer Image"}
                         </button>
@@ -512,8 +512,8 @@ function CompanySettingsContent() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <label className="block w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-500 transition-colors text-center">
-                        <span className="text-sm text-gray-600">Click to upload footer image</span>
+                      <label className="block w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#C4B454] transition-colors text-center">
+                        <span className="text-sm text-black">Click to upload footer image</span>
                         <input
                           type="file"
                           accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
@@ -525,22 +525,22 @@ function CompanySettingsContent() {
                         <button
                           onClick={handleUploadFooterImage}
                           disabled={isUploadingImages}
-                          className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
+                          className="w-full px-4 py-2 text-sm bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-lg hover:shadow-lg font-medium disabled:opacity-50"
                         >
                           {isUploadingImages ? "Uploading..." : "Upload Footer Image"}
                         </button>
                       )}
                     </div>
                   )}
-                  <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF, or WEBP (Max 5MB)</p>
+                  <p className="text-xs text-black mt-1">JPG, PNG, GIF, or WEBP (Max 5MB)</p>
                 </div>
               </div>
             </div>
 
             {/* Plan Information */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <div className="bg-white rounded-2xl text-black shadow-lg p-6 border-2 border-gray-200">
+              <h2 className="text-2xl font-bold text-black mb-6 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
@@ -550,21 +550,21 @@ function CompanySettingsContent() {
 
               {plan?.plan ? (
                 <div className="space-y-4">
-                  <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                  <div className="p-4 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/10 rounded-xl border border-[#C4B454]/30">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-bold text-gray-900">{plan.plan.name}</h3>
+                      <h3 className="text-lg font-bold text-black">{plan.plan.name}</h3>
                       {plan.plan.is_trial && (
                         <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">
                           Trial
                         </span>
                       )}
                     </div>
-                    <p className="text-2xl font-bold text-indigo-600 mb-4">
-                      ${plan.plan.price_monthly.toFixed(2)}<span className="text-sm text-gray-500">/month</span>
+                    <p className="text-2xl font-bold text-[#C4B454] mb-4">
+                      ${plan.plan.price_monthly.toFixed(2)}<span className="text-sm text-black">/month</span>
                     </p>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <span className="text-gray-600">Uploads:</span>
+                        <span className="text-black">Uploads:</span>
                         <span className="font-semibold ml-2">
                           {plan.plan.limits.uploads_per_month === 0
                             ? "Unlimited"
@@ -572,11 +572,11 @@ function CompanySettingsContent() {
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Users:</span>
-                        <span className="font-semibold ml-2">{plan.plan.limits.users_limit}</span>
+                        <span className="text-black">Users:</span>
+                        <span className="font-bold ml-2 text-black">{plan.plan.limits.users_limit}</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Pages:</span>
+                        <span className="text-black">Pages:</span>
                         <span className="font-semibold ml-2">
                           {plan.plan.limits.pages_per_month === 0
                             ? "Unlimited"
@@ -584,7 +584,7 @@ function CompanySettingsContent() {
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Exports:</span>
+                        <span className="text-black">Exports:</span>
                         <span className="font-semibold ml-2">
                           {plan.plan.limits.pdf_exports === 0
                             ? "Unlimited"
@@ -594,12 +594,12 @@ function CompanySettingsContent() {
                     </div>
                   </div>
                   {plan.plan_started_at && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-black">
                       Started: {format(new Date(plan.plan_started_at), "MMM d, yyyy")}
                     </div>
                   )}
                   {plan.plan_expires_at && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-black">
                       Expires: {format(new Date(plan.plan_expires_at), "MMM d, yyyy")}
                     </div>
                   )}
@@ -612,10 +612,10 @@ function CompanySettingsContent() {
             </div>
 
             {/* Usage Statistics */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 lg:col-span-2">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 lg:col-span-2">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <h2 className="text-2xl font-bold text-black flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
@@ -626,7 +626,7 @@ function CompanySettingsContent() {
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                    className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C4B454]/20 focus:border-[#C4B454] text-black font-medium"
                   >
                     {months.map((month, index) => (
                       <option key={index} value={index + 1}>
@@ -637,7 +637,7 @@ function CompanySettingsContent() {
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C4B454]/20 focus:border-[#C4B454] text-black font-medium"
                   >
                     {years.map((year) => (
                       <option key={year} value={year}>
@@ -650,32 +650,32 @@ function CompanySettingsContent() {
 
               {usage && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                    <p className="text-sm text-gray-600 mb-1">Total Uploads</p>
-                    <p className="text-2xl font-bold text-blue-600">{usage.total_uploads}</p>
+                  <div className="p-4 bg-[#C4B454]/10 rounded-xl border border-[#C4B454]/30">
+                    <p className="text-sm text-black mb-1">Total Uploads</p>
+                    <p className="text-2xl font-bold text-[#C4B454]">{usage.total_uploads}</p>
                   </div>
-                  <div className="p-4 bg-green-50 rounded-xl border border-green-200">
-                    <p className="text-sm text-gray-600 mb-1">OCR Pages</p>
-                    <p className="text-2xl font-bold text-green-600">{usage.total_ocr_pages}</p>
+                  <div className="p-4 bg-[#B8A040]/10 rounded-xl border border-[#B8A040]/30">
+                    <p className="text-sm text-black mb-1">OCR Pages</p>
+                    <p className="text-2xl font-bold text-[#B8A040]">{usage.total_ocr_pages}</p>
                   </div>
-                  <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
-                    <p className="text-sm text-gray-600 mb-1">PDF Exports</p>
-                    <p className="text-2xl font-bold text-purple-600">{usage.total_pdf_exports}</p>
+                  <div className="p-4 bg-[#A69035]/10 rounded-xl border border-[#A69035]/30">
+                    <p className="text-sm text-black mb-1">PDF Exports</p>
+                    <p className="text-2xl font-bold text-[#A69035]">{usage.total_pdf_exports}</p>
                   </div>
                 </div>
               )}
 
               {usage && (
-                <div className="mt-4 text-xs text-gray-500">
+                <div className="mt-4 text-xs text-black">
                   Period: {format(new Date(usage.period_start), "MMM d")} - {format(new Date(usage.period_end), "MMM d, yyyy")}
                 </div>
               )}
             </div>
 
             {/* Company Users */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 lg:col-span-2">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 lg:col-span-2">
+              <h2 className="text-2xl font-bold text-black mb-6 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
@@ -692,19 +692,19 @@ function CompanySettingsContent() {
                   {companyUsers.map((companyUser) => (
                     <div
                       key={companyUser.id}
-                      className="p-4 bg-gray-50 rounded-xl border border-gray-200"
+                      className="p-4 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-[#C4B454]/40 transition-all"
                     >
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
+                        <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-full flex items-center justify-center text-white font-semibold">
                           {companyUser.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{companyUser.name}</p>
-                          <p className="text-xs text-gray-600">{companyUser.email}</p>
+                          <p className="font-bold text-black">{companyUser.name}</p>
+                          <p className="text-xs text-black">{companyUser.email}</p>
                         </div>
                       </div>
                       <div className="mt-2">
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
+                        <span className="text-xs px-2 py-1 bg-[#C4B454] text-white rounded-full font-bold">
                           {companyUser.role === "company_admin" ? "Company Admin" : companyUser.role === "user" ? "User" : companyUser.role}
                         </span>
                       </div>

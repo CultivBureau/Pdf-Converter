@@ -25,9 +25,35 @@ async function authRequest(path: string, init: RequestInit = {}) {
       headers,
     });
 
+    // Handle 204 No Content (empty response) - common for DELETE operations
+    if (response.status === 204) {
+      return;
+    }
+
     const contentType = response.headers.get("content-type");
     const isJson = contentType && contentType.includes("application/json");
-    const payload = isJson ? await response.json() : await response.text();
+    
+    let payload: any = null;
+    
+    try {
+      if (isJson) {
+        payload = await response.json();
+      } else {
+        const text = await response.text();
+        payload = text || null;
+      }
+    } catch (e) {
+      // If JSON parsing fails (empty body), handle gracefully
+      if (e instanceof SyntaxError || (e instanceof Error && e.message.includes("JSON"))) {
+        // For successful responses with empty body, return undefined
+        if (response.ok) {
+          return;
+        }
+        // For error responses, use status text
+        throw new Error(response.statusText || "Request failed");
+      }
+      throw e;
+    }
 
     if (!response.ok) {
       const errorMessage =

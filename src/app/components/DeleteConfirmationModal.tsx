@@ -8,6 +8,8 @@ interface DeleteConfirmationModalProps {
   onConfirm: () => void;
   title?: string;
   message?: string;
+  confirmButtonText?: string;
+  confirmButtonColor?: "red" | "orange" | "yellow";
 }
 
 export default function DeleteConfirmationModal({
@@ -16,6 +18,8 @@ export default function DeleteConfirmationModal({
   onConfirm,
   title = "Delete Confirmation",
   message = "Are you sure you want to delete this? This action cannot be undone.",
+  confirmButtonText = "Delete",
+  confirmButtonColor = "red",
 }: DeleteConfirmationModalProps) {
   if (!isOpen) return null;
 
@@ -69,9 +73,15 @@ export default function DeleteConfirmationModal({
               onConfirm();
               onClose();
             }}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+            className={`flex-1 px-4 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
+              confirmButtonColor === "red"
+                ? "bg-red-600 hover:bg-red-700"
+                : confirmButtonColor === "orange"
+                ? "bg-orange-600 hover:bg-orange-700"
+                : "bg-yellow-600 hover:bg-yellow-700"
+            }`}
           >
-            Delete
+            {confirmButtonText}
           </button>
         </div>
       </div>

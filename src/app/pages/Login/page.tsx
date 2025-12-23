@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { User, Mail, Lock, AlertCircle, Loader2, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,9 +50,9 @@ export default function LoginPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
             <Image
-              src="/logoHappylife.jpg"
-              alt="HappyLife Travel & Tourism"
-              width={150}
+             src="/logo.png"
+              alt="Buearau logo"
+              width={140}
               height={50}
               className="object-contain"
               priority
@@ -60,18 +61,16 @@ export default function LoginPage() {
         </div>
       </header>
 
-      <div className="flex items-center justify-center px-6 py-16">
+      <div className="flex items-center justify-center bg-white px-6 py-16">
         <div className="w-full max-w-md">
           {/* Login Card */}
           <div className="bg-white rounded-3xl shadow-2xl p-10 border border-gray-100 relative overflow-hidden">
             {/* Decorative gradient background */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#A4C639] via-blue-500 to-purple-500"></div>
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#C4B454] to-[#B8A040]"></div>
             
             <div className="text-center mb-8 mt-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#A4C639] to-[#8FB02E] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+              <div className="w-16 h-16 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Sparkles className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
                 Welcome Back
@@ -84,19 +83,7 @@ export default function LoginPage() {
             {error && (
               <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
                 <div className="flex items-start gap-3">
-                  <svg
-                    className="w-5 h-5 text-red-600 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                   <p className="text-sm text-red-700">{error}</p>
                 </div>
               </div>
@@ -108,9 +95,7 @@ export default function LoginPage() {
                   htmlFor="email"
                   className="block text-sm font-bold text-gray-800 mb-2 flex items-center gap-2"
                 >
-                  <svg className="w-4 h-4 text-[#A4C639]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                  </svg>
+                  <Mail className="w-4 h-4 text-[#B8A040]" />
                   Email Address
                 </label>
                 <input
@@ -119,7 +104,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-[#A4C639]/20 focus:border-[#A4C639] focus:bg-white transition-all duration-200 text-gray-900 placeholder:text-gray-400"
+                  className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-[#C4B454]/20 focus:border-[#B8A040] focus:bg-white transition-all duration-200 text-gray-900 placeholder:text-gray-400"
                   placeholder="you@example.com"
                 />
               </div>
@@ -129,9 +114,7 @@ export default function LoginPage() {
                   htmlFor="password"
                   className="block text-sm font-bold text-gray-800 mb-2 flex items-center gap-2"
                 >
-                  <svg className="w-4 h-4 text-[#A4C639]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
+                  <Lock className="w-4 h-4 text-[#B8A040]" />
                   Password
                 </label>
                 <input
@@ -140,7 +123,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-[#A4C639]/20 focus:border-[#A4C639] focus:bg-white transition-all duration-200 text-gray-900 placeholder:text-gray-400"
+                  className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-[#C4B454]/20 focus:border-[#B8A040] focus:bg-white transition-all duration-200 text-gray-900 placeholder:text-gray-400"
                   placeholder="••••••••"
                 />
               </div>
@@ -148,29 +131,11 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-[#A4C639] to-[#8FB02E] text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95"
+                className="w-full bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-2xl hover:from-[#B8A040] hover:to-[#A69035] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
+                    <Loader2 className="animate-spin h-5 w-5" />
                     Signing in...
                   </span>
                 ) : (
@@ -180,7 +145,7 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-8 text-center">
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100">
+              <div className="bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/5 rounded-xl p-4 border border-[#C4B454]/20">
                 <p className="text-sm text-gray-700 font-medium mb-1">
                   Need an account?
                 </p>
