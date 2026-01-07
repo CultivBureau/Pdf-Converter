@@ -74,19 +74,23 @@ export default function DocumentCard({
     setLinkCopied(false);
     
     try {
-      // Try to get existing public link first
+      // Generate or get public link
       let publicLink: string | null = null;
-      try {
-        const result = await getPublicLink(document.id);
-        publicLink = result.public_link;
-      } catch (err) {
-        // If no link exists, generate one
-      }
       
-      // Generate new link if it doesn't exist
-      if (!publicLink) {
+      // First, try to generate a new link (this will create or regenerate)
+      try {
         const result = await generatePublicLink(document.id);
         publicLink = result.public_link;
+      } catch (generateErr) {
+        console.error("Failed to generate public link:", generateErr);
+        // If generation fails, try to get existing link
+        try {
+          const result = await getPublicLink(document.id);
+          publicLink = result.public_link;
+        } catch (getErr) {
+          console.error("Failed to get public link:", getErr);
+          throw new Error("Unable to create or retrieve public link. Please try again.");
+        }
       }
       
       // Copy to clipboard
@@ -94,10 +98,13 @@ export default function DocumentCard({
         await navigator.clipboard.writeText(publicLink);
         setLinkCopied(true);
         setTimeout(() => setLinkCopied(false), 2000);
+      } else {
+        throw new Error("No public link available");
       }
     } catch (err) {
       console.error("Failed to copy link:", err);
-      alert("Failed to copy link. Please try again.");
+      const errorMessage = err instanceof Error ? err.message : "Failed to copy link. Please try again.";
+      alert(errorMessage);
     } finally {
       setIsCopyingLink(false);
     }
