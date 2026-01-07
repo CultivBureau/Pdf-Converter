@@ -136,7 +136,12 @@ export default function EditAirplaneSectionModal({
               </label>
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as "ar" | "en")}
+                onChange={(e) => {
+                  const newLang = e.target.value as "ar" | "en";
+                  setLanguage(newLang);
+                  // Auto-change direction based on language
+                  setDirection(newLang === 'ar' ? 'rtl' : 'ltr');
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
               >
                 <option value="ar">Arabic</option>

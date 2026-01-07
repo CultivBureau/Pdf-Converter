@@ -60,12 +60,13 @@ export async function getDocumentServer(
     "Content-Type": "application/json",
   };
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
   try {
-    const url = `${API_BASE_URL}/history/${docId}`;
+    // If token is provided, pass it as query parameter (for public token access)
+    // Otherwise, the backend will require authentication
+    const url = token 
+      ? `${API_BASE_URL}/history/${docId}?token=${encodeURIComponent(token)}`
+      : `${API_BASE_URL}/history/${docId}`;
+    
     const response = await fetch(url, {
       method: "GET",
       mode: "cors",

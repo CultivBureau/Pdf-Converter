@@ -15,6 +15,10 @@ import {
   uploadCompanyFooterImage,
   deleteCompanyHeaderImage,
   deleteCompanyFooterImage,
+  addAirlineCompany,
+  removeAirlineCompany,
+  addIncludesAllOption,
+  removeIncludesAllOption,
   type CompanySettings,
   type UsageSummary,
   type CompanyPlan,
@@ -57,6 +61,12 @@ function CompanySettingsContent() {
   // Usage filter
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Airline companies and includes all options state
+  const [newAirlineCompany, setNewAirlineCompany] = useState("");
+  const [newIncludesAllOption, setNewIncludesAllOption] = useState("");
+  const [isManagingAirlineCompanies, setIsManagingAirlineCompanies] = useState(false);
+  const [isManagingIncludesAll, setIsManagingIncludesAll] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -227,6 +237,74 @@ function CompanySettingsContent() {
       setError(message);
     } finally {
       setIsUploadingImages(false);
+    }
+  };
+
+  const handleAddAirlineCompany = async () => {
+    if (!newAirlineCompany.trim()) {
+      setError("Airline company name is required");
+      return;
+    }
+
+    setError("");
+    try {
+      const result = await addAirlineCompany(newAirlineCompany.trim());
+      setSettings({ ...settings!, airline_companies: result.airline_companies });
+      setNewAirlineCompany("");
+      setSuccess("Airline company added successfully");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to add airline company";
+      setError(message);
+    }
+  };
+
+  const handleRemoveAirlineCompany = async (index: number) => {
+    if (!confirm("Are you sure you want to remove this airline company?")) return;
+
+    setError("");
+    try {
+      const result = await removeAirlineCompany(index);
+      setSettings({ ...settings!, airline_companies: result.airline_companies });
+      setSuccess("Airline company removed successfully");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to remove airline company";
+      setError(message);
+    }
+  };
+
+  const handleAddIncludesAllOption = async () => {
+    if (!newIncludesAllOption.trim()) {
+      setError("Option text is required");
+      return;
+    }
+
+    setError("");
+    try {
+      const result = await addIncludesAllOption(newIncludesAllOption.trim());
+      setSettings({ ...settings!, includes_all_options: result.includes_all_options });
+      setNewIncludesAllOption("");
+      setSuccess("Includes all option added successfully");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to add includes all option";
+      setError(message);
+    }
+  };
+
+  const handleRemoveIncludesAllOption = async (index: number) => {
+    if (!confirm("Are you sure you want to remove this option?")) return;
+
+    setError("");
+    try {
+      const result = await removeIncludesAllOption(index);
+      setSettings({ ...settings!, includes_all_options: result.includes_all_options });
+      setSuccess("Includes all option removed successfully");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to remove includes all option";
+      setError(message);
     }
   };
 
@@ -534,6 +612,130 @@ function CompanySettingsContent() {
                   )}
                   <p className="text-xs text-black mt-1">JPG, PNG, GIF, or WEBP (Max 5MB)</p>
                 </div>
+              </div>
+
+              {/* Airline Companies Management */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-black">Airline Companies</h3>
+                  <button
+                    onClick={() => setIsManagingAirlineCompanies(!isManagingAirlineCompanies)}
+                    className="px-3 py-1.5 text-sm bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium"
+                  >
+                    {isManagingAirlineCompanies ? "Hide" : "Manage"}
+                  </button>
+                </div>
+                <p className="text-sm text-black mb-4">
+                  Manage airline companies that will appear in the dropdown when adding airplane sections.
+                </p>
+                {isManagingAirlineCompanies && (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newAirlineCompany}
+                        onChange={(e) => setNewAirlineCompany(e.target.value)}
+                        placeholder="Enter airline company name"
+                        className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C4B454]/20 focus:border-[#C4B454] text-black"
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            handleAddAirlineCompany();
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={handleAddAirlineCompany}
+                        className="px-4 py-2 bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {settings?.airline_companies && settings.airline_companies.length > 0 ? (
+                        settings.airline_companies.map((company, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          >
+                            <span className="text-black font-medium">{company}</span>
+                            <button
+                              onClick={() => handleRemoveAirlineCompany(index)}
+                              className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">No airline companies added yet</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Hotel Includes All Options Management */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-black">Hotel Includes All Options</h3>
+                  <button
+                    onClick={() => setIsManagingIncludesAll(!isManagingIncludesAll)}
+                    className="px-3 py-1.5 text-sm bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium"
+                  >
+                    {isManagingIncludesAll ? "Hide" : "Manage"}
+                  </button>
+                </div>
+                <p className="text-sm text-black mb-4">
+                  Manage options that will appear in the dropdown when adding hotel sections. "Includes All" is the default option.
+                </p>
+                {isManagingIncludesAll && (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newIncludesAllOption}
+                        onChange={(e) => setNewIncludesAllOption(e.target.value)}
+                        placeholder="Enter option text (e.g., Includes Breakfast)"
+                        className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C4B454]/20 focus:border-[#C4B454] text-black"
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            handleAddIncludesAllOption();
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={handleAddIncludesAllOption}
+                        className="px-4 py-2 bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {settings?.includes_all_options && settings.includes_all_options.length > 0 ? (
+                        settings.includes_all_options.map((option, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          >
+                            <span className="text-black font-medium">{option}</span>
+                            {index === 0 && option === "Includes All" ? (
+                              <span className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded">Default</span>
+                            ) : (
+                              <button
+                                onClick={() => handleRemoveIncludesAllOption(index)}
+                                className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">No options added yet</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

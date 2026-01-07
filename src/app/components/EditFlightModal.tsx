@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { FlightData } from './AddAirplaneModal';
+import { getCompanySettings } from "@/app/services/CompanySettingsApi";
 
 interface EditFlightModalProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export default function EditFlightModal({
   initialFlight,
 }: EditFlightModalProps) {
   const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [airlineCompany, setAirlineCompany] = useState("");
   const [fromAirport, setFromAirport] = useState("");
   const [toAirport, setToAirport] = useState("");
   const [adults, setAdults] = useState(1);
@@ -24,11 +27,30 @@ export default function EditFlightModal({
   const [infants, setInfants] = useState(0);
   const [luggage, setLuggage] = useState("20 كيلو");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [airlineCompanies, setAirlineCompanies] = useState<string[]>([]);
+
+  // Fetch airline companies from company settings
+  useEffect(() => {
+    const fetchAirlineCompanies = async () => {
+      try {
+        const settings = await getCompanySettings();
+        setAirlineCompanies(settings.airline_companies || []);
+      } catch (err) {
+        console.error("Failed to fetch airline companies:", err);
+        setAirlineCompanies([]);
+      }
+    };
+    if (isOpen) {
+      fetchAirlineCompanies();
+    }
+  }, [isOpen]);
 
   // Populate form when modal opens or initialFlight changes
   useEffect(() => {
     if (isOpen && initialFlight) {
       setDate(initialFlight.date);
+      setTime(initialFlight.time || "");
+      setAirlineCompany(initialFlight.airlineCompany || "");
       setFromAirport(initialFlight.fromAirport);
       setToAirport(initialFlight.toAirport);
       setAdults(initialFlight.travelers.adults);
@@ -68,6 +90,8 @@ export default function EditFlightModal({
 
     onSubmit({
       date,
+      time: time.trim() || undefined,
+      airlineCompany: airlineCompany.trim() || undefined,
       fromAirport: fromAirport.trim(),
       toAirport: toAirport.trim(),
       travelers: { adults, children, infants },
@@ -131,6 +155,43 @@ export default function EditFlightModal({
             />
             {errors.date && (
               <p className="text-red-500 text-xs mt-1">{errors.date}</p>
+            )}
+          </div>
+
+          {/* Time */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Time
+            </label>
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
+            />
+          </div>
+
+          {/* Airline Company */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Airline Company
+            </label>
+            <select
+              value={airlineCompany}
+              onChange={(e) => setAirlineCompany(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
+            >
+              <option value="">Select airline company</option>
+              {airlineCompanies.map((company, idx) => (
+                <option key={idx} value={company}>
+                  {company}
+                </option>
+              ))}
+            </select>
+            {airlineCompanies.length === 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                No airline companies available. Add them in Company Settings.
+              </p>
             )}
           </div>
 

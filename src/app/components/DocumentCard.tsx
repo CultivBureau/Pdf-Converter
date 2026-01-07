@@ -11,9 +11,12 @@ import {
   Database, 
   Edit2, 
   Trash2, 
-  History 
+  History,
+  Link as LinkIcon,
+  Check
 } from "lucide-react";
 import { useHistory } from "../contexts/HistoryContext";
+import { generatePublicLink, getPublicLink } from "../services/HistoryApi";
 
 interface DocumentCardProps {
   document: {
@@ -51,6 +54,8 @@ export default function DocumentCard({
 }: DocumentCardProps) {
   const { favorites, toggleFavorite } = useHistory();
   const [showActions, setShowActions] = useState(false);
+  const [isCopyingLink, setIsCopyingLink] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const isFavorite = favorites.has(document.id);
   const timeAgo = formatDistanceToNow(new Date(document.updated_at), {
     addSuffix: true,
@@ -61,6 +66,41 @@ export default function DocumentCard({
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleCopyLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsCopyingLink(true);
+    setLinkCopied(false);
+    
+    try {
+      // Try to get existing public link first
+      let publicLink: string | null = null;
+      try {
+        const result = await getPublicLink(document.id);
+        publicLink = result.public_link;
+      } catch (err) {
+        // If no link exists, generate one
+      }
+      
+      // Generate new link if it doesn't exist
+      if (!publicLink) {
+        const result = await generatePublicLink(document.id);
+        publicLink = result.public_link;
+      }
+      
+      // Copy to clipboard
+      if (publicLink) {
+        await navigator.clipboard.writeText(publicLink);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      }
+    } catch (err) {
+      console.error("Failed to copy link:", err);
+      alert("Failed to copy link. Please try again.");
+    } finally {
+      setIsCopyingLink(false);
+    }
   };
 
   return (
@@ -183,6 +223,22 @@ export default function DocumentCard({
             title={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <Heart className="w-4 h-4" fill={isFavorite ? "currentColor" : "none"} />
+          </button>
+          <button
+            onClick={handleCopyLink}
+            disabled={isCopyingLink}
+            className={`p-2.5 rounded-xl transition-colors ${
+              linkCopied
+                ? "bg-green-50 text-green-600"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+            title={linkCopied ? "Link copied!" : "Copy public link"}
+          >
+            {linkCopied ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <LinkIcon className="w-4 h-4" />
+            )}
           </button>
           <button
             onClick={() => onRename(document.id)}

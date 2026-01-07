@@ -58,6 +58,8 @@ export interface CompanySettings {
   is_active: boolean;
   plan_started_at: string | null;
   plan_expires_at: string | null;
+  airline_companies: string[];
+  includes_all_options: string[];
 }
 
 export interface UsageSummary {
@@ -248,6 +250,44 @@ export async function deleteCompanyHeaderImage(): Promise<CompanySettings & { me
  */
 export async function deleteCompanyFooterImage(): Promise<CompanySettings & { message?: string }> {
   return authRequest("/company/settings/branding/footer", {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Add airline company to company settings (Company Admin only)
+ */
+export async function addAirlineCompany(name: string): Promise<{ message: string; airline_companies: string[] }> {
+  return authRequest("/company/settings/airline-companies", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+/**
+ * Remove airline company from company settings by index (Company Admin only)
+ */
+export async function removeAirlineCompany(index: number): Promise<{ message: string; airline_companies: string[] }> {
+  return authRequest(`/company/settings/airline-companies/${index}`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Add includes all option to company settings (Company Admin only)
+ */
+export async function addIncludesAllOption(option: string): Promise<{ message: string; includes_all_options: string[] }> {
+  return authRequest("/company/settings/includes-all-options", {
+    method: "POST",
+    body: JSON.stringify({ option }),
+  });
+}
+
+/**
+ * Remove includes all option from company settings by index (Company Admin only)
+ */
+export async function removeIncludesAllOption(index: number): Promise<{ message: string; includes_all_options: string[] }> {
+  return authRequest(`/company/settings/includes-all-options/${index}`, {
     method: "DELETE",
   });
 }

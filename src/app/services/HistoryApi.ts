@@ -361,3 +361,25 @@ export async function resetToOriginal(
   });
 }
 
+/**
+ * Generate or regenerate a public link for a document
+ */
+export async function generatePublicLink(
+  docId: string
+): Promise<{ message: string; public_token: string; public_link: string }> {
+  return historyRequest(`/history/${docId}/public-link`, {
+    method: "POST",
+  });
+}
+
+/**
+ * Get the current public link for a document
+ */
+export async function getPublicLink(
+  docId: string
+): Promise<{ message: string; public_token: string | null; public_link: string | null }> {
+  return historyRequest(`/history/${docId}/public-link`, {
+    method: "GET",
+  });
+}
+

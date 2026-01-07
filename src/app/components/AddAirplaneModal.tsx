@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { getCompanySettings } from "@/app/services/CompanySettingsApi";
 
 export interface FlightData {
   date: string;
+  time?: string;
+  airlineCompany?: string;
   fromAirport: string;
   toAirport: string;
   travelers: {
@@ -39,9 +42,12 @@ export default function AddAirplaneModal({
   const [showNotice, setShowNotice] = useState(true);
   const [direction, setDirection] = useState<"rtl" | "ltr">("rtl");
   const [language, setLanguage] = useState<"ar" | "en">("ar");
+  const [airlineCompanies, setAirlineCompanies] = useState<string[]>([]);
   const [flights, setFlights] = useState<FlightData[]>([
     {
       date: new Date().toISOString().split('T')[0],
+      time: "",
+      airlineCompany: "",
       fromAirport: "",
       toAirport: "",
       travelers: { adults: 1, children: 0, infants: 0 },
@@ -49,6 +55,22 @@ export default function AddAirplaneModal({
     }
   ]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Fetch airline companies from company settings
+  useEffect(() => {
+    const fetchAirlineCompanies = async () => {
+      try {
+        const settings = await getCompanySettings();
+        setAirlineCompanies(settings.airline_companies || []);
+      } catch (err) {
+        console.error("Failed to fetch airline companies:", err);
+        setAirlineCompanies([]);
+      }
+    };
+    if (isOpen) {
+      fetchAirlineCompanies();
+    }
+  }, [isOpen]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -62,6 +84,8 @@ export default function AddAirplaneModal({
       setFlights([
         {
           date: new Date().toISOString().split('T')[0],
+          time: "",
+          airlineCompany: "",
           fromAirport: "",
           toAirport: "",
           travelers: { adults: 1, children: 0, infants: 0 },
@@ -123,6 +147,8 @@ export default function AddAirplaneModal({
       ...flights,
       {
         date: new Date().toISOString().split('T')[0],
+        time: "",
+        airlineCompany: "",
         fromAirport: "",
         toAirport: "",
         travelers: { adults: 1, children: 0, infants: 0 },
@@ -226,7 +252,12 @@ export default function AddAirplaneModal({
               </label>
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as "ar" | "en")}
+                onChange={(e) => {
+                  const newLang = e.target.value as "ar" | "en";
+                  setLanguage(newLang);
+                  // Auto-change direction based on language
+                  setDirection(newLang === 'ar' ? 'rtl' : 'ltr');
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
               >
                 <option value="ar">Arabic</option>
@@ -328,16 +359,51 @@ export default function AddAirplaneModal({
                     
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Luggage
+                        Time
                       </label>
                       <input
-                        type="text"
-                        value={flight.luggage}
-                        onChange={(e) => updateFlight(index, 'luggage', e.target.value)}
+                        type="time"
+                        value={flight.time || ""}
+                        onChange={(e) => updateFlight(index, 'time', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
-                        placeholder="20 كيلو"
                       />
                     </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Airline Company
+                    </label>
+                    <select
+                      value={flight.airlineCompany || ""}
+                      onChange={(e) => updateFlight(index, 'airlineCompany', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
+                    >
+                      <option value="">Select airline company</option>
+                      {airlineCompanies.map((company, idx) => (
+                        <option key={idx} value={company}>
+                          {company}
+                        </option>
+                      ))}
+                    </select>
+                    {airlineCompanies.length === 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        No airline companies available. Add them in Company Settings.
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Luggage
+                    </label>
+                    <input
+                      type="text"
+                      value={flight.luggage}
+                      onChange={(e) => updateFlight(index, 'luggage', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
+                      placeholder="20 كيلو"
+                    />
                   </div>
                   
                   <div className="mt-3">

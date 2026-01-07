@@ -19,6 +19,8 @@ export interface AirplaneSectionProps {
   // Data
   flights?: {
     date: string;
+    time?: string;
+    airlineCompany?: string;
     fromAirport: string;
     toAirport: string;
     travelers: {
@@ -44,6 +46,8 @@ export interface AirplaneSectionProps {
   // Column Labels
   columnLabels?: {
     date: string;
+    time?: string;
+    airlineCompany?: string;
     fromAirport: string;
     toAirport: string;
     travelers: string;
@@ -129,12 +133,16 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
     : 'Please arrive at the airport 2 hours before departure');
   const defaultColumnLabels = columnLabels || (language === 'ar' ? {
     date: "التاريخ",
+    time: "الوقت",
+    airlineCompany: "شركة الطيران",
     fromAirport: "من مطار",
     toAirport: "الى مطار",
     travelers: "المسافرين",
     luggage: "الأمتعه"
   } : {
     date: "Date",
+    time: "Time",
+    airlineCompany: "Airline Company",
     fromAirport: "From Airport",
     toAirport: "To Airport",
     travelers: "Travelers",
@@ -266,6 +274,12 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
                 <th className="px-4 py-4 text-center text-white font-bold text-sm md:text-base border-r-2 border-white/30 whitespace-nowrap">
                   {defaultColumnLabels.date}
                 </th>
+                <th className="px-4 py-4 text-center text-white font-bold text-sm md:text-base border-r-2 border-white/30 whitespace-nowrap">
+                  {defaultColumnLabels.time}
+                </th>
+                <th className="px-4 py-4 text-center text-white font-bold text-sm md:text-base border-r-2 border-white/30 min-w-[150px]">
+                  {defaultColumnLabels.airlineCompany}
+                </th>
                 <th className="px-4 py-4 text-center text-white font-bold text-sm md:text-base border-r-2 border-white/30 min-w-[180px]">
                   {defaultColumnLabels.fromAirport}
               </th>
@@ -337,6 +351,16 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
                     </div>
                 </td>
                   <td className="px-4 py-4 text-center text-gray-800 font-semibold text-sm md:text-base border-r-2 border-white/50">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[#4A5568] font-bold">{flight.time || "-"}</span>
+                    </div>
+                </td>
+                  <td className="px-4 py-4 text-center text-gray-800 font-semibold text-sm md:text-base border-r-2 border-white/50">
+                    <div className="flex items-center justify-center">
+                      <span className="text-[#2D3748]">{flight.airlineCompany || "-"}</span>
+                    </div>
+                </td>
+                  <td className="px-4 py-4 text-center text-gray-800 font-semibold text-sm md:text-base border-r-2 border-white/50">
                     <div className={`flex items-center justify-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
                       <svg 
                         xmlns="http://www.w3.org/2000/svg" 
@@ -384,7 +408,7 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
             ))}
             {editable && (
                 <tr className="bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <td colSpan={editable ? 6 : 5} className="px-4 py-5 text-center">
+                  <td colSpan={editable ? 8 : 7} className="px-4 py-5 text-center">
                   <button
                     onClick={(e) => {
                       // Support prop handler if provided (for backward compatibility)

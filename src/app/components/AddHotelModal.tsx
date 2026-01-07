@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Hotel } from '../Templates/HotelsSection';
+import { getCompanySettings } from "@/app/services/CompanySettingsApi";
 
 interface AddHotelModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export default function AddHotelModal({
   const [showTitle, setShowTitle] = useState(true);
   const [direction, setDirection] = useState<"rtl" | "ltr">("rtl");
   const [language, setLanguage] = useState<"ar" | "en">("ar");
+  const [includesAllOptions, setIncludesAllOptions] = useState<string[]>(["Includes All"]);
   const [hotels, setHotels] = useState<Hotel[]>([
     {
       city: "",
@@ -39,7 +41,7 @@ export default function AddHotelModal({
       hotelName: "",
       hasDetailsLink: false,
       roomDescription: {
-        includesAll: "شامل الافطار",
+        includesAll: "Includes All",
         bedType: "سرير اضافي/ عدد: 2",
         roomType: ""
       },
@@ -52,6 +54,33 @@ export default function AddHotelModal({
     }
   ]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Fetch includes all options from company settings
+  useEffect(() => {
+    const fetchIncludesAllOptions = async () => {
+      try {
+        const settings = await getCompanySettings();
+        const options = settings.includes_all_options || ["Includes All"];
+        setIncludesAllOptions(options);
+        // Update hotels to use default option
+        if (hotels.length > 0 && hotels[0].roomDescription.includesAll === "Includes All") {
+          setHotels(prev => prev.map(h => ({
+            ...h,
+            roomDescription: {
+              ...h.roomDescription,
+              includesAll: options[0] || "Includes All"
+            }
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch includes all options:", err);
+        setIncludesAllOptions(["Includes All"]);
+      }
+    };
+    if (isOpen) {
+      fetchIncludesAllOptions();
+    }
+  }, [isOpen]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -67,7 +96,7 @@ export default function AddHotelModal({
           hotelName: "",
           hasDetailsLink: false,
           roomDescription: {
-            includesAll: "شامل الافطار",
+            includesAll: includesAllOptions[0] || "Includes All",
             bedType: "سرير اضافي/ عدد: 2",
             roomType: ""
           },
@@ -81,7 +110,7 @@ export default function AddHotelModal({
       ]);
       setErrors({});
     }
-  }, [isOpen]);
+  }, [isOpen, includesAllOptions]);
 
   const validate = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -257,7 +286,12 @@ export default function AddHotelModal({
               </label>
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as "ar" | "en")}
+                onChange={(e) => {
+                  const newLang = e.target.value as "ar" | "en";
+                  setLanguage(newLang);
+                  // Auto-change direction based on language
+                  setDirection(newLang === 'ar' ? 'rtl' : 'ltr');
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
               >
                 <option value="ar">Arabic</option>
@@ -448,13 +482,22 @@ export default function AddHotelModal({
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                       Includes All
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={hotel.roomDescription.includesAll}
                       onChange={(e) => updateHotel(index, 'roomDescription', { ...hotel.roomDescription, includesAll: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent text-sm"
-                      placeholder="شامل الافطار"
-                    />
+                    >
+                      {includesAllOptions.map((option, idx) => (
+                        <option key={idx} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    {includesAllOptions.length === 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        No options available. Add them in Company Settings.
+                      </p>
+                    )}
                   </div>
 
                   <div className="mt-3">

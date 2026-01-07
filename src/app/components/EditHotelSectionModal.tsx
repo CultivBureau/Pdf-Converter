@@ -8,10 +8,14 @@ interface EditHotelSectionModalProps {
   onSubmit: (data: {
     title?: string;
     showTitle?: boolean;
+    direction?: "rtl" | "ltr";
+    language?: "ar" | "en";
   }) => void;
   initialData: {
     title?: string;
     showTitle?: boolean;
+    direction?: "rtl" | "ltr";
+    language?: "ar" | "en";
   } | null;
 }
 
@@ -23,12 +27,16 @@ export default function EditHotelSectionModal({
 }: EditHotelSectionModalProps) {
   const [title, setTitle] = useState("حجز الفنادق");
   const [showTitle, setShowTitle] = useState(true);
+  const [direction, setDirection] = useState<"rtl" | "ltr">("rtl");
+  const [language, setLanguage] = useState<"ar" | "en">("ar");
 
   // Populate form when modal opens or initialData changes
   useEffect(() => {
     if (isOpen && initialData) {
       setTitle(initialData.title || "حجز الفنادق");
       setShowTitle(initialData.showTitle !== undefined ? initialData.showTitle : true);
+      setDirection(initialData.direction || "rtl");
+      setLanguage(initialData.language || "ar");
     }
   }, [isOpen, initialData]);
 
@@ -38,6 +46,8 @@ export default function EditHotelSectionModal({
     onSubmit({
       title: title.trim() || undefined,
       showTitle,
+      direction,
+      language,
     });
 
     onClose();
@@ -105,6 +115,41 @@ export default function EditHotelSectionModal({
               <label htmlFor="showTitle" className="text-sm text-gray-700">
                 Show Title
               </label>
+            </div>
+          </div>
+
+          {/* Language & Direction */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Language
+              </label>
+              <select
+                value={language}
+                onChange={(e) => {
+                  const newLang = e.target.value as "ar" | "en";
+                  setLanguage(newLang);
+                  // Auto-change direction based on language
+                  setDirection(newLang === 'ar' ? 'rtl' : 'ltr');
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
+              >
+                <option value="ar">Arabic</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Direction
+              </label>
+              <select
+                value={direction}
+                onChange={(e) => setDirection(e.target.value as "rtl" | "ltr")}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
+              >
+                <option value="rtl">Right to Left (RTL)</option>
+                <option value="ltr">Left to Right (LTR)</option>
+              </select>
             </div>
           </div>
         </form>

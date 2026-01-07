@@ -431,9 +431,19 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
                 <span className="font-bold">{formatDate(hotel.checkInDate)}</span>
               </div>
               <div className="flex gap-1 text-xl md:text-2xl">
-                <span>《</span>
-                <span>《</span>
-                <span>《</span>
+                {direction === 'rtl' ? (
+                  <>
+                    <span>《</span>
+                    <span>《</span>
+                    <span>《</span>
+                  </>
+                ) : (
+                  <>
+                    <span>》</span>
+                    <span>》</span>
+                    <span>》</span>
+                  </>
+                )}
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-xs opacity-90">{defaultLabels.checkOut}</span>

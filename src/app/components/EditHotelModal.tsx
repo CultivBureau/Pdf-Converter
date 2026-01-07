@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Hotel } from '../Templates/HotelsSection';
+import { getCompanySettings } from "@/app/services/CompanySettingsApi";
 
 interface EditHotelModalProps {
   isOpen: boolean;
@@ -30,6 +31,23 @@ export default function EditHotelModal({
   const [checkInDay, setCheckInDay] = useState("");
   const [checkOutDay, setCheckOutDay] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [includesAllOptions, setIncludesAllOptions] = useState<string[]>(["Includes All"]);
+
+  // Fetch includes all options from company settings
+  useEffect(() => {
+    const fetchIncludesAllOptions = async () => {
+      try {
+        const settings = await getCompanySettings();
+        setIncludesAllOptions(settings.includes_all_options || ["Includes All"]);
+      } catch (err) {
+        console.error("Failed to fetch includes all options:", err);
+        setIncludesAllOptions(["Includes All"]);
+      }
+    };
+    if (isOpen) {
+      fetchIncludesAllOptions();
+    }
+  }, [isOpen]);
 
   // Populate form when modal opens or initialHotel changes
   useEffect(() => {
@@ -283,13 +301,22 @@ export default function EditHotelModal({
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Includes All
             </label>
-            <input
-              type="text"
+            <select
               value={includesAll}
               onChange={(e) => setIncludesAll(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
-              placeholder="شامل الافطار"
-            />
+            >
+              {includesAllOptions.map((option, idx) => (
+                <option key={idx} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {includesAllOptions.length === 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                No options available. Add them in Company Settings.
+              </p>
+            )}
           </div>
 
           <div>
