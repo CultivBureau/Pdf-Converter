@@ -141,7 +141,8 @@ export default async function PDFDocumentPage({ params, searchParams }: PageProp
   
   if (document.company_id) {
     try {
-      const branding = await getCompanyBrandingServer(document.company_id, token || undefined);
+      // Pass document ID so backend can validate PDF token if needed
+      const branding = await getCompanyBrandingServer(document.company_id, token || undefined, id);
       // Only set images if they exist (don't use defaults)
       // Ensure URLs are absolute for Playwright PDF generation
       if (branding.header_image) {

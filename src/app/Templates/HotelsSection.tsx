@@ -202,7 +202,7 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
   
   return (
     <div 
-      className={`w-full mb-8 ${className} no-break`} 
+      className={`hotels-section w-full mb-8 ${className} no-break`} 
       style={style} 
       dir={direction} 
       data-hotels-section-id={sectionIdValue}

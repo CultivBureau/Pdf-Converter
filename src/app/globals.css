@@ -183,3 +183,554 @@ div[class*="section"] {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* ============================================
+   RESPONSIVE TABLE STYLES FOR MOBILE DEVICES
+   ============================================ */
+
+/* Base responsive container */
+.responsive-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1.5rem;
+}
+
+/* Tablet and below responsive styles */
+@media screen and (max-width: 1024px) {
+  .dynamic-table-wrapper {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
+  .dynamic-table {
+    font-size: 0.75rem;
+  }
+  
+  .dynamic-table th,
+  .dynamic-table td {
+    padding: 0.5rem 0.375rem !important;
+    font-size: 0.7rem !important;
+  }
+}
+
+/* Mobile devices (phones) */
+@media screen and (max-width: 768px) {
+  /* Ensure full width utilization on mobile */
+  body {
+    overflow-x: hidden;
+  }
+  
+  .pdf-document-body,
+  .pdf-container {
+    width: 100% !important;
+    max-width: 100vw !important;
+    padding: 0.5rem !important;
+    overflow-x: hidden;
+  }
+  
+  /* Table wrapper adjustments */
+  .dynamic-table-wrapper {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0.5rem 0.25rem !important;
+    border-radius: 0.75rem !important;
+  }
+  
+  /* Responsive table container with horizontal scroll */
+  .responsive-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Table base styling for mobile */
+  .dynamic-table {
+    min-width: 100%;
+    width: max-content;
+    border-collapse: collapse;
+    font-size: 0.65rem !important;
+  }
+  
+  /* Table headers for mobile */
+  .dynamic-table thead th {
+    padding: 0.4rem 0.3rem !important;
+    font-size: 0.6rem !important;
+    line-height: 1.1 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    min-width: 60px;
+    max-width: 120px;
+  }
+  
+  /* Table cells for mobile */
+  .dynamic-table tbody td {
+    padding: 0.35rem 0.25rem !important;
+    font-size: 0.58rem !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    min-width: 60px;
+    max-width: 120px;
+  }
+  
+  /* Ensure text wraps properly in cells */
+  .dynamic-table th > div,
+  .dynamic-table td > div {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+  }
+  
+  /* Hide edit buttons on mobile for cleaner view */
+  .dynamic-table-wrapper .no-pdf-export {
+    display: none !important;
+  }
+  
+  /* Table title responsive */
+  .dynamic-table-wrapper h3 {
+    font-size: 0.9rem !important;
+    margin-bottom: 0.5rem !important;
+    padding: 0.25rem 0.5rem !important;
+  }
+  
+  /* Adjust borders for better mobile visibility */
+  .dynamic-table {
+    border-width: 1px !important;
+  }
+  
+  /* Scrollbar for mobile tables */
+  .responsive-table-container::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .responsive-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .responsive-table-container::-webkit-scrollbar-thumb {
+    background: #A4C639;
+    border-radius: 10px;
+  }
+}
+
+/* Extra small mobile devices */
+@media screen and (max-width: 480px) {
+  .dynamic-table {
+    font-size: 0.6rem !important;
+  }
+  
+  .dynamic-table thead th {
+    padding: 0.3rem 0.2rem !important;
+    font-size: 0.55rem !important;
+    min-width: 50px;
+    max-width: 100px;
+  }
+  
+  .dynamic-table tbody td {
+    padding: 0.3rem 0.2rem !important;
+    font-size: 0.53rem !important;
+    min-width: 50px;
+    max-width: 100px;
+  }
+  
+  .dynamic-table-wrapper {
+    padding: 0.25rem 0.125rem !important;
+  }
+  
+  .dynamic-table-wrapper h3 {
+    font-size: 0.8rem !important;
+  }
+}
+
+/* Landscape mode on mobile */
+@media screen and (max-width: 896px) and (orientation: landscape) {
+  .dynamic-table thead th {
+    padding: 0.25rem 0.2rem !important;
+    font-size: 0.5rem !important;
+  }
+  
+  .dynamic-table tbody td {
+    padding: 0.25rem 0.2rem !important;
+    font-size: 0.48rem !important;
+  }
+}
+
+/* Print styles - maintain desktop layout for PDF */
+@media print {
+  .dynamic-table-wrapper {
+    width: 100% !important;
+    padding: 1rem !important;
+  }
+  
+  .dynamic-table {
+    font-size: 9px !important;
+    page-break-inside: avoid;
+  }
+  
+  .dynamic-table thead th {
+    padding: 6px 4px !important;
+    font-size: 9px !important;
+  }
+  
+  .dynamic-table tbody td {
+    padding: 5px 4px !important;
+    font-size: 8px !important;
+  }
+  
+  /* Hide all interactive elements in print */
+  .no-pdf-export {
+    display: none !important;
+  }
+  
+  /* Ensure table fits on page */
+  .responsive-table-container {
+    overflow: visible !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE STYLES FOR HOTEL/FLIGHT/TRANSPORT SECTIONS
+   ============================================ */
+
+/* Base responsive adjustments for special sections */
+@media screen and (max-width: 768px) {
+  /* General mobile optimizations for all sections */
+  .pdf-document-body,
+  .pdf-container,
+  [class*="-section"] {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  
+  /* Ensure proper spacing */
+  section,
+  div[class*="section"]:not(.hotels-section) {
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Hotels Section - Comprehensive Mobile Optimization */
+  
+  /* Main hotel section container */
+  [data-hotels-section-id] {
+    padding: 0 !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  /* Header with title and icon */
+  [data-hotels-section-id] h2 {
+    font-size: 1rem !important;
+    padding: 0.5rem 1.5rem !important;
+  }
+  
+  [data-hotels-section-id] .bg-\[\#3B5998\] svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+  }
+  
+  /* Hotel cards - main container with proper padding to avoid overlap */
+  [data-hotels-section-id] > div > div:not(:last-child) {
+    padding: 0.75rem 0.5rem !important;
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+    margin-bottom: 1rem !important;
+    border-radius: 1rem !important;
+    position: relative !important;
+  }
+  
+  /* City badges at top of card */
+  [data-hotels-section-id] .bg-\[\#FF6B35\] {
+    font-size: 0.65rem !important;
+    padding: 0.25rem 0.75rem !important;
+  }
+  
+  [data-hotels-section-id] .bg-\[\#1E88E5\].rounded-full.px-6 {
+    font-size: 0.7rem !important;
+    padding: 0.35rem 0.85rem !important;
+    gap: 0.4rem !important;
+  }
+  
+  [data-hotels-section-id] .bg-\[\#1E88E5\].rounded-full.px-6 span:first-child {
+    font-size: 0.6rem !important;
+    padding: 0.2rem 0.5rem !important;
+  }
+  
+  /* Day info badges on sides - hide on mobile to prevent overlap */
+  [data-hotels-section-id] .absolute.top-2 {
+    display: none !important;
+  }
+  
+  /* Hotel name bar */
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] {
+    width: 95% !important;
+    padding: 0.6rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    margin-top: 1rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] span:first-child {
+    width: 100% !important;
+    font-size: 0.75rem !important;
+    line-height: 1.3 !important;
+    text-align: center !important;
+    margin-bottom: 0.35rem !important;
+  }
+  
+  /* Details link icon */
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] svg {
+    width: 0.9rem !important;
+    height: 0.9rem !important;
+  }
+  
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] .bg-white {
+    padding: 0.4rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] .text-xs {
+    font-size: 0.65rem !important;
+  }
+  
+  /* Room details grid */
+  [data-hotels-section-id] .grid-cols-1 > div,
+  [data-hotels-section-id] .mt-3 > div,
+  [data-hotels-section-id] .mt-4 > div:not(.bg-\[\#FF6B35\]) {
+    padding: 0.5rem 0.6rem !important;
+    font-size: 0.7rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  /* Date section at bottom */
+  [data-hotels-section-id] > div > div .bg-\[\#FF6B35\].rounded-xl {
+    padding: 0.65rem 0.5rem !important;
+    font-size: 0.7rem !important;
+    gap: 0.4rem !important;
+    margin-top: 0.75rem !important;
+  }
+  
+  [data-hotels-section-id] > div > div .bg-\[\#FF6B35\].rounded-xl .text-xs {
+    font-size: 0.58rem !important;
+  }
+  
+  [data-hotels-section-id] > div > div .bg-\[\#FF6B35\].rounded-xl .text-xl {
+    font-size: 0.9rem !important;
+  }
+  
+  [data-hotels-section-id] > div > div .bg-\[\#FF6B35\].rounded-xl > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.15rem !important;
+  }
+  
+  /* Edit/delete buttons - hide on mobile for cleaner view */
+  [data-hotels-section-id] button[data-action="edit-hotel"],
+  [data-hotels-section-id] button[data-action="remove-hotel"] {
+    display: none !important;
+  }
+  
+  /* Keep section edit/delete visible but smaller */
+  [data-hotels-section-id] > div > div:first-child button[data-action] {
+    padding: 0.45rem !important;
+  }
+  
+  [data-hotels-section-id] > div > div:first-child button[data-action] svg {
+    width: 0.85rem !important;
+    height: 0.85rem !important;
+  }
+  
+  /* Add hotel button */
+  [data-hotels-section-id] button[data-action="add-hotel"] {
+    padding: 0.6rem 1.25rem !important;
+    font-size: 0.75rem !important;
+  }
+  
+  [data-hotels-section-id] button[data-action="add-hotel"] svg {
+    width: 1rem !important;
+    height: 1rem !important;
+  }
+  
+  /* Flights Section */
+  .airplane-section,
+  .flight-card {
+    padding: 0.5rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .flight-header {
+    font-size: 0.75rem !important;
+    padding: 0.4rem !important;
+  }
+  
+  .flight-details {
+    font-size: 0.65rem !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* Transport Section */
+  .transport-section {
+    padding: 0.5rem !important;
+  }
+  
+  .transport-row {
+    padding: 0.5rem !important;
+    font-size: 0.7rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* Section headers */
+  .section-header,
+  h2[class*="section"],
+  h3[class*="section"] {
+    font-size: 1rem !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  /* Icons in sections */
+  .section-icon,
+  svg[class*="icon"] {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+  }
+  
+  /* Buttons in sections */
+  button[class*="section"],
+  .section-button {
+    padding: 0.4rem 0.75rem !important;
+    font-size: 0.7rem !important;
+  }
+}
+
+/* Extra small devices - further compression */
+@media screen and (max-width: 480px) {
+  /* Hotels Section - Extra Small Screens */
+  [data-hotels-section-id] h2 {
+    font-size: 0.85rem !important;
+    padding: 0.4rem 1rem !important;
+  }
+  
+  [data-hotels-section-id] > div > div:not(:last-child) {
+    padding: 0.6rem 0.35rem !important;
+  }
+  
+  /* City badges */
+  [data-hotels-section-id] .bg-\[\#FF6B35\] {
+    font-size: 0.58rem !important;
+    padding: 0.2rem 0.6rem !important;
+  }
+  
+  [data-hotels-section-id] .bg-\[\#1E88E5\].rounded-full.px-6 {
+    font-size: 0.65rem !important;
+    padding: 0.3rem 0.75rem !important;
+  }
+  
+  [data-hotels-section-id] .bg-\[\#1E88E5\].rounded-full.px-6 span:first-child {
+    font-size: 0.55rem !important;
+    padding: 0.15rem 0.4rem !important;
+  }
+  
+  /* Hotel name bar */
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] {
+    width: 98% !important;
+    padding: 0.5rem 0.4rem !important;
+    font-size: 0.7rem !important;
+    margin-top: 0.75rem !important;
+  }
+  
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] span:first-child {
+    font-size: 0.7rem !important;
+  }
+  
+  /* Details link */
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] .bg-white {
+    padding: 0.3rem 0.5rem !important;
+  }
+  
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] svg {
+    width: 0.75rem !important;
+    height: 0.75rem !important;
+  }
+  
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] .text-xs {
+    font-size: 0.6rem !important;
+  }
+  
+  /* Room details */
+  [data-hotels-section-id] .grid-cols-1 > div,
+  [data-hotels-section-id] .mt-3 > div,
+  [data-hotels-section-id] .mt-4 > div:not(.bg-\[\#FF6B35\]) {
+    padding: 0.45rem 0.5rem !important;
+    font-size: 0.65rem !important;
+  }
+  
+  /* Date section */
+  [data-hotels-section-id] > div > div .bg-\[\#FF6B35\].rounded-xl {
+    padding: 0.55rem 0.4rem !important;
+    font-size: 0.65rem !important;
+  }
+  
+  [data-hotels-section-id] > div > div .bg-\[\#FF6B35\].rounded-xl .text-xs {
+    font-size: 0.55rem !important;
+  }
+  
+  [data-hotels-section-id] > div > div .bg-\[\#FF6B35\].rounded-xl .text-xl {
+    font-size: 0.8rem !important;
+  }
+  
+  /* Flight and transport sections */
+  .flight-card,
+  .transport-row {
+    padding: 0.5rem !important;
+    font-size: 0.65rem !important;
+  }
+  
+  .flight-name {
+    font-size: 0.75rem !important;
+  }
+  
+  .section-header {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Landscape mode on mobile - Hotels Section */
+@media screen and (max-width: 896px) and (orientation: landscape) {
+  [data-hotels-section-id] h2 {
+    font-size: 0.8rem !important;
+    padding: 0.35rem 1rem !important;
+  }
+  
+  [data-hotels-section-id] > div > div:not(:last-child) {
+    padding: 0.5rem 0.35rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  /* Day badges hidden in landscape too */
+  [data-hotels-section-id] .absolute.top-2 {
+    display: none !important;
+  }
+  
+  [data-hotels-section-id] .w-1\/2.mx-auto.bg-\[\#1E88E5\] {
+    margin-top: 0.75rem !important;
+    font-size: 0.65rem !important;
+    width: 95% !important;
+  }
+  
+  [data-hotels-section-id] .grid-cols-1 > div,
+  [data-hotels-section-id] .mt-3 > div,
+  [data-hotels-section-id] .mt-4 > div:not(.bg-\[\#FF6B35\]) {
+    font-size: 0.6rem !important;
+    padding: 0.4rem 0.5rem !important;
+  }
+}

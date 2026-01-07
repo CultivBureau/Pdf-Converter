@@ -480,9 +480,10 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
         </div>
       )}
 
-      {/* Table Container - NO overflow, perfect compression */}
-      <div className={`w-full rounded-2xl border-2 ${colorClasses.border} shadow-lg hover:shadow-xl transition-shadow duration-300`}>
-        <table className="dynamic-table w-full border-collapse rounded-2xl" style={{ tableLayout: 'fixed' }}>
+      {/* Responsive Table Container - Enables horizontal scroll on mobile */}
+      <div className="responsive-table-container">
+        <div className={`w-full rounded-2xl border-2 ${colorClasses.border} shadow-lg hover:shadow-xl transition-shadow duration-300`}>
+          <table className="dynamic-table w-full border-collapse rounded-2xl" style={{ tableLayout: 'fixed' }}>
           {/* Table Header */}
           <thead>
             <tr style={{ background: `linear-gradient(to right, ${colorClasses.from}, ${colorClasses.to})` }}>
@@ -610,6 +611,7 @@ const DynamicTableTemplate: React.FC<DynamicTableTemplateProps> = ({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

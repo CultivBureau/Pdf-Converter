@@ -109,7 +109,8 @@ export async function getDocumentServer(
  */
 export async function getCompanyBrandingServer(
   companyId: string,
-  token?: string
+  token?: string,
+  documentId?: string
 ): Promise<{ header_image: string | null; footer_image: string | null }> {
   if (!companyId) {
     return { header_image: null, footer_image: null };
@@ -119,12 +120,24 @@ export async function getCompanyBrandingServer(
     "Content-Type": "application/json",
   };
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
   try {
-    const url = `${API_BASE_URL}/companies/${companyId}`;
+    // Build URL with query parameters for public token access
+    let url = `${API_BASE_URL}/companies/${companyId}`;
+    const queryParams: string[] = [];
+    
+    // If we have both token and documentId, use query parameters (public token)
+    if (token && documentId) {
+      queryParams.push(`token=${encodeURIComponent(token)}`);
+      queryParams.push(`document_id=${encodeURIComponent(documentId)}`);
+    } else if (token) {
+      // If only token, try as Bearer token (for PDF token)
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    
+    if (queryParams.length > 0) {
+      url += `?${queryParams.join("&")}`;
+    }
+    
     const response = await fetch(url, {
       method: "GET",
       mode: "cors",
