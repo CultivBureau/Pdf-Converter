@@ -824,45 +824,162 @@ function CompanySettingsContent() {
                   </div>
                   Usage Statistics
                 </h2>
-                <div className="flex gap-3">
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                    className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C4B454]/20 focus:border-[#C4B454] text-black font-medium"
-                  >
-                    {months.map((month, index) => (
-                      <option key={index} value={index + 1}>
-                        {month}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C4B454]/20 focus:border-[#C4B454] text-black font-medium"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+       
               </div>
 
-              {usage && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {usage && plan?.plan && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Total Uploads */}
+                  <div className="p-4 bg-[#C4B454]/10 rounded-xl border border-[#C4B454]/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-black font-semibold">Total Uploads</p>
+                      {plan.plan.limits.uploads_per_month > 0 && (
+                        <span className="text-xs font-bold text-[#C4B454] bg-white px-2 py-1 rounded">
+                          {usage.total_uploads} / {plan.plan.limits.uploads_per_month}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold text-[#C4B454] mb-2">{usage.total_uploads}</p>
+                    {plan.plan.limits.uploads_per_month > 0 ? (
+                      <>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+                          <div
+                            className="bg-[#C4B454] h-2 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min((usage.total_uploads / plan.plan.limits.uploads_per_month) * 100, 100)}%`
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {plan.plan.limits.uploads_per_month - usage.total_uploads > 0
+                            ? `${plan.plan.limits.uploads_per_month - usage.total_uploads} remaining`
+                            : "Limit reached"}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-600">Unlimited</p>
+                    )}
+                  </div>
+
+                  {/* OCR Pages */}
+                  <div className="p-4 bg-[#B8A040]/10 rounded-xl border border-[#B8A040]/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-black font-semibold">OCR Pages</p>
+                      {plan.plan.limits.pages_per_month > 0 && (
+                        <span className="text-xs font-bold text-[#B8A040] bg-white px-2 py-1 rounded">
+                          {usage.total_ocr_pages} / {plan.plan.limits.pages_per_month}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold text-[#B8A040] mb-2">{usage.total_ocr_pages}</p>
+                    {plan.plan.limits.pages_per_month > 0 ? (
+                      <>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+                          <div
+                            className="bg-[#B8A040] h-2 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min((usage.total_ocr_pages / plan.plan.limits.pages_per_month) * 100, 100)}%`
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {plan.plan.limits.pages_per_month - usage.total_ocr_pages > 0
+                            ? `${plan.plan.limits.pages_per_month - usage.total_ocr_pages} remaining`
+                            : "Limit reached"}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-600">Unlimited</p>
+                    )}
+                  </div>
+
+                  {/* PDF Exports */}
+                  <div className="p-4 bg-[#A69035]/10 rounded-xl border border-[#A69035]/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-black font-semibold">PDF Exports</p>
+                      {plan.plan.limits.pdf_exports > 0 && (
+                        <span className="text-xs font-bold text-[#A69035] bg-white px-2 py-1 rounded">
+                          {usage.total_pdf_exports} / {plan.plan.limits.pdf_exports}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold text-[#A69035] mb-2">{usage.total_pdf_exports}</p>
+                    {plan.plan.limits.pdf_exports > 0 ? (
+                      <>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+                          <div
+                            className="bg-[#A69035] h-2 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min((usage.total_pdf_exports / plan.plan.limits.pdf_exports) * 100, 100)}%`
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {plan.plan.limits.pdf_exports - usage.total_pdf_exports > 0
+                            ? `${plan.plan.limits.pdf_exports - usage.total_pdf_exports} remaining`
+                            : "Limit reached"}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-600">Unlimited</p>
+                    )}
+                  </div>
+
+                  {/* Users */}
+                  <div className="p-4 bg-[#9B7E2A]/10 rounded-xl border border-[#9B7E2A]/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-black font-semibold">Users</p>
+                      {plan.plan.limits.users_limit > 0 && (
+                        <span className="text-xs font-bold text-[#9B7E2A] bg-white px-2 py-1 rounded">
+                          {companyUsers.length} / {plan.plan.limits.users_limit}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold text-[#9B7E2A] mb-2">{companyUsers.length}</p>
+                    {plan.plan.limits.users_limit > 0 ? (
+                      <>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+                          <div
+                            className="bg-[#9B7E2A] h-2 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min((companyUsers.length / plan.plan.limits.users_limit) * 100, 100)}%`
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {plan.plan.limits.users_limit - companyUsers.length > 0
+                            ? `${plan.plan.limits.users_limit - companyUsers.length} remaining`
+                            : "Limit reached"}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-600">Unlimited</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {usage && !plan?.plan && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="p-4 bg-[#C4B454]/10 rounded-xl border border-[#C4B454]/30">
                     <p className="text-sm text-black mb-1">Total Uploads</p>
                     <p className="text-2xl font-bold text-[#C4B454]">{usage.total_uploads}</p>
+                    <p className="text-xs text-gray-600 mt-1">No plan limits</p>
                   </div>
                   <div className="p-4 bg-[#B8A040]/10 rounded-xl border border-[#B8A040]/30">
                     <p className="text-sm text-black mb-1">OCR Pages</p>
                     <p className="text-2xl font-bold text-[#B8A040]">{usage.total_ocr_pages}</p>
+                    <p className="text-xs text-gray-600 mt-1">No plan limits</p>
                   </div>
                   <div className="p-4 bg-[#A69035]/10 rounded-xl border border-[#A69035]/30">
                     <p className="text-sm text-black mb-1">PDF Exports</p>
                     <p className="text-2xl font-bold text-[#A69035]">{usage.total_pdf_exports}</p>
+                    <p className="text-xs text-gray-600 mt-1">No plan limits</p>
+                  </div>
+                  <div className="p-4 bg-[#9B7E2A]/10 rounded-xl border border-[#9B7E2A]/30">
+                    <p className="text-sm text-black mb-1">Users</p>
+                    <p className="text-2xl font-bold text-[#9B7E2A]">{companyUsers.length}</p>
+                    <p className="text-xs text-gray-600 mt-1">No plan limits</p>
                   </div>
                 </div>
               )}
