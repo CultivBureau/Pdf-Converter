@@ -249,13 +249,18 @@ function CompanySettingsContent() {
     setError("");
     try {
       const result = await addAirlineCompany(newAirlineCompany.trim());
-      setSettings({ ...settings!, airline_companies: result.airline_companies });
-      setNewAirlineCompany("");
-      setSuccess("Airline company added successfully");
-      setTimeout(() => setSuccess(""), 3000);
+      if (result && result.airline_companies) {
+        setSettings({ ...settings!, airline_companies: result.airline_companies });
+        setNewAirlineCompany("");
+        setSuccess("Airline company added successfully");
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        throw new Error("Invalid response from server");
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to add airline company";
       setError(message);
+      console.error("Error adding airline company:", err);
     }
   };
 
@@ -283,13 +288,18 @@ function CompanySettingsContent() {
     setError("");
     try {
       const result = await addIncludesAllOption(newIncludesAllOption.trim());
-      setSettings({ ...settings!, includes_all_options: result.includes_all_options });
-      setNewIncludesAllOption("");
-      setSuccess("Includes all option added successfully");
-      setTimeout(() => setSuccess(""), 3000);
+      if (result && result.includes_all_options) {
+        setSettings({ ...settings!, includes_all_options: result.includes_all_options });
+        setNewIncludesAllOption("");
+        setSuccess("Includes all option added successfully");
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        throw new Error("Invalid response from server");
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to add includes all option";
       setError(message);
+      console.error("Error adding includes all option:", err);
     }
   };
 
