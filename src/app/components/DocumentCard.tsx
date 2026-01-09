@@ -72,8 +72,11 @@ export default function DocumentCard({
   // This method uses document.execCommand which works better with user gestures on mobile
   const copyToClipboardFallback = (text: string): boolean => {
     try {
+      // Use window.document to avoid TypeScript confusion with the 'document' prop
+      const domDocument = window.document;
+      
       // Create a temporary textarea element
-      const textarea = document.createElement("textarea");
+      const textarea = domDocument.createElement("textarea");
       textarea.value = text;
       // Style it to be hidden but still selectable
       textarea.style.position = "fixed";
@@ -83,12 +86,12 @@ export default function DocumentCard({
       textarea.style.pointerEvents = "none";
       textarea.setAttribute("readonly", "");
       textarea.setAttribute("contenteditable", "true");
-      document.body.appendChild(textarea);
+      domDocument.body.appendChild(textarea);
       
       // For mobile, we need to focus and select properly
       if (navigator.userAgent.match(/ipad|iphone/i)) {
         // iOS requires contentEditable element
-        const range = document.createRange();
+        const range = domDocument.createRange();
         range.selectNodeContents(textarea);
         const selection = window.getSelection();
         selection?.removeAllRanges();
@@ -105,9 +108,9 @@ export default function DocumentCard({
       
       try {
         // Try execCommand (works on mobile with user gesture)
-        const successful = document.execCommand("copy");
+        const successful = domDocument.execCommand("copy");
         // Clean up
-        document.body.removeChild(textarea);
+        domDocument.body.removeChild(textarea);
         // Clear selection
         if (window.getSelection) {
           window.getSelection()?.removeAllRanges();
@@ -115,7 +118,7 @@ export default function DocumentCard({
         return successful;
       } catch (err) {
         // Clean up on error
-        document.body.removeChild(textarea);
+        domDocument.body.removeChild(textarea);
         if (window.getSelection) {
           window.getSelection()?.removeAllRanges();
         }
