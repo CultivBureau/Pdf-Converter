@@ -36,7 +36,35 @@ export default function LoginPage() {
       const returnUrl = searchParams.get("returnUrl") || "/";
       router.push(returnUrl);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Login failed";
+      let message = "Login failed. Please try again.";
+      
+      if (err instanceof Error) {
+        const errorMessage = err.message;
+        
+        // Extract user-friendly message (already handled in AuthApi, but double-check)
+        if (errorMessage.includes("Incorrect email or password") || 
+            errorMessage.includes("Invalid credentials")) {
+          message = "Incorrect email or password. Please check your credentials and try again.";
+        } else if (errorMessage.includes("No account found") || 
+                   errorMessage.includes("User not found")) {
+          message = "No account found with this email address. Please check your email or contact your administrator.";
+        } else if (errorMessage.includes("inactive") || 
+                   errorMessage.includes("deactivated")) {
+          message = "Your account has been deactivated. Please contact your administrator for assistance.";
+        } else if (errorMessage.includes("network") || 
+                   errorMessage.includes("connection") ||
+                   errorMessage.includes("Unable to connect")) {
+          message = "Unable to connect to the server. Please check your internet connection and try again.";
+        } else if (errorMessage.includes("Network request failed")) {
+          // Extract the actual error from the wrapped message
+          const match = errorMessage.match(/Network request failed[^:]*: (.+)/);
+          message = match ? match[1] : "Connection error. Please try again.";
+        } else if (errorMessage && !errorMessage.includes("[AuthApi]")) {
+          // Use the error message if it's already user-friendly
+          message = errorMessage;
+        }
+      }
+      
       setError(message);
     } finally {
       setIsLoading(false);
@@ -81,10 +109,13 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
+              <div className="mb-6 rounded-lg bg-red-50 border-2 border-red-300 p-4 animate-fade-in">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                  <p className="text-sm text-red-700">{error}</p>
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-red-800 mb-1">Login Failed</p>
+                    <p className="text-sm text-red-700 leading-relaxed">{error}</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -162,6 +193,22 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

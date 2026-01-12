@@ -91,6 +91,15 @@ export interface CompanyPlan {
 }
 
 /**
+ * Get airline companies list (All users in company)
+ */
+export async function getAirlineCompanies(): Promise<{ airline_companies: string[] }> {
+  return authRequest("/company/settings/airline-companies", {
+    method: "GET",
+  });
+}
+
+/**
  * Get company settings (Company Admin only)
  */
 export async function getCompanySettings(): Promise<CompanySettings> {
@@ -289,6 +298,16 @@ export async function addIncludesAllOption(option: string): Promise<{ message: s
 export async function removeIncludesAllOption(index: number): Promise<{ message: string; includes_all_options: string[] }> {
   return authRequest(`/company/settings/includes-all-options/${index}`, {
     method: "DELETE",
+  });
+}
+
+/**
+ * Add airline company to company settings (Regular users only)
+ */
+export async function addAirlineCompanyUser(name: string): Promise<{ message: string; airline_companies: string[] }> {
+  return authRequest("/company/settings/airline-companies/user", {
+    method: "POST",
+    body: JSON.stringify({ name }),
   });
 }
 

@@ -209,6 +209,8 @@ export function extractTransportTablesFromComponent(component: string): Transpor
           const row: TransportRow = {
             day: '',
             date: '',
+            from: '',
+            to: '',
             description: '',
             carType: ''
           };

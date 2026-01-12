@@ -93,8 +93,11 @@ export interface AirplaneSectionData {
     date: string;
     time?: string;
     airlineCompany?: string;
+    airlineCompanyLink?: string;
     fromAirport: string;
+    fromAirportLink?: string;
     toAirport: string;
+    toAirportLink?: string;
     travelers: {
       adults: number;
       children: number;

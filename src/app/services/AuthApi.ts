@@ -41,6 +41,46 @@ async function handleResponse(response: Response) {
   return payload;
 }
 
+// Extract user-friendly error message
+function extractErrorMessage(error: unknown, path: string): string {
+  if (error instanceof Error) {
+    const message = error.message;
+    
+    // If it's already a clean error message from handleResponse, return it
+    if (!message.includes("[AuthApi]") && !message.includes("Network request failed")) {
+      return message;
+    }
+    
+    // Extract the actual error from the wrapped message
+    const match = message.match(/\[AuthApi\] Network request failed for [^:]+: (.+)/);
+    if (match && match[1]) {
+      return match[1];
+    }
+    
+    // Check for common error patterns
+    if (message.includes("Incorrect email or password") || message.includes("Invalid credentials")) {
+      return "Incorrect email or password. Please check your credentials and try again.";
+    }
+    
+    if (message.includes("User not found")) {
+      return "No account found with this email address.";
+    }
+    
+    if (message.includes("Account is inactive") || message.includes("inactive")) {
+      return "Your account has been deactivated. Please contact your administrator.";
+    }
+    
+    if (message.includes("NetworkError") || message.includes("Failed to fetch") || message.includes("network")) {
+      return "Unable to connect to the server. Please check your internet connection and try again.";
+    }
+    
+    // Return the original message if we can't parse it
+    return message;
+  }
+  
+  return "An unexpected error occurred. Please try again.";
+}
+
 // Make authenticated request
 async function authRequest(path: string, init: RequestInit = {}) {
   const token = getToken();
@@ -62,8 +102,8 @@ async function authRequest(path: string, init: RequestInit = {}) {
     });
     return await handleResponse(response);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`[AuthApi] Network request failed for ${path}: ${message}`);
+    const friendlyMessage = extractErrorMessage(error, path);
+    throw new Error(friendlyMessage);
   }
 }
 

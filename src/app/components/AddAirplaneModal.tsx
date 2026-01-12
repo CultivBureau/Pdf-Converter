@@ -1,14 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getCompanySettings } from "@/app/services/CompanySettingsApi";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { getCompanySettings, getAirlineCompanies, addAirlineCompanyUser } from "@/app/services/CompanySettingsApi";
+import AddAirlineCompanyModal from "./AddAirlineCompanyModal";
 
 export interface FlightData {
   date: string;
   time?: string;
   airlineCompany?: string;
+  airlineCompanyLink?: string;
   fromAirport: string;
+  fromAirportLink?: string;
   toAirport: string;
+  toAirportLink?: string;
   travelers: {
     adults: number;
     children: number;
@@ -42,14 +47,19 @@ export default function AddAirplaneModal({
   const [showNotice, setShowNotice] = useState(true);
   const [direction, setDirection] = useState<"rtl" | "ltr">("rtl");
   const [language, setLanguage] = useState<"ar" | "en">("ar");
+  const { user, isCompanyAdmin } = useAuth();
   const [airlineCompanies, setAirlineCompanies] = useState<string[]>([]);
+  const [showAddAirlineModal, setShowAddAirlineModal] = useState(false);
   const [flights, setFlights] = useState<FlightData[]>([
     {
       date: new Date().toISOString().split('T')[0],
       time: "",
       airlineCompany: "",
+      airlineCompanyLink: "",
       fromAirport: "",
+      fromAirportLink: "",
       toAirport: "",
+      toAirportLink: "",
       travelers: { adults: 1, children: 0, infants: 0 },
       luggage: "20 كيلو"
     }
@@ -57,20 +67,39 @@ export default function AddAirplaneModal({
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Fetch airline companies from company settings
+  const fetchAirlineCompanies = async () => {
+    try {
+      // Use the new endpoint that works for all users
+      const result = await getAirlineCompanies();
+      setAirlineCompanies(result.airline_companies || []);
+    } catch (err) {
+      console.error("Failed to fetch airline companies:", err);
+      setAirlineCompanies([]);
+    }
+  };
+
   useEffect(() => {
-    const fetchAirlineCompanies = async () => {
-      try {
-        const settings = await getCompanySettings();
-        setAirlineCompanies(settings.airline_companies || []);
-      } catch (err) {
-        console.error("Failed to fetch airline companies:", err);
-        setAirlineCompanies([]);
-      }
-    };
     if (isOpen) {
       fetchAirlineCompanies();
     }
   }, [isOpen]);
+
+  // Handle adding new airline company (for users only)
+  const handleAddAirlineCompany = async (companyName: string) => {
+    try {
+      const result = await addAirlineCompanyUser(companyName);
+      if (result && result.airline_companies) {
+        setAirlineCompanies(result.airline_companies);
+        // Auto-select the newly added company in the first flight
+        if (flights.length > 0) {
+          updateFlight(0, 'airlineCompany', companyName);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to add airline company:", err);
+      throw err;
+    }
+  };
 
   // Reset form when modal opens
   useEffect(() => {
@@ -86,8 +115,11 @@ export default function AddAirplaneModal({
           date: new Date().toISOString().split('T')[0],
           time: "",
           airlineCompany: "",
+          airlineCompanyLink: "",
           fromAirport: "",
+          fromAirportLink: "",
           toAirport: "",
+          toAirportLink: "",
           travelers: { adults: 1, children: 0, infants: 0 },
           luggage: "20 كيلو"
         }
@@ -149,8 +181,11 @@ export default function AddAirplaneModal({
         date: new Date().toISOString().split('T')[0],
         time: "",
         airlineCompany: "",
+        airlineCompanyLink: "",
         fromAirport: "",
+        fromAirportLink: "",
         toAirport: "",
+        toAirportLink: "",
         travelers: { adults: 1, children: 0, infants: 0 },
         luggage: "20 كيلو"
       }
@@ -374,23 +409,51 @@ export default function AddAirplaneModal({
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                       Airline Company
                     </label>
-                    <select
-                      value={flight.airlineCompany || ""}
-                      onChange={(e) => updateFlight(index, 'airlineCompany', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
-                    >
-                      <option value="">Select airline company</option>
-                      {airlineCompanies.map((company, idx) => (
-                        <option key={idx} value={company}>
-                          {company}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={flight.airlineCompany || ""}
+                        onChange={(e) => updateFlight(index, 'airlineCompany', e.target.value)}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm appearance-none bg-white"
+                      >
+                        <option value="">Select airline company</option>
+                        {airlineCompanies.map((company, idx) => (
+                          <option key={idx} value={company}>
+                            {company}
+                          </option>
+                        ))}
+                      </select>
+                      {/* Add button for users and company admins */}
+                      {user && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAddAirlineModal(true)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-[#4A5568] text-white rounded-lg hover:bg-[#2D3748] transition-colors text-xs flex items-center gap-1"
+                          title={language === 'ar' ? 'إضافة شركة طيران جديدة' : 'Add new airline company'}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                     {airlineCompanies.length === 0 && (
                       <p className="text-xs text-gray-500 mt-1">
-                        No airline companies available. Add them in Company Settings.
+                        No airline companies available. Click the + button to add one.
                       </p>
                     )}
+                  </div>
+                  
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Airline Company Link (Optional) 🔗
+                    </label>
+                    <input
+                      type="url"
+                      value={flight.airlineCompanyLink || ''}
+                      onChange={(e) => updateFlight(index, 'airlineCompanyLink', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
+                      placeholder="Airline company link"
+                    />
                   </div>
                   
                   <div className="mt-3">
@@ -426,6 +489,19 @@ export default function AddAirplaneModal({
                   
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
+                      From Airport Link (Optional) 🔗
+                    </label>
+                    <input
+                      type="url"
+                      value={flight.fromAirportLink || ''}
+                      onChange={(e) => updateFlight(index, 'fromAirportLink', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
+                      placeholder="Airport location link"
+                    />
+                  </div>
+                  
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
                       To Airport
                     </label>
                     <input
@@ -440,6 +516,19 @@ export default function AddAirplaneModal({
                     {errors[`flight_${index}_to`] && (
                       <p className="text-red-500 text-xs mt-1">{errors[`flight_${index}_to`]}</p>
                     )}
+                  </div>
+                  
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      To Airport Link (Optional) 🔗
+                    </label>
+                    <input
+                      type="url"
+                      value={flight.toAirportLink || ''}
+                      onChange={(e) => updateFlight(index, 'toAirportLink', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
+                      placeholder="Airport location link"
+                    />
                   </div>
                   
                   <div className="mt-3 grid grid-cols-3 gap-3">
@@ -529,6 +618,14 @@ export default function AddAirplaneModal({
           animation: scale-in 0.2s ease-out;
         }
       `}</style>
+
+      {/* Add Airline Company Modal */}
+      <AddAirlineCompanyModal
+        isOpen={showAddAirlineModal}
+        onClose={() => setShowAddAirlineModal(false)}
+        onSuccess={handleAddAirlineCompany}
+        language={language}
+      />
     </div>
   );
 }

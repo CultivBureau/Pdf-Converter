@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { FlightData } from './AddAirplaneModal';
-import { getCompanySettings } from "@/app/services/CompanySettingsApi";
+import { getCompanySettings, getAirlineCompanies, addAirlineCompanyUser } from "@/app/services/CompanySettingsApi";
+import AddAirlineCompanyModal from "./AddAirlineCompanyModal";
 
 interface EditFlightModalProps {
   isOpen: boolean;
@@ -20,30 +22,53 @@ export default function EditFlightModal({
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [airlineCompany, setAirlineCompany] = useState("");
+  const [airlineCompanyLink, setAirlineCompanyLink] = useState("");
   const [fromAirport, setFromAirport] = useState("");
+  const [fromAirportLink, setFromAirportLink] = useState("");
   const [toAirport, setToAirport] = useState("");
+  const [toAirportLink, setToAirportLink] = useState("");
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [luggage, setLuggage] = useState("20 كيلو");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const { user, isCompanyAdmin } = useAuth();
   const [airlineCompanies, setAirlineCompanies] = useState<string[]>([]);
+  const [showAddAirlineModal, setShowAddAirlineModal] = useState(false);
+  const [language, setLanguage] = useState<"ar" | "en">("ar");
 
   // Fetch airline companies from company settings
+  const fetchAirlineCompanies = async () => {
+    try {
+      // Use the new endpoint that works for all users
+      const result = await getAirlineCompanies();
+      setAirlineCompanies(result.airline_companies || []);
+    } catch (err) {
+      console.error("Failed to fetch airline companies:", err);
+      setAirlineCompanies([]);
+    }
+  };
+
   useEffect(() => {
-    const fetchAirlineCompanies = async () => {
-      try {
-        const settings = await getCompanySettings();
-        setAirlineCompanies(settings.airline_companies || []);
-      } catch (err) {
-        console.error("Failed to fetch airline companies:", err);
-        setAirlineCompanies([]);
-      }
-    };
     if (isOpen) {
       fetchAirlineCompanies();
     }
   }, [isOpen]);
+
+  // Handle adding new airline company (for users only)
+  const handleAddAirlineCompany = async (companyName: string) => {
+    try {
+      const result = await addAirlineCompanyUser(companyName);
+      if (result && result.airline_companies) {
+        setAirlineCompanies(result.airline_companies);
+        // Auto-select the newly added company
+        setAirlineCompany(companyName);
+      }
+    } catch (err) {
+      console.error("Failed to add airline company:", err);
+      throw err;
+    }
+  };
 
   // Populate form when modal opens or initialFlight changes
   useEffect(() => {
@@ -51,8 +76,11 @@ export default function EditFlightModal({
       setDate(initialFlight.date);
       setTime(initialFlight.time || "");
       setAirlineCompany(initialFlight.airlineCompany || "");
+      setAirlineCompanyLink(initialFlight.airlineCompanyLink || "");
       setFromAirport(initialFlight.fromAirport);
+      setFromAirportLink(initialFlight.fromAirportLink || "");
       setToAirport(initialFlight.toAirport);
+      setToAirportLink(initialFlight.toAirportLink || "");
       setAdults(initialFlight.travelers.adults);
       setChildren(initialFlight.travelers.children);
       setInfants(initialFlight.travelers.infants);
@@ -92,8 +120,11 @@ export default function EditFlightModal({
       date,
       time: time.trim() || undefined,
       airlineCompany: airlineCompany.trim() || undefined,
+      airlineCompanyLink: airlineCompanyLink.trim() || undefined,
       fromAirport: fromAirport.trim(),
+      fromAirportLink: fromAirportLink.trim() || undefined,
       toAirport: toAirport.trim(),
+      toAirportLink: toAirportLink.trim() || undefined,
       travelers: { adults, children, infants },
       luggage: luggage.trim(),
     });
@@ -176,23 +207,52 @@ export default function EditFlightModal({
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Airline Company
             </label>
-            <select
-              value={airlineCompany}
-              onChange={(e) => setAirlineCompany(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
-            >
-              <option value="">Select airline company</option>
-              {airlineCompanies.map((company, idx) => (
-                <option key={idx} value={company}>
-                  {company}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={airlineCompany}
+                onChange={(e) => setAirlineCompany(e.target.value)}
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent appearance-none bg-white"
+              >
+                <option value="">Select airline company</option>
+                {airlineCompanies.map((company, idx) => (
+                  <option key={idx} value={company}>
+                    {company}
+                  </option>
+                ))}
+              </select>
+              {/* Add button for users and company admins */}
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddAirlineModal(true)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-[#4A5568] text-white rounded-lg hover:bg-[#2D3748] transition-colors text-xs flex items-center gap-1"
+                  title={language === 'ar' ? 'إضافة شركة طيران جديدة' : 'Add new airline company'}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              )}
+            </div>
             {airlineCompanies.length === 0 && (
               <p className="text-xs text-gray-500 mt-1">
-                No airline companies available. Add them in Company Settings.
+                No airline companies available. Click the + button to add one.
               </p>
             )}
+          </div>
+
+          {/* Airline Company Link */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Airline Company Link (Optional) 🔗
+            </label>
+            <input
+              type="url"
+              value={airlineCompanyLink}
+              onChange={(e) => setAirlineCompanyLink(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
+              placeholder="Airline company link"
+            />
           </div>
 
           {/* From Airport */}
@@ -214,6 +274,20 @@ export default function EditFlightModal({
             )}
           </div>
 
+          {/* From Airport Link */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              From Airport Link (Optional) 🔗
+            </label>
+            <input
+              type="url"
+              value={fromAirportLink}
+              onChange={(e) => setFromAirportLink(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
+              placeholder="Airport location link"
+            />
+          </div>
+
           {/* To Airport */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -231,6 +305,20 @@ export default function EditFlightModal({
             {errors.toAirport && (
               <p className="text-red-500 text-xs mt-1">{errors.toAirport}</p>
             )}
+          </div>
+
+          {/* To Airport Link */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              To Airport Link (Optional) 🔗
+            </label>
+            <input
+              type="url"
+              value={toAirportLink}
+              onChange={(e) => setToAirportLink(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
+              placeholder="Airport location link"
+            />
           </div>
 
           {/* Travelers */}
@@ -333,6 +421,14 @@ export default function EditFlightModal({
           animation: scale-in 0.2s ease-out;
         }
       `}</style>
+
+      {/* Add Airline Company Modal */}
+      <AddAirlineCompanyModal
+        isOpen={showAddAirlineModal}
+        onClose={() => setShowAddAirlineModal(false)}
+        onSuccess={handleAddAirlineCompany}
+        language={language}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { Link as LinkIcon } from 'lucide-react';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 
 /**
@@ -21,8 +22,11 @@ export interface AirplaneSectionProps {
     date: string;
     time?: string;
     airlineCompany?: string;
+    airlineCompanyLink?: string;
     fromAirport: string;
+    fromAirportLink?: string;
     toAirport: string;
+    toAirportLink?: string;
     travelers: {
       adults: number;
       children: number;
@@ -356,34 +360,53 @@ const AirplaneSection: React.FC<AirplaneSectionProps> = ({
                     </div>
                 </td>
                   <td className="px-4 py-4 text-center text-gray-800 font-semibold text-sm md:text-base border-r-2 border-white/50">
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center gap-2">
                       <span className="text-[#2D3748]">{flight.airlineCompany || "-"}</span>
+                      {flight.airlineCompanyLink && flight.airlineCompanyLink.trim() && (
+                        <a 
+                          href={flight.airlineCompanyLink.trim()} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-full border border-blue-300 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                          title="Open airline company link"
+                        >
+                          <LinkIcon className="w-4 h-4 text-blue-600" />
+                        </a>
+                      )}
                     </div>
                 </td>
                   <td className="px-4 py-4 text-center text-gray-800 font-semibold text-sm md:text-base border-r-2 border-white/50">
                     <div className={`flex items-center justify-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        viewBox="0 0 24 24" 
-                        fill="currentColor" 
-                        className="w-5 h-5 text-[#4A5568] shrink-0"
-                      >
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                      </svg>
+      
                       <div className="whitespace-pre-line leading-relaxed text-[#2D3748]">{flight.fromAirport}</div>
+                      {flight.fromAirportLink && flight.fromAirportLink.trim() && (
+                        <a 
+                          href={flight.fromAirportLink.trim()} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-full border border-blue-300 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                          title="Open airport location link"
+                        >
+                          <LinkIcon className="w-4 h-4 text-blue-600" />
+                        </a>
+                      )}
                     </div>
                 </td>
                   <td className="px-4 py-4 text-center text-gray-800 font-semibold text-sm md:text-base border-r-2 border-white/50">
                     <div className={`flex items-center justify-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 24 24" 
-                    fill="currentColor" 
-                        className="w-5 h-5 text-[#4FC3F7] shrink-0"
-                  >
-                    <path fillRule="evenodd" d="M19.902 4.098a3.75 3.75 0 00-5.304 0l-4.5 4.5a3.75 3.75 0 001.035 6.037.75.75 0 01-.646 1.353 5.25 5.25 0 01-1.449-8.45l4.5-4.5a5.25 5.25 0 117.424 7.424l-1.757 1.757a.75.75 0 11-1.06-1.06l1.757-1.757a3.75 3.75 0 000-5.304zm-7.389 4.267a.75.75 0 011-.353 5.25 5.25 0 011.449 8.45l-4.5 4.5a5.25 5.25 0 11-7.424-7.424l1.757-1.757a.75.75 0 111.06 1.06l-1.757 1.757a3.75 3.75 0 105.304 5.304l4.5-4.5a3.75 3.75 0 00-1.035-6.037.75.75 0 01-.354-1z" clipRule="evenodd" />
-                  </svg>
+    
                       <div className="whitespace-pre-line leading-relaxed text-[#2D3748]">{flight.toAirport}</div>
+                      {flight.toAirportLink && flight.toAirportLink.trim() && (
+                        <a 
+                          href={flight.toAirportLink.trim()} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-full border border-blue-300 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                          title="Open airport location link"
+                        >
+                          <LinkIcon className="w-4 h-4 text-blue-600" />
+                        </a>
+                      )}
                     </div>
                 </td>
                   <td className="px-4 py-4 text-center text-gray-800 font-semibold text-sm md:text-base border-r-2 border-white/50">
