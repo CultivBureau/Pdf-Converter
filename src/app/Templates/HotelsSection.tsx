@@ -279,8 +279,9 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
             key={index} 
             className="border-2 border-blue-300 rounded-2xl p-5 md:p-6 bg-white shadow-lg hover:shadow-xl transition-all duration-300 relative group"
           >
+            {/* Edit/Delete Buttons for Hotel - Separated from days section (moved to opposite side) */}
             {editable && (
-              <div className={`absolute top-3 z-0 flex gap-2 left-3`}>
+              <div className={`absolute top-3 z-[2] flex gap-2 ${direction === 'rtl' ? 'left-3' : 'right-3'}`}>
                 <button
                   onClick={(e) => {
                     // Support prop handler if provided (for backward compatibility)
@@ -339,8 +340,8 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
               </div>
             </div>
 
-            {/* Day Info - More Visible and Prominent */}
-            <div className={`absolute top-2 z-0 text-base md:text-lg font-bold text-[#1E88E5] space-y-2 ${direction === 'rtl' ? 'right-4 text-right' : 'left-4 text-left'}`}>
+            {/* Day Info - More Visible and Prominent - Separated from edit buttons */}
+            <div className={`absolute top-2 z-[1] text-base md:text-lg font-bold text-[#1E88E5] space-y-2 ${direction === 'rtl' ? 'right-4 text-right' : 'left-4 text-left'}`}>
               <div className={`flex items-center gap-2 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
                 <div className="bg-[#1E88E5] rounded-full p-1.5 shadow-md">
                   <svg 
@@ -368,6 +369,53 @@ const HotelsSection: React.FC<HotelsSectionProps> = ({
                 <span className="font-bold">{hotel.dayInfo.checkOutDay}</span>
               </div>
             </div>
+
+            {/* Edit/Delete Buttons for Hotel - Separated from days section */}
+            {editable && (
+              <div className={`absolute top-3 z-[2] flex gap-2 ${direction === 'rtl' ? 'left-3' : 'right-3'}`}>
+                <button
+                  onClick={(e) => {
+                    // Support prop handler if provided (for backward compatibility)
+                    // Event delegation will handle this when rendered in preview
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (onEditHotel) {
+                      onEditHotel(index);
+                    }
+                  }}
+                  data-action="edit-hotel"
+                  data-hotels-section-id={sectionIdValue}
+                  data-hotel-index={index}
+                  className="p-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110 cursor-pointer"
+                  title={language === 'ar' ? 'تعديل' : 'Edit'}
+                  type="button"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                {hotels.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDeleteTarget({type: 'hotel', hotelIndex: index});
+                      setShowDeleteModal(true);
+                    }}
+                    data-action="remove-hotel"
+                    data-hotels-section-id={sectionIdValue}
+                    data-hotel-index={index}
+                    className="p-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110 cursor-pointer"
+                    title={language === 'ar' ? 'حذف' : 'Delete'}
+                    type="button"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Hotel Name Bar */}
             <div className={`mt-8 w-1/2 mx-auto bg-[#1E88E5] text-white px-5 py-3 rounded-xl flex items-center justify-center shadow-md ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>

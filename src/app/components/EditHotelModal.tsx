@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { Hotel } from '../Templates/HotelsSection';
-import { getCompanySettings } from "@/app/services/CompanySettingsApi";
+import { getCompanySettings, getIncludesAllOptions, addIncludesAllOptionUser } from "@/app/services/CompanySettingsApi";
+import AddIncludesAllOptionModal from "./AddIncludesAllOptionModal";
 
 interface EditHotelModalProps {
   isOpen: boolean;
@@ -31,23 +33,43 @@ export default function EditHotelModal({
   const [checkInDay, setCheckInDay] = useState("");
   const [checkOutDay, setCheckOutDay] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const { user } = useAuth();
   const [includesAllOptions, setIncludesAllOptions] = useState<string[]>(["Includes All"]);
+  const [showAddOptionModal, setShowAddOptionModal] = useState(false);
+  const [language, setLanguage] = useState<"ar" | "en">("ar");
 
   // Fetch includes all options from company settings
+  const fetchIncludesAllOptions = async () => {
+    try {
+      // Use the new endpoint that works for all users
+      const result = await getIncludesAllOptions();
+      setIncludesAllOptions(result.includes_all_options || ["Includes All"]);
+    } catch (err) {
+      console.error("Failed to fetch includes all options:", err);
+      setIncludesAllOptions(["Includes All"]);
+    }
+  };
+
   useEffect(() => {
-    const fetchIncludesAllOptions = async () => {
-      try {
-        const settings = await getCompanySettings();
-        setIncludesAllOptions(settings.includes_all_options || ["Includes All"]);
-      } catch (err) {
-        console.error("Failed to fetch includes all options:", err);
-        setIncludesAllOptions(["Includes All"]);
-      }
-    };
     if (isOpen) {
       fetchIncludesAllOptions();
     }
   }, [isOpen]);
+
+  // Handle adding new includes-all option (for users and company admins)
+  const handleAddIncludesAllOption = async (optionText: string) => {
+    try {
+      const result = await addIncludesAllOptionUser(optionText);
+      if (result && result.includes_all_options) {
+        setIncludesAllOptions(result.includes_all_options);
+        // Auto-select the newly added option
+        setIncludesAll(optionText);
+      }
+    } catch (err) {
+      console.error("Failed to add includes-all option:", err);
+      throw err;
+    }
+  };
 
   // Populate form when modal opens or initialHotel changes
   useEffect(() => {
@@ -301,20 +323,35 @@ export default function EditHotelModal({
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Includes All
             </label>
-            <select
-              value={includesAll}
-              onChange={(e) => setIncludesAll(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
-            >
-              {includesAllOptions.map((option, idx) => (
-                <option key={idx} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={includesAll}
+                onChange={(e) => setIncludesAll(e.target.value)}
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent appearance-none bg-white"
+              >
+                {includesAllOptions.map((option, idx) => (
+                  <option key={idx} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {/* Add button for users and company admins */}
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddOptionModal(true)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-[#4A5568] text-white rounded-lg hover:bg-[#2D3748] transition-colors text-xs flex items-center gap-1"
+                  title={language === 'ar' ? 'إضافة خيار جديد' : 'Add new option'}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              )}
+            </div>
             {includesAllOptions.length === 0 && (
               <p className="text-xs text-gray-500 mt-1">
-                No options available. Add them in Company Settings.
+                No options available. Click the + button to add one.
               </p>
             )}
           </div>
@@ -408,6 +445,14 @@ export default function EditHotelModal({
           animation: scale-in 0.2s ease-out;
         }
       `}</style>
+
+      {/* Add Includes-All Option Modal */}
+      <AddIncludesAllOptionModal
+        isOpen={showAddOptionModal}
+        onClose={() => setShowAddOptionModal(false)}
+        onSuccess={handleAddIncludesAllOption}
+        language={language}
+      />
     </div>
   );
 }

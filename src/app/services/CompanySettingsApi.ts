@@ -100,6 +100,15 @@ export async function getAirlineCompanies(): Promise<{ airline_companies: string
 }
 
 /**
+ * Get includes-all options list (All users in company)
+ */
+export async function getIncludesAllOptions(): Promise<{ includes_all_options: string[] }> {
+  return authRequest("/company/settings/includes-all-options", {
+    method: "GET",
+  });
+}
+
+/**
  * Get company settings (Company Admin only)
  */
 export async function getCompanySettings(): Promise<CompanySettings> {
@@ -302,12 +311,22 @@ export async function removeIncludesAllOption(index: number): Promise<{ message:
 }
 
 /**
- * Add airline company to company settings (Regular users only)
+ * Add airline company to company settings (Users and Company Admins from dropdown)
  */
 export async function addAirlineCompanyUser(name: string): Promise<{ message: string; airline_companies: string[] }> {
   return authRequest("/company/settings/airline-companies/user", {
     method: "POST",
     body: JSON.stringify({ name }),
+  });
+}
+
+/**
+ * Add includes-all option (Users and Company Admins from dropdown)
+ */
+export async function addIncludesAllOptionUser(option: string): Promise<{ message: string; includes_all_options: string[] }> {
+  return authRequest("/company/settings/includes-all-options/user", {
+    method: "POST",
+    body: JSON.stringify({ option }),
   });
 }
 
