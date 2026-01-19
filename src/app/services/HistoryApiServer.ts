@@ -7,6 +7,8 @@
  * and do NOT use any client-side functions like getToken() or localStorage.
  */
 
+import { cookies } from "next/headers";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
   "http://localhost:8000";
@@ -61,11 +63,33 @@ export async function getDocumentServer(
   };
 
   try {
-    // If token is provided, pass it as query parameter (for public token access)
-    // Otherwise, the backend will require authentication
-    const url = token 
-      ? `${API_BASE_URL}/history/${docId}?token=${encodeURIComponent(token)}`
-      : `${API_BASE_URL}/history/${docId}`;
+    // Try to get auth token from cookies (if user is logged in)
+    let authToken: string | undefined;
+    try {
+      const cookieStore = await cookies();
+      authToken = cookieStore.get("auth_token")?.value;
+    } catch (error) {
+      // Cookies not available, continue without auth token
+    }
+
+    // Build URL and headers
+    let url: string;
+    
+    // If PDF token is provided, use it as query parameter (for Playwright PDF generation)
+    if (token) {
+      url = `${API_BASE_URL}/history/${docId}?token=${encodeURIComponent(token)}`;
+      // Also add auth token as Bearer if available (for logged-in users)
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+    } else if (authToken) {
+      // If no PDF token but user is logged in, use their auth token
+      url = `${API_BASE_URL}/history/${docId}`;
+      headers["Authorization"] = `Bearer ${authToken}`;
+    } else {
+      // No tokens available, try anyway (backend will check if document is public)
+      url = `${API_BASE_URL}/history/${docId}`;
+    }
     
     const response = await fetch(url, {
       method: "GET",
@@ -121,17 +145,30 @@ export async function getCompanyBrandingServer(
   };
 
   try {
+    // Get auth token from cookies for server-side requests
+    // Note: cookies() returns a Promise in Next.js 15+, must be awaited
+    const cookieStore = await cookies();
+    const authToken = cookieStore.get("auth_token")?.value;
+    
     // Build URL with query parameters for public token access
     let url = `${API_BASE_URL}/companies/${companyId}`;
     const queryParams: string[] = [];
     
-    // If we have both token and documentId, use query parameters (public token)
-    if (token && documentId) {
-      queryParams.push(`token=${encodeURIComponent(token)}`);
-      queryParams.push(`document_id=${encodeURIComponent(documentId)}`);
+    // Priority: Use auth token from cookies (logged-in user) if available
+    // Then try PDF token as Bearer token (PDF tokens work with company endpoint)
+    // PDF tokens should ALWAYS be sent as Bearer tokens, not query params
+    if (authToken) {
+      // Use logged-in user's auth token (highest priority)
+      headers["Authorization"] = `Bearer ${authToken}`;
     } else if (token) {
-      // If only token, try as Bearer token (for PDF token)
+      // If token provided, use as Bearer token (PDF tokens must be Bearer, not query params)
+      // The backend accepts PDF tokens as Bearer tokens for company access
       headers["Authorization"] = `Bearer ${token}`;
+      
+      // Also include document_id as query param if provided (helps backend validate the PDF token)
+      if (documentId) {
+        queryParams.push(`document_id=${encodeURIComponent(documentId)}`);
+      }
     }
     
     if (queryParams.length > 0) {
@@ -154,19 +191,26 @@ export async function getCompanyBrandingServer(
       return { header_image: null, footer_image: null };
     }
 
-    const company = payload as { header_image?: string | null; footer_image?: string | null };
+    // Handle both direct response and wrapped response
+    let company: any;
+    if (payload && typeof payload === 'object') {
+      // Check if it's wrapped in a "company" property or direct
+      company = (payload as any).company || payload;
+    } else {
+      return { header_image: null, footer_image: null };
+    }
     
     // Convert relative paths to absolute URLs if needed
     const headerImage = company.header_image
       ? company.header_image.startsWith("http")
         ? company.header_image
-        : `${API_BASE_URL}${company.header_image}`
+        : `${API_BASE_URL}${company.header_image.startsWith("/") ? "" : "/"}${company.header_image}`
       : null;
     
     const footerImage = company.footer_image
       ? company.footer_image.startsWith("http")
         ? company.footer_image
-        : `${API_BASE_URL}${company.footer_image}`
+        : `${API_BASE_URL}${company.footer_image.startsWith("/") ? "" : "/"}${company.footer_image}`
       : null;
 
     return {

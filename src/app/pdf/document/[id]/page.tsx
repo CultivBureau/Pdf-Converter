@@ -135,36 +135,75 @@ export default async function PDFDocumentPage({ params, searchParams }: PageProp
   // Detect document direction
   const direction = detectDocumentDirection(structure);
 
-  // Fetch company branding if document has company_id
+  // Fetch company branding from logged-in user's company_id
   let headerImage: string | undefined = undefined;
   let footerImage: string | undefined = undefined;
   
-  if (document.company_id) {
-    try {
-      // Pass document ID so backend can validate PDF token if needed
-      const branding = await getCompanyBrandingServer(document.company_id, token || undefined, id);
-      // Only set images if they exist (don't use defaults)
+  // Get user's company_id from auth token (server-side)
+  let companyId: string | null = null;
+  
+  try {
+    // First try to get company_id from document
+    if (document.company_id) {
+      companyId = document.company_id;
+    } else {
+      // If document doesn't have company_id, get it from the logged-in user
+      // NOTE: When rendered by Playwright, cookies() won't have user session,
+      // so we try to get user info from the PDF token if available
+      try {
+        const { cookies } = await import("next/headers");
+        const cookieStore = await cookies();
+        const authToken = cookieStore.get("auth_token")?.value;
+        
+        if (authToken) {
+          const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8000";
+          try {
+            const userResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+              method: "GET",
+              headers: {
+                "Authorization": `Bearer ${authToken}`,
+                "Content-Type": "application/json",
+              },
+              cache: "no-store",
+            });
+            
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              companyId = userData.user?.company_id || null;
+            }
+          } catch (error) {
+            // Continue without user company_id
+          }
+        }
+      } catch (error) {
+        // Continue without user company_id - will use document's company_id or PDF token
+      }
+    }
+    
+    // Fetch company branding using company_id
+    // IMPORTANT: Always pass the PDF token so backend can validate access
+    if (companyId) {
+      const branding = await getCompanyBrandingServer(companyId, token || undefined, id);
+      
       // Ensure URLs are absolute for Playwright PDF generation
       if (branding.header_image) {
         headerImage = branding.header_image;
-        // If it's a relative URL, make it absolute using backend URL
         if (headerImage && !headerImage.startsWith("http")) {
           const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8000";
           headerImage = `${API_BASE_URL}${headerImage.startsWith("/") ? "" : "/"}${headerImage}`;
         }
       }
+      
       if (branding.footer_image) {
         footerImage = branding.footer_image;
-        // If it's a relative URL, make it absolute using backend URL
         if (footerImage && !footerImage.startsWith("http")) {
           const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8000";
           footerImage = `${API_BASE_URL}${footerImage.startsWith("/") ? "" : "/"}${footerImage}`;
         }
       }
-    } catch (error) {
-      console.error("Failed to fetch company branding:", error);
-      // Don't set images if branding fetch fails - will show no header/footer
     }
+  } catch (error) {
+    // Don't set images if branding fetch fails - will show no header/footer
   }
 
   return (
