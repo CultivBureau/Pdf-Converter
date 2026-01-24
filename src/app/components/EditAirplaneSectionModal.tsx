@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 import { saveAirplaneTemplate } from "@/app/services/TemplatesApi";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import { FlightData } from './AddAirplaneModal';
@@ -79,7 +80,7 @@ export default function EditAirplaneSectionModal({
   // Save current form as template
   const handleSaveTemplate = async () => {
     if (!templateName.trim()) {
-      alert(language === 'ar' ? 'يرجى إدخال اسم القالب' : 'Please enter a template name');
+      toast.error(language === 'ar' ? 'يرجى إدخال اسم القالب' : 'Please enter a template name');
       return;
     }
 
@@ -97,10 +98,10 @@ export default function EditAirplaneSectionModal({
       await saveAirplaneTemplate(templateName.trim(), templateData);
       setShowSaveTemplateModal(false);
       setTemplateName("");
-      alert(language === 'ar' ? 'تم حفظ القالب بنجاح' : 'Template saved successfully');
+      toast.success(language === 'ar' ? 'تم حفظ القالب بنجاح' : 'Template saved successfully');
     } catch (err) {
       console.error("Failed to save template:", err);
-      alert(language === 'ar' ? 'فشل حفظ القالب' : 'Failed to save template');
+      toast.error(language === 'ar' ? 'فشل حفظ القالب' : 'Failed to save template');
     }
   };
 
@@ -142,7 +143,7 @@ export default function EditAirplaneSectionModal({
       const importData = JSON.parse(text);
 
       if (!importData.data) {
-        alert(language === 'ar' ? 'ملف JSON غير صالح' : 'Invalid JSON file');
+        toast.error(language === 'ar' ? 'ملف JSON غير صالح' : 'Invalid JSON file');
         return;
       }
 
@@ -156,10 +157,10 @@ export default function EditAirplaneSectionModal({
       if (data.language) setLanguage(data.language);
       if (data.flights && Array.isArray(data.flights)) setFlights(data.flights); // Import flights data
 
-      alert(language === 'ar' ? 'تم استيراد القالب بنجاح' : 'Template imported successfully');
+      toast.success(language === 'ar' ? 'تم استيراد القالب بنجاح' : 'Template imported successfully');
     } catch (err) {
       console.error("Failed to import template:", err);
-      alert(language === 'ar' ? 'فشل استيراد القالب' : 'Failed to import template');
+      toast.error(language === 'ar' ? 'فشل استيراد القالب' : 'Failed to import template');
     } finally {
       // Reset file input
       if (fileInputRef.current) {

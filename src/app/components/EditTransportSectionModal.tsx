@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 import type { TransportTable } from '../types/TransportTypes';
 import { saveTransportTemplate } from "@/app/services/TemplatesApi";
 
@@ -75,7 +76,7 @@ export default function EditTransportSectionModal({
   // Save current section settings as template
   const handleSaveTemplate = async () => {
     if (!templateName.trim()) {
-      alert(language === 'ar' ? 'يرجى إدخال اسم القالب' : 'Please enter a template name');
+      toast.error(language === 'ar' ? 'يرجى إدخال اسم القالب' : 'Please enter a template name');
       return;
     }
 
@@ -83,7 +84,13 @@ export default function EditTransportSectionModal({
       const templateData = {
         title: title.trim() || undefined,
         showTitle,
-        tables: initialData?.tables || [],
+        tables: (initialData?.tables || []).map(table => ({
+          ...table,
+          rows: table.rows.map(row => ({
+            ...row,
+            description: row.description || "",
+          }))
+        })),
         direction,
         language,
       };
@@ -91,10 +98,10 @@ export default function EditTransportSectionModal({
       await saveTransportTemplate(templateName.trim(), templateData);
       setShowSaveTemplateModal(false);
       setTemplateName("");
-      alert(language === 'ar' ? 'تم حفظ القالب بنجاح' : 'Template saved successfully');
+      toast.success(language === 'ar' ? 'تم حفظ القالب بنجاح' : 'Template saved successfully');
     } catch (err) {
       console.error("Failed to save template:", err);
-      alert(language === 'ar' ? 'فشل حفظ القالب' : 'Failed to save template');
+      toast.error(language === 'ar' ? 'فشل حفظ القالب' : 'Failed to save template');
     }
   };
 
@@ -134,7 +141,7 @@ export default function EditTransportSectionModal({
       const importData = JSON.parse(text);
 
       if (!importData.data) {
-        alert(language === 'ar' ? 'ملف JSON غير صالح' : 'Invalid JSON file');
+        toast.error(language === 'ar' ? 'ملف JSON غير صالح' : 'Invalid JSON file');
         return;
       }
 
@@ -149,15 +156,16 @@ export default function EditTransportSectionModal({
       // The user would need to manually add tables or we'd need to pass a callback
       // For now, we just update the section settings
       if (data.tables && data.tables.length > 0) {
-        alert(language === 'ar' 
+        toast(language === 'ar' 
           ? 'تم استيراد إعدادات القسم. ملاحظة: يجب إضافة الجداول يدوياً أو استخدام قالب كامل.' 
-          : 'Section settings imported. Note: Tables need to be added manually or use a full template.');
+          : 'Section settings imported. Note: Tables need to be added manually or use a full template.', 
+        { duration: 5000, icon: 'ℹ️' });
       } else {
-        alert(language === 'ar' ? 'تم استيراد القالب بنجاح' : 'Template imported successfully');
+        toast.success(language === 'ar' ? 'تم استيراد القالب بنجاح' : 'Template imported successfully');
       }
     } catch (err) {
       console.error("Failed to import template:", err);
-      alert(language === 'ar' ? 'فشل استيراد القالب' : 'Failed to import template');
+      toast.error(language === 'ar' ? 'فشل استيراد القالب' : 'Failed to import template');
     } finally {
       // Reset file input
       if (fileInputRef.current) {

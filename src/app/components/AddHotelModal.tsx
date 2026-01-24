@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { Hotel } from '../Templates/HotelsSection';
 import { getCompanySettings, getIncludesAllOptions, addIncludesAllOptionUser } from "@/app/services/CompanySettingsApi";
@@ -188,7 +189,7 @@ export default function AddHotelModal({
   // Save current form as template
   const handleSaveTemplate = async () => {
     if (!templateName.trim()) {
-      alert(language === 'ar' ? 'يرجى إدخال اسم القالب' : 'Please enter a template name');
+      toast.error(language === 'ar' ? 'يرجى إدخال اسم القالب' : 'Please enter a template name');
       return;
     }
 
@@ -206,10 +207,10 @@ export default function AddHotelModal({
       setShowSaveTemplateModal(false);
       setTemplateName("");
       await fetchTemplates(); // Refresh templates list
-      alert(language === 'ar' ? 'تم حفظ القالب بنجاح' : 'Template saved successfully');
+      toast.success(language === 'ar' ? 'تم حفظ القالب بنجاح' : 'Template saved successfully');
     } catch (err) {
       console.error("Failed to save template:", err);
-      alert(language === 'ar' ? 'فشل حفظ القالب' : 'Failed to save template');
+      toast.error(language === 'ar' ? 'فشل حفظ القالب' : 'Failed to save template');
     }
   };
 
@@ -250,7 +251,7 @@ export default function AddHotelModal({
       const importData = JSON.parse(text);
 
       if (!importData.data || !importData.data.hotels) {
-        alert(language === 'ar' ? 'ملف JSON غير صالح' : 'Invalid JSON file');
+        toast.error(language === 'ar' ? 'ملف JSON غير صالح' : 'Invalid JSON file');
         return;
       }
 
@@ -264,10 +265,10 @@ export default function AddHotelModal({
         setHotels(data.hotels);
       }
 
-      alert(language === 'ar' ? 'تم استيراد القالب بنجاح' : 'Template imported successfully');
+      toast.success(language === 'ar' ? 'تم استيراد القالب بنجاح' : 'Template imported successfully');
     } catch (err) {
       console.error("Failed to import template:", err);
-      alert(language === 'ar' ? 'فشل استيراد القالب' : 'Failed to import template');
+      toast.error(language === 'ar' ? 'فشل استيراد القالب' : 'Failed to import template');
     } finally {
       // Reset file input
       if (fileInputRef.current) {
@@ -283,10 +284,10 @@ export default function AddHotelModal({
       setShowDeleteTemplateModal(false);
       setTemplateToDelete(null);
       await fetchTemplates(); // Refresh templates list
-      alert(language === 'ar' ? 'تم حذف القالب بنجاح' : 'Template deleted successfully');
+      toast.success(language === 'ar' ? 'تم حذف القالب بنجاح' : 'Template deleted successfully');
     } catch (err) {
       console.error("Failed to delete template:", err);
-      alert(language === 'ar' ? 'فشل حذف القالب' : 'Failed to delete template');
+      toast.error(language === 'ar' ? 'فشل حذف القالب' : 'Failed to delete template');
     }
   };
 
