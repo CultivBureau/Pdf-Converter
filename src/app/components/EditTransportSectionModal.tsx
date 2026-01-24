@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import type { TransportTable } from '../types/TransportTypes';
 import { saveTransportTemplate } from "@/app/services/TemplatesApi";
+import { useLanguage } from "@/app/contexts/LanguageContext";
 
 interface EditTransportSectionModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export default function EditTransportSectionModal({
   onDelete,
   initialData,
 }: EditTransportSectionModalProps) {
+  const { t, isRTL, dir } = useLanguage();
   const [title, setTitle] = useState("المواصلات");
   const [showTitle, setShowTitle] = useState(true);
   const [direction, setDirection] = useState<"rtl" | "ltr">("rtl");
@@ -187,20 +189,21 @@ export default function EditTransportSectionModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-lg"
       onClick={onClose}
       onKeyDown={handleKeyDown}
+      dir={dir}
     >
       <div 
         className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#1E3A8A] to-[#1E40AF] px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <div className={`bg-gradient-to-r from-[#1E3A8A] to-[#1E40AF] px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <h2 className={`text-xl font-bold text-white flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            {language === 'ar' ? 'تعديل قسم المواصلات' : 'Edit Transport Section'}
+            {t.modals.editTransportSection}
           </h2>
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             {/* Save, Export, Import buttons */}
             <button
               type="button"
@@ -210,7 +213,7 @@ export default function EditTransportSectionModal({
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <span className="text-xs font-medium">{language === 'ar' ? 'تصدير' : 'Export'}</span>
+              <span className="text-xs font-medium">{t.modals.export}</span>
             </button>
             <button
               type="button"
@@ -220,7 +223,7 @@ export default function EditTransportSectionModal({
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              <span className="text-xs font-medium">{language === 'ar' ? 'استيراد' : 'Import'}</span>
+              <span className="text-xs font-medium">{t.modals.import}</span>
             </button>
             <button
               type="button"
@@ -230,7 +233,7 @@ export default function EditTransportSectionModal({
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-xs font-medium">{language === 'ar' ? 'حفظ' : 'Save'}</span>
+              <span className="text-xs font-medium">{t.modals.saveAsTemplate}</span>
             </button>
             {/* Close button */}
             <button
@@ -258,17 +261,18 @@ export default function EditTransportSectionModal({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Section Title */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {language === 'ar' ? 'عنوان القسم' : 'Section Title'}
+            <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.sectionTitle}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent"
-              placeholder={language === 'ar' ? 'المواصلات' : 'Transportation'}
+              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+              placeholder={t.modals.transportation}
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
             />
-            <div className="mt-2 flex items-center gap-2">
+            <div className={`mt-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
               <input
                 type="checkbox"
                 id="showTitle"
@@ -277,7 +281,7 @@ export default function EditTransportSectionModal({
                 className="w-4 h-4 text-[#1E3A8A] rounded focus:ring-[#1E3A8A]"
               />
               <label htmlFor="showTitle" className="text-sm text-gray-700">
-                {language === 'ar' ? 'إظهار العنوان' : 'Show Title'}
+                {t.modals.showTitle}
               </label>
             </div>
           </div>
@@ -285,8 +289,8 @@ export default function EditTransportSectionModal({
           {/* Language & Direction */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {language === 'ar' ? 'اللغة' : 'Language'}
+              <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.language}
               </label>
               <select
                 value={language}
@@ -295,72 +299,70 @@ export default function EditTransportSectionModal({
                   setLanguage(newLang);
                   setDirection(newLang === 'ar' ? 'rtl' : 'ltr');
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
               >
-                <option value="ar">{language === 'ar' ? 'العربية' : 'Arabic'}</option>
-                <option value="en">{language === 'ar' ? 'الإنجليزية' : 'English'}</option>
+                <option value="ar">{t.modals.arabic}</option>
+                <option value="en">{t.modals.english}</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {language === 'ar' ? 'الاتجاه' : 'Direction'}
+              <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.direction}
               </label>
               <select
                 value={direction}
                 onChange={(e) => setDirection(e.target.value as "rtl" | "ltr")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
               >
-                <option value="rtl">{language === 'ar' ? 'من اليمين لليسار' : 'Right to Left (RTL)'}</option>
-                <option value="ltr">{language === 'ar' ? 'من اليسار لليمين' : 'Left to Right (LTR)'}</option>
+                <option value="rtl">{t.modals.rtl}</option>
+                <option value="ltr">{t.modals.ltr}</option>
               </select>
             </div>
           </div>
 
           {/* Info about tables */}
           {initialData?.tables && initialData.tables.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className={`bg-blue-50 border border-blue-200 rounded-lg p-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               <p className="text-sm text-blue-800">
-                {language === 'ar' 
-                  ? `يحتوي هذا القسم على ${initialData.tables.length} جدول. استخدم أزرار التعديل في الجداول لتعديلها.`
-                  : `This section contains ${initialData.tables.length} table(s). Use the edit buttons in the tables to modify them.`}
+                {t.modals.tablesInfo.replace('{count}', String(initialData.tables.length))}
               </p>
             </div>
           )}
         </form>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+        <div className={`bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div>
             {onDelete && (
               <button
                 type="button"
                 onClick={handleDelete}
-                className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+                className={`px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                {language === 'ar' ? 'حذف القسم' : 'Delete Section'}
+                {t.modals.deleteSection}
               </button>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
               type="button"
               onClick={onClose}
               className="px-5 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
-              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              {t.common.cancel}
             </button>
             <button
               type="submit"
               onClick={handleSubmit}
-              className="px-5 py-2 bg-gradient-to-r from-[#1E3A8A] to-[#1E40AF] text-white rounded-lg hover:from-[#1E40AF] hover:to-[#1E3A8A] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2"
+              className={`px-5 py-2 bg-gradient-to-r from-[#1E3A8A] to-[#1E40AF] text-white rounded-lg hover:from-[#1E40AF] hover:to-[#1E3A8A] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              {language === 'ar' ? 'حفظ' : 'Save'}
+              {t.common.save}
             </button>
           </div>
         </div>
@@ -387,12 +389,12 @@ export default function EditTransportSectionModal({
         <div className="fixed inset-0 z-[9999] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSaveTemplateModal(false)} />
           <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+            <h3 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.saveAsTemplate}
             </h3>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {language === 'ar' ? 'اسم القالب' : 'Template Name'}
+              <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.templateName}
               </label>
               <input
                 type="text"
@@ -404,23 +406,23 @@ export default function EditTransportSectionModal({
                     handleSaveTemplate();
                   }
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent"
-                placeholder={language === 'ar' ? 'أدخل اسم القالب' : 'Enter template name'}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                placeholder={t.modals.enterTemplateName}
                 autoFocus
               />
             </div>
-            <div className="flex gap-3">
+            <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
                 onClick={() => setShowSaveTemplateModal(false)}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                {t.common.cancel}
               </button>
               <button
                 onClick={handleSaveTemplate}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#1E3A8A] rounded-lg hover:bg-[#1E40AF] transition-colors"
               >
-                {language === 'ar' ? 'حفظ' : 'Save'}
+                {t.common.save}
               </button>
             </div>
           </div>

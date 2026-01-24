@@ -4,8 +4,10 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useLanguage } from "@/app/contexts/LanguageContext";
 import { getAllPlans, createPlan, updatePlan, deletePlan, type Plan, type PlanCreate } from "@/app/services/PlanApi";
 import { format } from "date-fns";
+import LanguageToggle from "@/app/components/LanguageToggle";
 import { 
   ChevronDown, 
   Plus, 
@@ -28,6 +30,7 @@ export default function PlansPage() {
 
 function PlansContent() {
   const { user, isSuperAdmin, logout } = useAuth();
+  const { t, isRTL, dir } = useLanguage();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -174,10 +177,10 @@ function PlansContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50" dir={dir}>
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className={`max-w-7xl mx-auto px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div className="flex items-center gap-4">
             <Link href="/">
               <Image
@@ -190,12 +193,15 @@ function PlansContent() {
               />
             </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            {/* Language Toggle */}
+            <LanguageToggle variant="compact" />
+            
             {user && (
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className={`flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-full flex items-center justify-center text-white font-semibold">
                     {user.name.charAt(0).toUpperCase()}
@@ -204,15 +210,15 @@ function PlansContent() {
                   <ChevronDown className="w-4 h-4 text-gray-600" />
                 </button>
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10`}>
                     <Link href="/" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Home
+                      {t.home.welcomeTo}
                     </Link>
                     <button
                       onClick={logout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      className={`w-full ${isRTL ? 'text-right' : 'text-left'} px-4 py-2 text-sm text-red-600 hover:bg-red-50`}
                     >
-                      Logout
+                      {t.common.logout}
                     </button>
                   </div>
                 )}
@@ -225,22 +231,22 @@ function PlansContent() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Page Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
+        <div className={`mb-8 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={isRTL ? 'text-right' : 'text-left'}>
             <h1 className="text-4xl font-bold text-black mb-2">
-              Subscription Plans
+              {t.plans.title}
             </h1>
             <p className="text-gray-700 text-lg">
-              {isSuperAdmin ? "Manage subscription plans" : "View available plans"}
+              {isSuperAdmin ? t.plans.subtitle : (isRTL ? 'عرض الخطط المتاحة' : 'View available plans')}
             </p>
           </div>
           {isSuperAdmin && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-xl font-bold hover:shadow-xl transition-all transform hover:scale-105 shadow-lg"
+              className={`flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-xl font-bold hover:shadow-xl transition-all transform hover:scale-105 shadow-lg ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               <Plus className="w-5 h-5" />
-              Create Plan
+              {t.plans.addPlan}
             </button>
           )}
         </div>

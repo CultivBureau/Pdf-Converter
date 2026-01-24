@@ -30,6 +30,7 @@ import { generatePDFWithPlaywright, downloadPDFBlob } from "../../services/PdfAp
 import { getCompany } from "../../services/CompanyApi";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import VersionHistoryModal from "../../components/VersionHistoryModal";
+import { useLanguage } from "../../contexts/LanguageContext";
 import type { SeparatedStructure, UserElement, Table, Section } from "../../types/ExtractTypes";
 
 const API_BASE_URL =
@@ -50,6 +51,7 @@ const defaultStructure: SeparatedStructure = {
 };
 
 function CodePageContent() {
+  const { t, isRTL, dir } = useLanguage();
   const searchParams = useSearchParams();
   const [structure, setStructure] = useState<SeparatedStructure>(defaultStructure);
   const [sourceMetadata, setSourceMetadata] = useState<{
@@ -2195,13 +2197,13 @@ function CodePageContent() {
             <div className="relative">
               <button
                 onClick={() => setShowMenuDropdown(!showMenuDropdown)}
-                className="px-4 py-2 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg font-medium hover:from-gray-800 hover:to-gray-900 transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm"
-                title="Menu"
+                className={`px-4 py-2 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg font-medium hover:from-gray-800 hover:to-gray-900 transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}
+                title={t.modals.menu}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                Menu
+                {t.modals.menu}
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -2215,39 +2217,39 @@ function CodePageContent() {
                     onClick={() => setShowMenuDropdown(false)}
                   />
                   {/* Dropdown Menu */}
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50`} dir={dir}>
                     {/* Add Airplane */}
                     <button
                       onClick={handleAddAirplaneClick}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                      className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
                     >
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
                       </svg>
-                      <span>Add Airplane</span>
+                      <span>{t.modals.addAirplaneSection}</span>
                     </button>
                     
                     {/* Add Hotel */}
                     <button
                       onClick={handleAddHotelClick}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                      className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
                     >
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.006 3.705a.75.75 0 00-.512-1.41L6 6.838V3a.75.75 0 00-.75-.75h-1.5A.75.75 0 003 3v4.93l-1.006.365a.75.75 0 00.512 1.41l16.5-6z" />
                         <path fillRule="evenodd" d="M3.019 11.115L18 5.667V9.09l4.006 1.456a.75.75 0 11-.512 1.41l-.494-.18v8.475h.75a.75.75 0 010 1.5H2.25a.75.75 0 010-1.5H3v-9.129l.019-.007zM18 20.25v-9.565l1.5.545v9.02H18zm-9-6a.75.75 0 00-.75.75v4.5c0 .414.336.75.75.75h3a.75.75 0 00.75-.75V15a.75.75 0 00-.75-.75H9z" clipRule="evenodd" />
                       </svg>
-                      <span>Add Hotel</span>
+                      <span>{t.modals.addHotelSection}</span>
                     </button>
                     
                     {/* Add Transport */}
                     <button
                       onClick={handleAddTransportClick}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                      className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
                     >
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                       </svg>
-                      <span>Add Transport</span>
+                      <span>{t.modals.addTransportSection}</span>
                     </button>
                     
                     {/* New Table */}
@@ -2256,12 +2258,12 @@ function CodePageContent() {
                         setIsCreateTableModalOpen(true);
                         setShowMenuDropdown(false);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                      className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
                     >
                       <svg className="w-4 h-4 text-[#A4C639]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
-                      <span>New Table</span>
+                      <span>{t.modals.createNewTable}</span>
                     </button>
                     
                     <div className="border-t border-gray-200 my-1"></div>
@@ -2272,12 +2274,12 @@ function CodePageContent() {
                         handleExportCode();
                         setShowMenuDropdown(false);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                      className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
                     >
                       <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
-                      <span>Export JSON</span>
+                      <span>{t.modals.exportJson}</span>
                     </button>
                     
                     {/* Export to PDF (Server-side - 100% accurate) */}
@@ -2288,8 +2290,8 @@ function CodePageContent() {
                           setShowMenuDropdown(false);
                         }}
                         disabled={isExportingPlaywright}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Generate PDF using Playwright for 100% accuracy"
+                        className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
+                        title={t.modals.exportToPDF}
                       >
                         {isExportingPlaywright ? (
                           <>
@@ -2297,15 +2299,15 @@ function CodePageContent() {
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            <span>Generating PDF...</span>
+                            <span>{t.modals.generatingPDF}</span>
                           </>
                         ) : (
                           <>
                             <svg className="w-4 h-4 text-[#A4C639]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <span>Export to PDF</span>
-                            <span className="ml-auto text-xs text-green-600 font-semibold">100%</span>
+                            <span>{t.modals.exportToPDF}</span>
+                            <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} text-xs text-green-600 font-semibold`}>100%</span>
                           </>
                         )}
                       </button>
@@ -2320,13 +2322,13 @@ function CodePageContent() {
                             setShowVersionHistory(true);
                             setShowMenuDropdown(false);
                           }}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                          className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
                         >
                           <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span>Versions</span>
-                          <span className="ml-auto px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-semibold">
+                          <span>{t.modals.versions}</span>
+                          <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-semibold`}>
                             v{currentVersion}/{totalVersions}
                           </span>
                         </button>

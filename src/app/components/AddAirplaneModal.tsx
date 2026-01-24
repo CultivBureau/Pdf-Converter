@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useLanguage } from "@/app/contexts/LanguageContext";
 import { getCompanySettings, getAirlineCompanies, addAirlineCompanyUser } from "@/app/services/CompanySettingsApi";
 import {
   getAirplaneTemplates,
@@ -50,6 +51,7 @@ export default function AddAirplaneModal({
   onClose,
   onSubmit,
 }: AddAirplaneModalProps) {
+  const { t, isRTL, dir } = useLanguage();
   const [title, setTitle] = useState("حجز الطيران");
   const [showTitle, setShowTitle] = useState(true);
   const [noticeMessage, setNoticeMessage] = useState("التواجد في صاله المطار قبل الاقلاع بساعتين");
@@ -390,23 +392,24 @@ export default function AddAirplaneModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-lg"
       onClick={onClose}
       onKeyDown={handleKeyDown}
+      dir={dir}
     >
       <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in"
+        className={`bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in ${isRTL ? 'text-right' : 'text-left'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#4A5568] to-[#2D3748] px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <div className={`bg-gradient-to-r from-[#4A5568] to-[#2D3748] px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <h2 className={`text-xl font-bold text-white flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
             </svg>
-            Add Airplane Section
+            {t.modals.addAirplaneSection}
           </h2>
           <button
             onClick={onClose}
             className="text-white hover:text-gray-200 transition-colors"
-            aria-label="Close"
+            aria-label={t.common.close}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -419,12 +422,12 @@ export default function AddAirplaneModal({
           {/* Template Selection Section */}
           {showTemplateSelection && (
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <h3 className={`text-base font-bold text-gray-800 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.5a2 2 0 00-1 .25" />
                   </svg>
-                  {language === 'ar' ? 'القوالب المحفوظة' : 'Saved Templates'}
+                  {t.modals.savedTemplates}
                 </h3>
                 {templates.length > 0 && (
                   <button
@@ -432,7 +435,7 @@ export default function AddAirplaneModal({
                     onClick={() => setShowTemplateSelection(false)}
                     className="text-gray-500 hover:text-gray-700 text-sm font-medium"
                   >
-                    {language === 'ar' ? 'إخفاء' : 'Hide'}
+                    {t.modals.hide}
                   </button>
                 )}
               </div>
@@ -446,20 +449,20 @@ export default function AddAirplaneModal({
                         className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-400 transition-all cursor-pointer group"
                         onClick={() => loadTemplate(template)}
                       >
-                        <div className="flex items-start justify-between mb-2">
+                        <div className={`flex items-start justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <div className="flex-1">
                             <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
                               {template.name}
                             </h4>
                             <p className="text-xs text-gray-500 mt-1">
-                              {template.data?.flights?.length || 0} {language === 'ar' ? 'رحلات' : 'flights'}
+                              {template.data?.flights?.length || 0} {t.modals.flightsCount}
                             </p>
                           </div>
-                          <svg className="w-5 h-5 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className={`w-5 h-5 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ${isRTL ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className={`flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -468,7 +471,7 @@ export default function AddAirplaneModal({
                               setShowDeleteTemplateModal(true);
                             }}
                             className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded text-xs"
-                            title={language === 'ar' ? 'حذف' : 'Delete'}
+                            title={t.common.delete}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -483,7 +486,7 @@ export default function AddAirplaneModal({
                     onClick={() => setShowTemplateSelection(false)}
                     className="mt-4 w-full text-sm text-blue-600 hover:text-blue-700 font-semibold py-2 rounded-lg hover:bg-blue-100/50 transition-colors"
                   >
-                    {language === 'ar' ? '+ بدء جديد' : '+ Start Fresh'}
+                    {t.modals.startFresh}
                   </button>
                 </>
               ) : (
@@ -501,30 +504,26 @@ export default function AddAirplaneModal({
                     </div>
                   </div>
                   <h4 className="text-sm font-semibold text-gray-700 mb-1">
-                    {language === 'ar' ? 'لا توجد قوالب محفوظة' : 'No Saved Templates'}
+                    {t.modals.noSavedTemplates}
                   </h4>
                   <p className="text-xs text-gray-500 mb-4 max-w-xs mx-auto">
-                    {language === 'ar' 
-                      ? 'ابدأ بإنشاء قسم طيران جديد وحفظه كقالب لاستخدام لاحق' 
-                      : 'Create a new airplane section and save it as a template for future use'}
+                    {t.modals.createAirplaneSectionDesc}
                   </p>
-                  <div className="bg-blue-100 border border-blue-300 rounded-lg p-3 text-left text-xs text-blue-800 mb-4">
-                    <p className="font-semibold mb-2 flex items-center gap-2">
+                  <div className={`bg-blue-100 border border-blue-300 rounded-lg p-3 text-xs text-blue-800 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <p className={`font-semibold mb-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2z" clipRule="evenodd" />
                       </svg>
-                      {language === 'ar' ? 'نصيحة' : 'Quick Tip'}
+                      {t.modals.quickTip}
                     </p>
-                    {language === 'ar' 
-                      ? 'ستتمكن من حفظ النماذج التي تنشئها وإعادة استخدامها بسرعة' 
-                      : 'You can save the forms you create and reuse them quickly'}
+                    {t.modals.templateTipDesc}
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowTemplateSelection(false)}
                     className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all shadow-md font-medium text-sm"
                   >
-                    {language === 'ar' ? 'إنشاء القسم الأول' : 'Create Your First'}
+                    {t.modals.createYourFirst}
                   </button>
                 </div>
               )}
@@ -534,16 +533,16 @@ export default function AddAirplaneModal({
           {/* Section Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Section Title
+              {t.modals.sectionTitle}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
-              placeholder="Flight Booking"
+              placeholder={t.modals.flightBooking}
             />
-            <div className="mt-2 flex items-center gap-2">
+            <div className={`mt-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <input
                 type="checkbox"
                 id="showTitle"
@@ -552,7 +551,7 @@ export default function AddAirplaneModal({
                 className="w-4 h-4 text-[#4A5568] rounded focus:ring-[#4A5568]"
               />
               <label htmlFor="showTitle" className="text-sm text-gray-700">
-                Show Title
+                {t.modals.showTitle}
               </label>
             </div>
           </div>
@@ -561,7 +560,7 @@ export default function AddAirplaneModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Language
+                {t.modals.language}
               </label>
               <select
                 value={language}
@@ -573,21 +572,21 @@ export default function AddAirplaneModal({
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
               >
-                <option value="ar">Arabic</option>
-                <option value="en">English</option>
+                <option value="ar">{t.modals.arabic}</option>
+                <option value="en">{t.modals.english}</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Direction
+                {t.modals.direction}
               </label>
               <select
                 value={direction}
                 onChange={(e) => setDirection(e.target.value as "rtl" | "ltr")}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
               >
-                <option value="rtl">Right to Left (RTL)</option>
-                <option value="ltr">Left to Right (LTR)</option>
+                <option value="rtl">{t.modals.rtl}</option>
+                <option value="ltr">{t.modals.ltr}</option>
               </select>
             </div>
           </div>
@@ -595,16 +594,16 @@ export default function AddAirplaneModal({
           {/* Notice Message */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Notice Message
+              {t.modals.noticeMessage}
             </label>
             <textarea
               value={noticeMessage}
               onChange={(e) => setNoticeMessage(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
               rows={2}
-              placeholder="Notice message..."
+              placeholder={t.modals.arrivalAirportNotice}
             />
-            <div className="mt-2 flex items-center gap-2">
+            <div className={`mt-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <input
                 type="checkbox"
                 id="showNotice"
@@ -613,41 +612,41 @@ export default function AddAirplaneModal({
                 className="w-4 h-4 text-[#4A5568] rounded focus:ring-[#4A5568]"
               />
               <label htmlFor="showNotice" className="text-sm text-gray-700">
-                Show Notice
+                {t.modals.showNotice}
               </label>
             </div>
           </div>
 
           {/* Flights */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <label className="block text-sm font-semibold text-gray-700">
-                Flights ({flights.length})
+                {t.modals.flights} ({flights.length})
               </label>
               <button
                 type="button"
                 onClick={addFlight}
-                className="px-3 py-1.5 bg-[#4A5568] text-white rounded-lg hover:bg-[#2D3748] transition-colors text-sm flex items-center gap-2"
+                className={`px-3 py-1.5 bg-[#4A5568] text-white rounded-lg hover:bg-[#2D3748] transition-colors text-sm flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add Flight
+                {t.modals.addFlight}
               </button>
             </div>
             
             <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
               {flights.map((flight, index) => (
                 <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold text-gray-700">Flight {index + 1}</span>
+                  <div className={`flex items-center justify-between mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <span className="text-sm font-semibold text-gray-700">{t.modals.flight} {index + 1}</span>
                     {flights.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeFlight(index)}
                         className="text-red-600 hover:text-red-700 text-sm"
                       >
-                        Remove
+                        {t.modals.removeFlight}
                       </button>
                     )}
                   </div>
@@ -655,7 +654,7 @@ export default function AddAirplaneModal({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Date
+                        {t.modals.date}
                       </label>
                       <input
                         type="date"
@@ -672,7 +671,7 @@ export default function AddAirplaneModal({
                     
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Time
+                        {t.modals.time}
                       </label>
                       <input
                         type="time"
@@ -685,7 +684,7 @@ export default function AddAirplaneModal({
 
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Airline Company
+                      {t.modals.airlineCompany}
                     </label>
                     <div className="relative">
                       <select
@@ -693,7 +692,7 @@ export default function AddAirplaneModal({
                         onChange={(e) => updateFlight(index, 'airlineCompany', e.target.value)}
                         className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm appearance-none bg-white"
                       >
-                        <option value="">Select airline company</option>
+                        <option value="">{t.modals.selectAirlineCompany}</option>
                         {airlineCompanies.map((company, idx) => (
                           <option key={idx} value={company}>
                             {company}
@@ -705,8 +704,8 @@ export default function AddAirplaneModal({
                         <button
                           type="button"
                           onClick={() => setShowAddAirlineModal(true)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-[#4A5568] text-white rounded-lg hover:bg-[#2D3748] transition-colors text-xs flex items-center gap-1"
-                          title={language === 'ar' ? 'إضافة شركة طيران جديدة' : 'Add new airline company'}
+                          className={`absolute ${isRTL ? 'left-2' : 'right-2'} top-1/2 -translate-y-1/2 p-1.5 bg-[#4A5568] text-white rounded-lg hover:bg-[#2D3748] transition-colors text-xs flex items-center gap-1`}
+                          title={t.modals.addNewAirlineCompany}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -716,27 +715,27 @@ export default function AddAirplaneModal({
                     </div>
                     {airlineCompanies.length === 0 && (
                       <p className="text-xs text-gray-500 mt-1">
-                        No airline companies available. Click the + button to add one.
+                        {t.modals.noAirlineCompanies}
                       </p>
                     )}
                   </div>
                   
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Airline Company Link (Optional) 🔗
+                      {t.modals.airlineCompanyLink} 🔗
                     </label>
                     <input
                       type="url"
                       value={flight.airlineCompanyLink || ''}
                       onChange={(e) => updateFlight(index, 'airlineCompanyLink', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
-                      placeholder="Airline company link"
+                      placeholder={t.modals.airlineCompanyLink}
                     />
                   </div>
                   
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Luggage
+                      {t.modals.luggage}
                     </label>
                     <input
                       type="text"
@@ -749,7 +748,7 @@ export default function AddAirplaneModal({
                   
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      From Airport
+                      {t.modals.fromAirport}
                     </label>
                     <input
                       type="text"
@@ -758,7 +757,7 @@ export default function AddAirplaneModal({
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm ${
                         errors[`flight_${index}_from`] ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="مطار..."
+                      placeholder={t.modals.fromAirport}
                     />
                     {errors[`flight_${index}_from`] && (
                       <p className="text-red-500 text-xs mt-1">{errors[`flight_${index}_from`]}</p>
@@ -767,20 +766,20 @@ export default function AddAirplaneModal({
                   
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      From Airport Link (Optional) 🔗
+                      {t.modals.fromAirportLink} 🔗
                     </label>
                     <input
                       type="url"
                       value={flight.fromAirportLink || ''}
                       onChange={(e) => updateFlight(index, 'fromAirportLink', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
-                      placeholder="Airport location link"
+                      placeholder={t.modals.fromAirportLink}
                     />
                   </div>
                   
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      To Airport
+                      {t.modals.toAirport}
                     </label>
                     <input
                       type="text"
@@ -789,7 +788,7 @@ export default function AddAirplaneModal({
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm ${
                         errors[`flight_${index}_to`] ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="مطار..."
+                      placeholder={t.modals.toAirport}
                     />
                     {errors[`flight_${index}_to`] && (
                       <p className="text-red-500 text-xs mt-1">{errors[`flight_${index}_to`]}</p>
@@ -798,21 +797,21 @@ export default function AddAirplaneModal({
                   
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      To Airport Link (Optional) 🔗
+                      {t.modals.toAirportLink} 🔗
                     </label>
                     <input
                       type="url"
                       value={flight.toAirportLink || ''}
                       onChange={(e) => updateFlight(index, 'toAirportLink', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent text-sm"
-                      placeholder="Airport location link"
+                      placeholder={t.modals.toAirportLink}
                     />
                   </div>
                   
                   <div className="mt-3 grid grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Adults
+                        {t.modals.adults}
                       </label>
                       <input
                         type="number"
@@ -824,7 +823,7 @@ export default function AddAirplaneModal({
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Children
+                        {t.modals.children}
                       </label>
                       <input
                         type="number"
@@ -836,7 +835,7 @@ export default function AddAirplaneModal({
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Infants
+                        {t.modals.infants}
                       </label>
                       <input
                         type="number"
@@ -860,43 +859,43 @@ export default function AddAirplaneModal({
         </form>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-          <div className="flex items-center gap-2">
+        <div className={`bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
               type="button"
               onClick={handleExportJSON}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
-              title={language === 'ar' ? 'تصدير JSON' : 'Export JSON'}
+              className={`px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.exportJson}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {language === 'ar' ? 'تصدير' : 'Export'}
+              {t.common.export}
             </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
-              title={language === 'ar' ? 'استيراد JSON' : 'Import JSON'}
+              className={`px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.importJson}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              {language === 'ar' ? 'استيراد' : 'Import'}
+              {t.common.import}
             </button>
             <button
               type="button"
               onClick={() => setShowSaveTemplateModal(true)}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
-              title={language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+              className={`px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.saveAsTemplate}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              {language === 'ar' ? 'حفظ' : 'Save'}
+              {t.common.save}
             </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
               type="button"
               onClick={onClose}
@@ -953,15 +952,15 @@ export default function AddAirplaneModal({
 
       {/* Save Template Modal */}
       {showSaveTemplateModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" dir={dir}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSaveTemplateModal(false)} />
-          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+          <div className={`relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in ${isRTL ? 'text-right' : 'text-left'}`} onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+              {t.modals.saveAsTemplate}
             </h3>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {language === 'ar' ? 'اسم القالب' : 'Template Name'}
+                {t.modals.templateName}
               </label>
               <input
                 type="text"
@@ -974,22 +973,22 @@ export default function AddAirplaneModal({
                   }
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
-                placeholder={language === 'ar' ? 'أدخل اسم القالب' : 'Enter template name'}
+                placeholder={t.modals.enterTemplateName}
                 autoFocus
               />
             </div>
-            <div className="flex gap-3">
+            <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
                 onClick={() => setShowSaveTemplateModal(false)}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                {t.common.cancel}
               </button>
               <button
                 onClick={handleSaveTemplate}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#4A5568] rounded-lg hover:bg-[#2D3748] transition-colors"
               >
-                {language === 'ar' ? 'حفظ' : 'Save'}
+                {t.common.save}
               </button>
             </div>
           </div>
@@ -1008,9 +1007,9 @@ export default function AddAirplaneModal({
             handleDeleteTemplate(templateToDelete);
           }
         }}
-        title={language === 'ar' ? 'حذف القالب' : 'Delete Template'}
-        message={language === 'ar' ? 'هل أنت متأكد من حذف هذا القالب؟ لا يمكن التراجع عن هذا الإجراء.' : 'Are you sure you want to delete this template? This action cannot be undone.'}
-        confirmButtonText={language === 'ar' ? 'حذف' : 'Delete'}
+        title={t.modals.deleteTemplate}
+        message={t.modals.deleteTemplateMessage}
+        confirmButtonText={t.common.delete}
       />
     </div>
   );

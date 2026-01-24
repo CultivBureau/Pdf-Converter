@@ -16,6 +16,7 @@ import {
   Check
 } from "lucide-react";
 import { useHistory } from "../contexts/HistoryContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { generatePublicLink, getPublicLink } from "../services/HistoryApi";
 
 interface DocumentCardProps {
@@ -53,6 +54,7 @@ export default function DocumentCard({
   showCreator = false,
 }: DocumentCardProps) {
   const { favorites, toggleFavorite } = useHistory();
+  const { t, isRTL } = useLanguage();
   const [showActions, setShowActions] = useState(false);
   const [isCopyingLink, setIsCopyingLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -298,12 +300,12 @@ export default function DocumentCard({
       </div>
 
       {/* Actions */}
-      <div className={`flex flex-wrap gap-2 transition-all duration-300 ${showActions ? 'opacity-100' : 'opacity-90'}`}>
+      <div className={`flex flex-wrap gap-2 transition-all duration-300 ${showActions ? 'opacity-100' : 'opacity-90'} ${isRTL ? 'flex-row-reverse' : ''}`}>
         <button
           onClick={() => onOpen(document.id)}
           className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white text-sm font-bold rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105"
         >
-          Open
+          {t.history.open}
         </button>
         {document.total_versions && document.total_versions > 1 && onViewVersions && (
           <button
@@ -311,11 +313,11 @@ export default function DocumentCard({
               e.stopPropagation();
               onViewVersions(document.id);
             }}
-            className="px-3 py-2.5 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all duration-200 flex items-center gap-1.5"
+            className={`px-3 py-2.5 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all duration-200 flex items-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}
             title="View version history"
           >
             <History className="w-4 h-4" />
-            Versions
+            {t.history.versions}
           </button>
         )}
         <div className="flex gap-2">

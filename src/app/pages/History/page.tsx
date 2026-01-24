@@ -6,6 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useHistory } from "@/app/contexts/HistoryContext";
+import { useLanguage } from "@/app/contexts/LanguageContext";
+import LanguageToggle from "@/app/components/LanguageToggle";
 import {
   deleteDocument,
   updateDocument,
@@ -27,19 +29,20 @@ import { getDocument } from "@/app/services/HistoryApi";
 function HistoryPageContent() {
   const router = useRouter();
   const { user, isSuperAdmin, isCompanyAdmin } = useAuth();
+  const { t, isRTL, dir } = useLanguage();
   
   // Determine page title and description based on user role
   const pageTitle = isSuperAdmin 
-    ? "All Documents" 
+    ? t.home.allDocuments 
     : isCompanyAdmin 
-    ? "Company Documents" 
-    : "My Documents";
+    ? t.home.companyDocuments 
+    : t.home.myDocuments;
   
   const pageDescription = isSuperAdmin
-    ? "View and manage all documents across all companies in the platform"
+    ? t.history.subtitle
     : isCompanyAdmin
-    ? "View and manage all documents created by users in your company"
-    : "Manage and organize all your converted documents";
+    ? t.history.subtitle
+    : t.history.subtitle;
   const {
     documents,
     isLoading,
@@ -131,7 +134,7 @@ function HistoryPageContent() {
       await refreshDocuments();
       setRenameModal({ isOpen: false, docId: "", currentTitle: "" });
     } catch (err) {
-      alert("Failed to rename document");
+      alert(t.history.failedToRename);
     } finally {
       setIsModalLoading(false);
     }
@@ -148,13 +151,13 @@ function HistoryPageContent() {
   };
 
   const handleDelete = async (docId: string) => {
-    if (!confirm("Are you sure you want to delete this document?")) return;
+    if (!confirm(t.history.areYouSureDelete)) return;
 
     try {
       await deleteDocument(docId);
       await refreshDocuments();
     } catch (err) {
-      alert("Failed to delete document");
+      alert(t.history.failedToDelete);
     }
   };
 
@@ -169,7 +172,7 @@ function HistoryPageContent() {
         totalVersions: doc.total_versions || 1,
       });
     } catch (err) {
-      alert("Failed to load document versions");
+      alert(t.history.failedToLoadVersions);
     }
   };
 
@@ -193,15 +196,15 @@ function HistoryPageContent() {
 
 
   if (isLoading && documents.length === 0) {
-    return <Loading message="Loading your documents..." />;
+    return <Loading message={t.common.loading} />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir={dir}>
       {/* Header */}
       <header className="bg-white/90 backdrop-blur-xl border-b border-gray-200/50 shadow-sm sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-8 py-5">
-          <div className="flex items-center justify-between">
+          <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
               <Image
               src="/logo.png"
@@ -212,24 +215,27 @@ function HistoryPageContent() {
                 priority
               />
             </Link>
-            <div className="flex items-center gap-6">
+            <div className={`flex items-center gap-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              {/* Language Toggle */}
+              <LanguageToggle variant="compact" />
+              
               {user && (
-                <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl border border-slate-200">
+                <div className={`flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl border border-slate-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <div className="w-8 h-8 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-full flex items-center justify-center text-white font-bold text-sm">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm font-semibold text-slate-700">Welcome, {user.name}</span>
+                  <span className="text-sm font-semibold text-slate-700">{t.home.welcomeTo}, {user.name}</span>
                 </div>
               )}
               <Link
                 href="/pages/PdfConverter"
                 className="px-6 py-2.5 bg-gradient-to-br from-[#C4B454] to-[#B8A040] text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all duration-300 text-sm shadow-lg"
               >
-                <span className="flex items-center gap-2">
+                <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Upload PDF
+                  {t.pdfConverter.uploadPdf}
                 </span>
               </Link>
             </div>
@@ -265,10 +271,11 @@ function HistoryPageContent() {
                 type="text"
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
-                placeholder="Search by title, date, or content..."
-                className="w-full pl-14 pr-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-[#C4B454]/20 focus:border-[#C4B454] transition-all duration-300 text-slate-700 placeholder-slate-400 font-medium shadow-lg hover:shadow-xl"
+                placeholder={t.history.searchDocuments}
+                className={`w-full ${isRTL ? 'pr-14 pl-6' : 'pl-14 pr-6'} py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-[#C4B454]/20 focus:border-[#C4B454] transition-all duration-300 text-slate-700 placeholder-slate-400 font-medium shadow-lg hover:shadow-xl`}
+                dir={dir}
               />
-              <div className="absolute left-5 top-1/2 transform -translate-y-1/2">
+              <div className={`absolute ${isRTL ? 'right-5' : 'left-5'} top-1/2 transform -translate-y-1/2`}>
                 <div className="w-8 h-8 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -286,15 +293,16 @@ function HistoryPageContent() {
                 <select
                   value={companyFilter || ""}
                   onChange={(e) => setCompanyFilter(e.target.value || null)}
-                  className="w-full pl-14 pr-6 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-[#C4B454]/20 focus:border-[#C4B454] transition-all duration-300 text-slate-700 font-medium shadow-lg hover:shadow-xl appearance-none cursor-pointer"
+                  className={`w-full ${isRTL ? 'pr-14 pl-6' : 'pl-14 pr-6'} py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-[#C4B454]/20 focus:border-[#C4B454] transition-all duration-300 text-slate-700 font-medium shadow-lg hover:shadow-xl appearance-none cursor-pointer`}
+                  dir={dir}
                 >
-                  <option value="">All Companies</option>
+                  <option value="">{t.companies.title}</option>
                   {loadingCompanies ? (
-                    <option disabled>Loading companies...</option>
+                    <option disabled>{t.common.loading}</option>
                   ) : (
                     companies.map((company) => (
                       <option key={company.id} value={company.id}>
-                        {company.name} {!company.is_active && "(Inactive)"}
+                        {company.name} {!company.is_active && `(${t.companies.inactive})`}
                       </option>
                     ))
                   )}
@@ -316,7 +324,7 @@ function HistoryPageContent() {
           )}
 
           {/* View Mode & Filter Toggle */}
-          <div className="flex gap-3">
+          <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`px-6 py-4 rounded-2xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl ${
@@ -325,11 +333,11 @@ function HistoryPageContent() {
                   : "bg-white text-slate-700 border-2 border-slate-200 hover:border-[#C4B454]"
               }`}
             >
-              <span className="flex items-center gap-3">
+              <span className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
-                Filters & Sort
+                {t.common.filter} & {t.history.sortBy}
               </span>
             </button>
             <div className="flex gap-2 bg-white rounded-2xl p-1.5 border-2 border-slate-200 shadow-lg">
@@ -391,7 +399,7 @@ function HistoryPageContent() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-bold text-red-900 mb-1">Error</h4>
+                <h4 className="text-sm font-bold text-red-900 mb-1">{t.common.error}</h4>
                 <p className="text-sm text-red-700 font-medium">{error}</p>
               </div>
             </div>
@@ -400,14 +408,18 @@ function HistoryPageContent() {
 
         {/* Documents Count */}
         {filteredDocuments.length > 0 && (
-          <div className="mb-6 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/5 rounded-2xl border border-[#C4B454]/30 shadow-sm">
+          <div className={`mb-6 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/5 rounded-2xl border border-[#C4B454]/30 shadow-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
             <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <div className="text-sm font-semibold text-slate-700">
-              Showing <span className="text-lg font-black text-[#B8A040]">{filteredDocuments.length}</span> of <span className="font-bold text-slate-900">{documents.length}</span> documents
+              {isRTL ? (
+                <>عرض <span className="text-lg font-black text-[#B8A040]">{filteredDocuments.length}</span> من <span className="font-bold text-slate-900">{documents.length}</span> مستندات</>
+              ) : (
+                <>Showing <span className="text-lg font-black text-[#B8A040]">{filteredDocuments.length}</span> of <span className="font-bold text-slate-900">{documents.length}</span> documents</>
+              )}
             </div>
           </div>
         )}
@@ -459,17 +471,17 @@ function HistoryPageContent() {
               </svg>
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">
-              {searchQuery ? "No documents found" : "No documents yet"}
+              {searchQuery ? t.history.noDocuments : t.history.noDocuments}
             </h3>
             <p className="text-gray-600 mb-6">
-              {searchQuery ? "Try adjusting your search or filters" : "Upload your first PDF to get started"}
+              {searchQuery ? t.history.tryAdjustingSearch : t.history.noDocumentsDesc}
             </p>
             {!searchQuery && (
               <Link
                 href="/pages/PdfConverter"
                 className="inline-block px-6 py-3 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-xl font-bold hover:shadow-lg transition-all duration-200"
               >
-                Upload PDF
+                {t.pdfConverter.uploadPdf}
               </Link>
             )}
           </div>

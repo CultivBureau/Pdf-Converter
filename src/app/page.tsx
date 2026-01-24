@@ -5,8 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "./contexts/AuthContext";
 import { useHistory } from "./contexts/HistoryContext";
+import { useLanguage } from "./contexts/LanguageContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Loading from "./components/Loading";
+import LanguageToggle from "./components/LanguageToggle";
 import { getRoleDisplayName, getRoleBadgeColor } from "./utils/rbac";
 import { 
   Upload, 
@@ -38,6 +40,7 @@ function HomeContent() {
     logout,
   } = useAuth();
   const { documents, toggleSidebar } = useHistory();
+  const { t, isRTL, dir } = useLanguage();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleLogout = async () => {
@@ -46,7 +49,7 @@ function HomeContent() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50" dir={dir}>
       {/* Header with Logo */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -60,7 +63,10 @@ function HomeContent() {
               priority
             />
           </div>
-          <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            {/* Language Toggle */}
+            <LanguageToggle variant="compact" />
+            
             {user && (
               <button
                 onClick={toggleSidebar}
@@ -68,9 +74,9 @@ function HomeContent() {
                 title="Toggle History Sidebar"
               >
                 <Clock className="w-5 h-5 text-gray-700" />
-                <span className="text-sm font-semibold text-gray-700 hidden sm:inline">History</span>
+                <span className="text-sm font-semibold text-gray-700 hidden sm:inline">{t.home.history}</span>
                 {documents.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  <span className={`absolute -top-1 ${isRTL ? '-left-1' : '-right-1'} w-5 h-5 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white text-xs font-bold rounded-full flex items-center justify-center`}>
                     {documents.length > 99 ? '99+' : documents.length}
                   </span>
                 )}
@@ -96,7 +102,7 @@ function HomeContent() {
                   <ChevronDown className="w-4 h-4 text-gray-600" />
                 </button>
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10`}>
                     {canManageCompanies && (
                       <>
                         <Link
@@ -105,7 +111,7 @@ function HomeContent() {
                         >
                           <span className="flex items-center gap-2">
                             <Building2 className="w-4 h-4" />
-                            Companies
+                            {t.home.companies}
                           </span>
                         </Link>
                         {isSuperAdmin && (
@@ -115,7 +121,7 @@ function HomeContent() {
                           >
                             <span className="flex items-center gap-2">
                               <FileText className="w-4 h-4" />
-                              Company Details
+                              {t.home.companyDetails}
                             </span>
                           </Link>
                         )}
@@ -128,7 +134,7 @@ function HomeContent() {
                       >
                         <span className="flex items-center gap-2">
                           <Shield className="w-4 h-4" />
-                          Plans
+                          {t.home.plans}
                         </span>
                       </Link>
                     )}
@@ -139,7 +145,7 @@ function HomeContent() {
                       >
                         <span className="flex items-center gap-2">
                           <Users className="w-4 h-4" />
-                          User Management
+                          {t.home.userManagement}
                         </span>
                       </Link>
                     )}
@@ -150,7 +156,7 @@ function HomeContent() {
                       >
                         <span className="flex items-center gap-2">
                           <Settings className="w-4 h-4" />
-                          Company Settings
+                          {t.home.companySettings}
                         </span>
                       </Link>
                     )}
@@ -160,14 +166,14 @@ function HomeContent() {
                     >
                       <span className="flex items-center gap-2">
                         <Clock className="w-4 h-4" />
-                        {isSuperAdmin ? "All Documents" : isCompanyAdmin ? "Company Documents" : "My Documents"}
+                        {isSuperAdmin ? t.home.allDocuments : isCompanyAdmin ? t.home.companyDocuments : t.home.myDocuments}
                       </span>
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
-                      Logout
+                      {t.common.logout}
                     </button>
                   </div>
                 )}
@@ -177,7 +183,7 @@ function HomeContent() {
                 href="/pages/Login"
                 className="px-4 py-2 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-lg font-medium hover:from-[#B8A040] hover:to-[#A69035] transition-all shadow-md hover:shadow-lg"
               >
-                Login
+                {t.common.login}
               </Link>
             )}
           </div>
@@ -191,14 +197,14 @@ function HomeContent() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/10 rounded-full border border-[#C4B454]/20 mb-6">
               <span className="text-2xl">✨</span>
-              <span className="text-sm font-bold text-[#B8A040]">Professional Template Studio</span>
+              <span className="text-sm font-bold text-[#B8A040]">{t.home.professionalTemplateStudio}</span>
             </div>
             <h1 className="text-5xl font-extrabold mb-4">
-              <span className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">Welcome to </span>
-              <span className="bg-gradient-to-r from-[#C4B454] to-[#B8A040] bg-clip-text text-transparent">Bureau OCR</span>
+              <span className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">{t.home.welcomeTo} </span>
+              <span className="bg-gradient-to-r from-[#C4B454] to-[#B8A040] bg-clip-text text-transparent">{t.home.bureauOCR}</span>
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Transform your documents with AI-powered OCR technology. Create, edit, and export professional templates with intelligent content extraction.
+              {t.home.subtitle}
             </p>
           </div>
 
@@ -235,13 +241,13 @@ function HomeContent() {
                   <div className="p-4 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                     <FileStack className="w-8 h-8" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">Upload JSON</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">{t.home.uploadJson}</h2>
                 </div>
                 <p className="text-gray-600 mb-4 grow leading-relaxed">
-                  Upload a JSON file to open it in the editor. Design and customize your templates with real-time preview.
+                  {t.home.uploadJsonDesc}
                 </p>
                 <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
-                  <span>Upload File</span>
+                  <span>{t.home.uploadFile}</span>
                   <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
                 </div>
               </div>
@@ -257,13 +263,13 @@ function HomeContent() {
                   <div className="p-4 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                     <Upload className="w-8 h-8" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">PDF Upload</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">{t.home.pdfUpload}</h2>
                 </div>
                 <p className="text-gray-600 mb-4 grow leading-relaxed">
-                  Upload a PDF document and let AI transform it into an editable template with intelligent OCR extraction.
+                  {t.home.pdfUploadDesc}
                 </p>
                 <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
-                  <span>Upload Document</span>
+                  <span>{t.home.uploadDocument}</span>
                   <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
                 </div>
               </div>
@@ -281,18 +287,18 @@ function HomeContent() {
                       <Clock className="w-8 h-8" />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      {isSuperAdmin ? "All Documents" : isCompanyAdmin ? "Company Documents" : "My Documents"}
+                      {isSuperAdmin ? t.home.allDocuments : isCompanyAdmin ? t.home.companyDocuments : t.home.myDocuments}
                     </h2>
                   </div>
                   <p className="text-gray-600 mb-4 grow leading-relaxed">
                     {isSuperAdmin 
-                      ? "View and manage all documents across all companies in the platform. Filter by company, search, and organize documents."
+                      ? t.home.allDocumentsDesc
                       : isCompanyAdmin
-                      ? "View and manage all documents created by users in your company. See who created each document."
-                      : "Access all your converted documents. View, edit, share, and manage your PDF history in one place."}
+                      ? t.home.companyDocumentsDesc
+                      : t.home.myDocumentsDesc}
                   </p>
                   <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
-                    <span>View Documents</span>
+                    <span>{t.home.viewDocuments}</span>
                     <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
                   </div>
                 </div>
@@ -311,19 +317,19 @@ function HomeContent() {
                       <div className="p-4 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                         <Building2 className="w-8 h-8" />
                       </div>
-                      <h2 className="text-2xl font-bold text-gray-900">Companies</h2>
+                      <h2 className="text-2xl font-bold text-gray-900">{t.home.companies}</h2>
                     </div>
                     <div className="mb-4">
                       <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white text-xs font-bold rounded-full mb-3 shadow-md">
                         <Shield className="w-3 h-3" />
-                        Super Admin Only
+                        {t.home.superAdminOnly}
                       </span>
                       <p className="text-gray-600 grow leading-relaxed">
-                        Manage all companies, assign plans, and control access across your platform.
+                        {t.home.manageCompaniesDesc}
                       </p>
                     </div>
                     <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
-                      <span>Manage Companies</span>
+                      <span>{t.home.manageCompanies}</span>
                       <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
                     </div>
                   </div>
@@ -339,19 +345,19 @@ function HomeContent() {
                         <div className="p-4 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                           <FileText className="w-8 h-8" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900">Company Details</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">{t.home.companyDetails}</h2>
                       </div>
                       <div className="mb-4">
                         <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white text-xs font-bold rounded-full mb-3 shadow-md">
                           <Shield className="w-3 h-3" />
-                          Super Admin Only
+                          {t.home.superAdminOnly}
                         </span>
                         <p className="text-gray-600 grow leading-relaxed">
-                          View detailed information for any company including usage, users, and plan details.
+                          {t.home.viewDetailsDesc}
                         </p>
                       </div>
                       <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
-                        <span>View Details</span>
+                        <span>{t.home.viewDetails}</span>
                         <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
                       </div>
                     </div>
@@ -371,13 +377,13 @@ function HomeContent() {
                     <div className="p-4 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                       <Shield className="w-8 h-8" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900">Plans</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{t.home.plans}</h2>
                   </div>
                   <p className="text-gray-600 mb-4 grow leading-relaxed">
-                    View and manage subscription plans. Create custom plans with flexible limits and pricing.
+                    {t.home.managePlansDesc}
                   </p>
                   <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
-                    <span>Manage Plans</span>
+                    <span>{t.home.managePlans}</span>
                     <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
                   </div>
                 </div>
@@ -397,21 +403,21 @@ function HomeContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{t.home.userManagement}</h2>
                   </div>
                   <div className="mb-4">
                     <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white text-xs font-bold rounded-full mb-3 shadow-md">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                       </svg>
-                      Admin Only
+                      {t.home.adminOnly}
                     </span>
                     <p className="text-gray-600 grow leading-relaxed">
-                      Create, view, and manage user accounts. Control access and permissions for your team.
+                      {t.home.manageUsersDesc}
                     </p>
                   </div>
                   <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
-                    <span>Manage Users</span>
+                    <span>{t.home.manageUsers}</span>
                     <svg className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
@@ -431,13 +437,13 @@ function HomeContent() {
                     <div className="p-4 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                       <Settings className="w-8 h-8" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900">Company Settings</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{t.home.companySettingsCard}</h2>
                   </div>
                   <p className="text-gray-600 mb-4 grow leading-relaxed">
-                    Manage your company settings, view usage statistics, and configure branding.
+                    {t.home.companySettingsDesc}
                   </p>
                   <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
-                    <span>View Settings</span>
+                    <span>{t.home.viewSettings}</span>
                     <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
                   </div>
                 </div>
@@ -451,22 +457,22 @@ function HomeContent() {
               <div className="w-16 h-16 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                 <Zap className="w-8 h-8 text-white" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2 text-lg">Fast & Efficient</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">Generate templates in seconds with AI-powered OCR extraction</p>
+              <h3 className="font-bold text-gray-900 mb-2 text-lg">{t.home.fastEfficient}</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{t.home.fastEfficientDesc}</p>
             </div>
             <div className="text-center p-8 bg-white/70 backdrop-blur-md rounded-2xl shadow-lg border border-white/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-16 h-16 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                 <Eye className="w-8 h-8 text-white" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2 text-lg">Live Preview</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">See changes in real-time as you edit your templates</p>
+              <h3 className="font-bold text-gray-900 mb-2 text-lg">{t.home.livePreview}</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{t.home.livePreviewDesc}</p>
             </div>
             <div className="text-center p-8 bg-white/70 backdrop-blur-md rounded-2xl shadow-lg border border-white/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-16 h-16 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                 <Download className="w-8 h-8 text-white" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2 text-lg">Easy Export</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">Download as code or PDF with one click</p>
+              <h3 className="font-bold text-gray-900 mb-2 text-lg">{t.home.easyExport}</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{t.home.easyExportDesc2}</p>
             </div>
           </div>
         </div>
@@ -484,7 +490,7 @@ function HomeContent() {
               className="object-contain opacity-75"
             />
             <span>•</span>
-            <span>Professional Document Intelligence Solutions</span>
+            <span>{t.home.footerText}</span>
           </div>
         </div>
       </footer>

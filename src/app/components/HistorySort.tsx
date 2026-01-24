@@ -2,9 +2,11 @@
 
 import React from "react";
 import { useHistory } from "../contexts/HistoryContext";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function HistorySort() {
   const { sortBy, sortOrder, setSortBy, setSortOrder } = useHistory();
+  const { t, isRTL } = useLanguage();
 
   const isNewestFirst = sortBy === "date" && sortOrder === "desc";
   const isOldestFirst = sortBy === "date" && sortOrder === "asc";
@@ -18,12 +20,12 @@ export default function HistorySort() {
           </svg>
         </div>
         <div>
-          <h3 className="text-2xl font-black text-slate-900">Sort</h3>
-          <p className="text-sm font-medium text-gray-600 mt-0.5">Sort documents by date</p>
+          <h3 className="text-2xl font-black text-slate-900">{t.history.sort}</h3>
+          <p className="text-sm font-medium text-gray-600 mt-0.5">{t.history.sortDocumentsByDate}</p>
         </div>
       </div>
       
-      <div className="flex gap-3">
+      <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <button
           onClick={() => {
             setSortBy("date");
@@ -35,11 +37,11 @@ export default function HistorySort() {
               : "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:scale-105 border-2 border-slate-200"
           }`}
         >
-          <span className="flex items-center justify-center gap-2">
+          <span className={`flex items-center justify-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
             </svg>
-            Newest First
+            {t.history.newestFirst}
           </span>
         </button>
         <button
@@ -53,11 +55,11 @@ export default function HistorySort() {
               : "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:scale-105 border-2 border-slate-200"
           }`}
         >
-          <span className="flex items-center justify-center gap-2">
+          <span className={`flex items-center justify-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
             </svg>
-            Oldest First
+            {t.history.oldestFirst}
           </span>
         </button>
       </div>

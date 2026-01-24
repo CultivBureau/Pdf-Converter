@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -16,15 +17,22 @@ export default function DeleteConfirmationModal({
   isOpen,
   onClose,
   onConfirm,
-  title = "Delete Confirmation",
-  message = "Are you sure you want to delete this? This action cannot be undone.",
-  confirmButtonText = "Delete",
+  title,
+  message,
+  confirmButtonText,
   confirmButtonColor = "red",
 }: DeleteConfirmationModalProps) {
+  const { t, isRTL, dir } = useLanguage();
+  
+  // Use translations as defaults
+  const displayTitle = title || t.deleteModal.title;
+  const displayMessage = message || t.deleteModal.message;
+  const displayButtonText = confirmButtonText || t.deleteModal.deleteButton;
+  
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center" dir={dir}>
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -52,21 +60,21 @@ export default function DeleteConfirmationModal({
         
         {/* Title */}
         <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
-          {title}
+          {displayTitle}
         </h3>
         
         {/* Message */}
         <p className="text-sm text-gray-600 text-center mb-6">
-          {message}
+          {displayMessage}
         </p>
         
         {/* Buttons */}
-        <div className="flex gap-3">
+        <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <button
             onClick={onClose}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
           >
-            Cancel
+            {t.deleteModal.cancelButton}
           </button>
           <button
             onClick={() => {
@@ -81,7 +89,7 @@ export default function DeleteConfirmationModal({
                 : "bg-yellow-600 hover:bg-yellow-700"
             }`}
           >
-            {confirmButtonText}
+            {displayButtonText}
           </button>
         </div>
       </div>

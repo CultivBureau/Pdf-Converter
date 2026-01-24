@@ -4,7 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useLanguage } from "@/app/contexts/LanguageContext";
 import SuperAdminRoute from "@/app/components/SuperAdminRoute";
+import LanguageToggle from "@/app/components/LanguageToggle";
 import {
   Building2,
   Plus,
@@ -54,6 +56,7 @@ export default function CompaniesPage() {
 
 function CompaniesContent() {
   const { user, logout } = useAuth();
+  const { t, isRTL, dir } = useLanguage();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -407,10 +410,10 @@ function CompaniesContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" dir={dir}>
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className={`max-w-7xl mx-auto px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div className="flex items-center gap-4">
             <Link href="/">
               <Image
@@ -423,12 +426,15 @@ function CompaniesContent() {
               />
             </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            {/* Language Toggle */}
+            <LanguageToggle variant="compact" />
+            
             {user && (
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/10 rounded-xl hover:from-[#C4B454]/20 hover:to-[#B8A040]/20 border border-[#C4B454]/20 transition-all group"
+                  className={`flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/10 rounded-xl hover:from-[#C4B454]/20 hover:to-[#B8A040]/20 border border-[#C4B454]/20 transition-all group ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
                   <div className="w-9 h-9 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-full flex items-center justify-center text-white font-bold shadow-md group-hover:shadow-lg transition-shadow">
                     {user.name.charAt(0).toUpperCase()}
@@ -437,20 +443,20 @@ function CompaniesContent() {
                   <ChevronDown className="w-4 h-4 text-[#B8A040] group-hover:text-[#C4B454] transition-colors" />
                 </button>
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-10 overflow-hidden">
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-10 overflow-hidden`}>
                     <Link 
                       href="/" 
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-[#C4B454]/10 hover:to-[#B8A040]/10 transition-all group"
+                      className={`flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-[#C4B454]/10 hover:to-[#B8A040]/10 transition-all group ${isRTL ? 'flex-row-reverse' : ''}`}
                     >
                       <Sparkles className="w-4 h-4 text-[#B8A040] group-hover:text-[#C4B454] transition-colors" />
-                      <span className="font-medium">Home</span>
+                      <span className="font-medium">{t.home.welcomeTo}</span>
                     </Link>
                     <button
                       onClick={logout}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-all group"
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-all group ${isRTL ? 'flex-row-reverse' : ''}`}
                     >
                       <LogOut className="w-4 h-4" />
-                      <span className="font-medium">Logout</span>
+                      <span className="font-medium">{t.common.logout}</span>
                     </button>
                   </div>
                 )}
@@ -463,22 +469,22 @@ function CompaniesContent() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6  py-8">
         {/* Page Header */}
-        <div className="mb-8 flex items-center  justify-between">
-          <div>
+        <div className={`mb-8 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={isRTL ? 'text-right' : 'text-left'}>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-[#C4B454] to-[#B8A040] bg-clip-text text-transparent mb-2">
-              Companies Management
+              {t.companies.title}
             </h1>
-            <p className="text-gray-600 flex items-center gap-2">
+            <p className={`text-gray-600 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <Building2 className="w-4 h-4 text-[#B8A040]" />
-              Manage all companies in the system
+              {t.companies.subtitle}
             </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-xl font-bold hover:from-[#B8A040] hover:to-[#A69035] hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg"
+            className={`flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-xl font-bold hover:from-[#B8A040] hover:to-[#A69035] hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg ${isRTL ? 'flex-row-reverse' : ''}`}
           >
             <Plus className="w-5 h-5" />
-            Create Company
+            {t.companies.addCompany}
           </button>
         </div>
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useLanguage } from "@/app/contexts/LanguageContext";
 import { Hotel } from '../Templates/HotelsSection';
 import { getCompanySettings, getIncludesAllOptions, addIncludesAllOptionUser } from "@/app/services/CompanySettingsApi";
 import AddIncludesAllOptionModal from "./AddIncludesAllOptionModal";
@@ -19,6 +20,7 @@ export default function EditHotelModal({
   onSubmit,
   initialHotel,
 }: EditHotelModalProps) {
+  const { t, isRTL, dir } = useLanguage();
   const [city, setCity] = useState("");
   const [nights, setNights] = useState(1);
   const [cityBadge, setCityBadge] = useState("");
@@ -158,18 +160,19 @@ export default function EditHotelModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-lg"
       onClick={onClose}
       onKeyDown={handleKeyDown}
+      dir={dir}
     >
       <div 
         className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#3B5998] to-[#2E4A7A] px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <div className={`bg-gradient-to-r from-[#3B5998] to-[#2E4A7A] px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <h2 className={`text-xl font-bold text-white flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            Edit Hotel
+            {t.modals.editHotel}
           </h2>
           <button
             onClick={onClose}
@@ -186,8 +189,8 @@ export default function EditHotelModal({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* City */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              City
+            <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.city}
             </label>
             <input
               type="text"
@@ -195,8 +198,9 @@ export default function EditHotelModal({
               onChange={(e) => setCity(e.target.value)}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${
                 errors.city ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="City name..."
+              } ${isRTL ? 'text-right' : 'text-left'}`}
+              placeholder={t.modals.cityPlaceholder}
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
             />
             {errors.city && (
               <p className="text-red-500 text-xs mt-1">{errors.city}</p>
@@ -205,8 +209,8 @@ export default function EditHotelModal({
 
           {/* Nights */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Nights
+            <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.nights}
             </label>
             <input
               type="number"
@@ -215,7 +219,7 @@ export default function EditHotelModal({
               onChange={(e) => setNights(Math.max(1, parseInt(e.target.value) || 1))}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${
                 errors.nights ? "border-red-500" : "border-gray-300"
-              }`}
+              } ${isRTL ? 'text-right' : 'text-left'}`}
             />
             {errors.nights && (
               <p className="text-red-500 text-xs mt-1">{errors.nights}</p>
@@ -224,22 +228,23 @@ export default function EditHotelModal({
 
           {/* City Badge */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              City Badge (Optional)
+            <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.cityBadge}
             </label>
             <input
               type="text"
               value={cityBadge}
               onChange={(e) => setCityBadge(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
-              placeholder="المدينة الاولى"
+              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+              placeholder={t.modals.cityBadgePlaceholder}
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
             />
           </div>
 
           {/* Hotel Name */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Hotel Name
+            <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.hotelName}
             </label>
             <input
               type="text"
@@ -247,8 +252,9 @@ export default function EditHotelModal({
               onChange={(e) => setHotelName(e.target.value)}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${
                 errors.hotelName ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Hotel name..."
+              } ${isRTL ? 'text-right' : 'text-left'}`}
+              placeholder={t.modals.hotelNamePlaceholder}
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
             />
             {errors.hotelName && (
               <p className="text-red-500 text-xs mt-1">{errors.hotelName}</p>
@@ -258,8 +264,8 @@ export default function EditHotelModal({
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Check-in Date
+              <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.checkInDate}
               </label>
               <input
                 type="date"
@@ -274,8 +280,8 @@ export default function EditHotelModal({
               )}
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Check-out Date
+              <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.checkOutDate}
               </label>
               <input
                 type="date"
@@ -294,35 +300,37 @@ export default function EditHotelModal({
           {/* Day Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Check-in Day
+              <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.checkInDay}
               </label>
               <input
                 type="text"
                 value={checkInDay}
                 onChange={(e) => setCheckInDay(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
-                placeholder="اليوم الاول"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                placeholder={t.modals.checkInDayPlaceholder}
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Check-out Day
+              <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.checkOutDay}
               </label>
               <input
                 type="text"
                 value={checkOutDay}
                 onChange={(e) => setCheckOutDay(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
-                placeholder="اليوم الثاني"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                placeholder={t.modals.checkOutDayPlaceholder}
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
               />
             </div>
           </div>
 
           {/* Room Description */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Includes All
+            <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.includesAll}
             </label>
             <div className="relative">
               <select
@@ -351,41 +359,43 @@ export default function EditHotelModal({
               )}
             </div>
             {includesAllOptions.length === 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                No options available. Click the + button to add one.
+              <p className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.noOptionsAvailable}
               </p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Room Type (Optional)
+            <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.roomType}
             </label>
             <input
               type="text"
               value={roomType}
               onChange={(e) => setRoomType(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
-              placeholder="غرفة ميليا"
+              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+              placeholder={t.modals.roomTypePlaceholder}
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Bed Type
+            <label className={`block text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.bedType}
             </label>
             <input
               type="text"
               value={bedType}
               onChange={(e) => setBedType(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
-              placeholder="سرير اضافي/ عدد: 2"
+              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+              placeholder={t.modals.bedTypePlaceholder}
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
             />
           </div>
 
           {/* Details Link */}
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
               <input
                 type="checkbox"
                 id="hasDetailsLink"
@@ -394,7 +404,7 @@ export default function EditHotelModal({
                 className="w-4 h-4 text-[#3B5998] rounded focus:ring-[#3B5998]"
               />
               <label htmlFor="hasDetailsLink" className="text-sm text-gray-700">
-                Has Details Link
+                {t.modals.hasDetailsLink}
               </label>
             </div>
             {hasDetailsLink && (
@@ -402,7 +412,7 @@ export default function EditHotelModal({
                 type="url"
                 value={detailsLink}
                 onChange={(e) => setDetailsLink(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
                 placeholder="https://..."
               />
             )}
@@ -410,23 +420,23 @@ export default function EditHotelModal({
         </form>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-200">
+        <div className={`bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <button
             type="button"
             onClick={onClose}
             className="px-5 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
           >
-            {language === 'ar' ? 'إلغاء' : 'Cancel'}
+            {t.common.cancel}
           </button>
           <button
             type="submit"
             onClick={handleSubmit}
-            className="px-5 py-2 bg-gradient-to-r from-[#3B5998] to-[#2E4A7A] text-white rounded-lg hover:from-[#2E4A7A] hover:to-[#1E3A5A] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2"
+            className={`px-5 py-2 bg-gradient-to-r from-[#3B5998] to-[#2E4A7A] text-white rounded-lg hover:from-[#2E4A7A] hover:to-[#1E3A5A] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+            {t.modals.saveChanges}
           </button>
         </div>
       </div>

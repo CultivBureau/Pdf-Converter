@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { saveAirplaneTemplate } from "@/app/services/TemplatesApi";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import { FlightData } from './AddAirplaneModal';
+import { useLanguage } from "@/app/contexts/LanguageContext";
 
 interface EditAirplaneSectionModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export default function EditAirplaneSectionModal({
   onSubmit,
   initialData,
 }: EditAirplaneSectionModalProps) {
+  const { t, isRTL, dir } = useLanguage();
   const [title, setTitle] = useState("حجز الطيران");
   const [showTitle, setShowTitle] = useState(true);
   const [noticeMessage, setNoticeMessage] = useState("التواجد في صاله المطار قبل الاقلاع بساعتين");
@@ -182,23 +184,24 @@ export default function EditAirplaneSectionModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-lg"
       onClick={onClose}
       onKeyDown={handleKeyDown}
+      dir={dir}
     >
       <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in"
+        className={`bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in ${isRTL ? 'text-right' : 'text-left'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#4A5568] to-[#2D3748] px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <div className={`bg-gradient-to-r from-[#4A5568] to-[#2D3748] px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <h2 className={`text-xl font-bold text-white flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            Edit Airplane Section
+            {t.modals.editAirplaneSection}
           </h2>
           <button
             onClick={onClose}
             className="text-white hover:text-gray-200 transition-colors"
-            aria-label="Close"
+            aria-label={t.common.close}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -211,16 +214,16 @@ export default function EditAirplaneSectionModal({
           {/* Section Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Section Title
+              {t.modals.sectionTitle}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
-              placeholder="Flight Booking"
+              placeholder={t.modals.flightBooking}
             />
-            <div className="mt-2 flex items-center gap-2">
+            <div className={`mt-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <input
                 type="checkbox"
                 id="showTitle"
@@ -229,7 +232,7 @@ export default function EditAirplaneSectionModal({
                 className="w-4 h-4 text-[#4A5568] rounded focus:ring-[#4A5568]"
               />
               <label htmlFor="showTitle" className="text-sm text-gray-700">
-                Show Title
+                {t.modals.showTitle}
               </label>
             </div>
           </div>
@@ -238,7 +241,7 @@ export default function EditAirplaneSectionModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Language
+                {t.modals.language}
               </label>
               <select
                 value={language}
@@ -250,21 +253,21 @@ export default function EditAirplaneSectionModal({
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
               >
-                <option value="ar">Arabic</option>
-                <option value="en">English</option>
+                <option value="ar">{t.modals.arabic}</option>
+                <option value="en">{t.modals.english}</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Direction
+                {t.modals.direction}
               </label>
               <select
                 value={direction}
                 onChange={(e) => setDirection(e.target.value as "rtl" | "ltr")}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
               >
-                <option value="rtl">Right to Left (RTL)</option>
-                <option value="ltr">Left to Right (LTR)</option>
+                <option value="rtl">{t.modals.rtl}</option>
+                <option value="ltr">{t.modals.ltr}</option>
               </select>
             </div>
           </div>
@@ -272,16 +275,16 @@ export default function EditAirplaneSectionModal({
           {/* Notice Message */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Notice Message
+              {t.modals.noticeMessage}
             </label>
             <textarea
               value={noticeMessage}
               onChange={(e) => setNoticeMessage(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
               rows={2}
-              placeholder="Notice message..."
+              placeholder={t.modals.arrivalAirportNotice}
             />
-            <div className="mt-2 flex items-center gap-2">
+            <div className={`mt-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <input
                 type="checkbox"
                 id="showNotice"
@@ -290,66 +293,66 @@ export default function EditAirplaneSectionModal({
                 className="w-4 h-4 text-[#4A5568] rounded focus:ring-[#4A5568]"
               />
               <label htmlFor="showNotice" className="text-sm text-gray-700">
-                Show Notice
+                {t.modals.showNotice}
               </label>
             </div>
           </div>
         </form>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-          <div className="flex items-center gap-2">
+        <div className={`bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
               type="button"
               onClick={handleExportJSON}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
-              title={language === 'ar' ? 'تصدير JSON' : 'Export JSON'}
+              className={`px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.exportJson}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {language === 'ar' ? 'تصدير' : 'Export'}
+              {t.modals.export}
             </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
-              title={language === 'ar' ? 'استيراد JSON' : 'Import JSON'}
+              className={`px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.importJson}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              {language === 'ar' ? 'استيراد' : 'Import'}
+              {t.modals.import}
             </button>
             <button
               type="button"
               onClick={() => setShowSaveTemplateModal(true)}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
-              title={language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+              className={`px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.saveAsTemplate}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              {language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+              {t.modals.saveAsTemplate}
             </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
               type="button"
               onClick={onClose}
               className="px-5 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
-              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              {t.common.cancel}
             </button>
             <button
               type="submit"
               onClick={handleSubmit}
-              className="px-5 py-2 bg-gradient-to-r from-[#4A5568] to-[#2D3748] text-white rounded-lg hover:from-[#2D3748] hover:to-[#1A202C] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2"
+              className={`px-5 py-2 bg-gradient-to-r from-[#4A5568] to-[#2D3748] text-white rounded-lg hover:from-[#2D3748] hover:to-[#1A202C] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+              {t.common.save}
             </button>
           </div>
         </div>
@@ -384,13 +387,13 @@ export default function EditAirplaneSectionModal({
       {showSaveTemplateModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSaveTemplateModal(false)} />
-          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in" onClick={(e) => e.stopPropagation()} dir={dir}>
+            <h3 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.saveAsTemplate}
             </h3>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {language === 'ar' ? 'اسم القالب' : 'Template Name'}
+              <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.templateName}
               </label>
               <input
                 type="text"
@@ -402,23 +405,23 @@ export default function EditAirplaneSectionModal({
                     handleSaveTemplate();
                   }
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
-                placeholder={language === 'ar' ? 'أدخل اسم القالب' : 'Enter template name'}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                placeholder={t.modals.enterTemplateName}
                 autoFocus
               />
             </div>
-            <div className="flex gap-3">
+            <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
                 onClick={() => setShowSaveTemplateModal(false)}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                {t.common.cancel}
               </button>
               <button
                 onClick={handleSaveTemplate}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#4A5568] rounded-lg hover:bg-[#2D3748] transition-colors"
               >
-                {language === 'ar' ? 'حفظ' : 'Save'}
+                {t.common.save}
               </button>
             </div>
           </div>

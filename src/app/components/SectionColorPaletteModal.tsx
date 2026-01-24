@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useLanguage } from "@/app/contexts/LanguageContext";
 
 export type ColorPaletteType = 'default' | 'warm' | 'cool' | 'nature' | 'professional' | 'vibrant' | 'custom';
 
@@ -118,6 +119,7 @@ export default function SectionColorPaletteModal({
   onSave,
   currentPalette,
 }: SectionColorPaletteModalProps) {
+  const { t, isRTL, dir } = useLanguage();
   const [selectedPaletteType, setSelectedPaletteType] = useState<ColorPaletteType>(
     currentPalette?.type || 'default'
   );
@@ -242,14 +244,15 @@ export default function SectionColorPaletteModal({
           maxWidth: '768px',
           margin: '0 1rem'
         }}
+        dir={dir}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <div className={`bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <h2 className={`text-xl font-bold text-white flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
             </svg>
-            Color Palette Configuration
+            {t.modals.colorPaletteConfiguration}
           </h2>
           <button
             onClick={onClose}
@@ -266,11 +269,20 @@ export default function SectionColorPaletteModal({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Predefined Palettes */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Predefined Palettes</h3>
+            <h3 className={`text-lg font-semibold text-gray-800 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.modals.predefinedPalettes}</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {(['default', 'warm', 'cool', 'nature', 'professional', 'vibrant'] as ColorPaletteType[]).map((type) => {
                 const palette = PREDEFINED_PALETTES[type];
                 const isSelected = selectedPaletteType === type;
+                const paletteNames: Record<ColorPaletteType, string> = {
+                  default: t.modals.default,
+                  warm: t.modals.warm,
+                  cool: t.modals.cool,
+                  nature: t.modals.nature,
+                  professional: t.modals.professional,
+                  vibrant: t.modals.vibrant,
+                  custom: t.modals.customColors,
+                };
                 
                 return (
                   <button
@@ -284,8 +296,8 @@ export default function SectionColorPaletteModal({
                     }`}
                   >
                     <div className="flex flex-col gap-2">
-                      <div className="text-sm font-semibold text-gray-800">{palette.name}</div>
-                      <div className="flex gap-1.5">
+                      <div className={`text-sm font-semibold text-gray-800 ${isRTL ? 'text-right' : 'text-left'}`}>{paletteNames[type]}</div>
+                      <div className={`flex gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <div
                           className="w-8 h-8 rounded-full shadow-md"
                           style={{ backgroundColor: palette.colors.primary }}
@@ -301,7 +313,7 @@ export default function SectionColorPaletteModal({
                       </div>
                     </div>
                     {isSelected && (
-                      <div className="absolute top-2 right-2">
+                      <div className={`absolute top-2 ${isRTL ? 'left-2' : 'right-2'}`}>
                         <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
@@ -315,8 +327,8 @@ export default function SectionColorPaletteModal({
 
           {/* Custom Color Option */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Custom Colors</h3>
+            <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <h3 className={`text-lg font-semibold text-gray-800 ${isRTL ? 'text-right' : 'text-left'}`}>{t.modals.customColors}</h3>
               <button
                 type="button"
                 onClick={() => handlePaletteSelect('custom')}
@@ -326,7 +338,7 @@ export default function SectionColorPaletteModal({
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                Use Custom
+                {t.modals.useCustom}
               </button>
             </div>
 
@@ -334,10 +346,10 @@ export default function SectionColorPaletteModal({
               <div className="space-y-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Primary Color
+                    <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t.modals.primaryColor}
                     </label>
-                    <div className="flex gap-2">
+                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <input
                         type="color"
                         value={customColors.primary}
@@ -348,17 +360,17 @@ export default function SectionColorPaletteModal({
                         type="text"
                         value={customColors.primary}
                         onChange={(e) => setCustomColors({ ...customColors, primary: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
                         placeholder="#06B6D4"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Secondary Color
+                    <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t.modals.secondaryColor}
                     </label>
-                    <div className="flex gap-2">
+                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <input
                         type="color"
                         value={customColors.secondary}
@@ -369,17 +381,17 @@ export default function SectionColorPaletteModal({
                         type="text"
                         value={customColors.secondary}
                         onChange={(e) => setCustomColors({ ...customColors, secondary: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
                         placeholder="#3B82F6"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Accent Color
+                    <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t.modals.accentColor}
                     </label>
-                    <div className="flex gap-2">
+                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <input
                         type="color"
                         value={customColors.accent}
@@ -390,17 +402,17 @@ export default function SectionColorPaletteModal({
                         type="text"
                         value={customColors.accent}
                         onChange={(e) => setCustomColors({ ...customColors, accent: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
                         placeholder="#8B5CF6"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Text Color
+                    <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t.modals.textColor}
                     </label>
-                    <div className="flex gap-2">
+                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <input
                         type="color"
                         value={customColors.text}
@@ -411,7 +423,7 @@ export default function SectionColorPaletteModal({
                         type="text"
                         value={customColors.text}
                         onChange={(e) => setCustomColors({ ...customColors, text: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
                         placeholder="#1F2937"
                       />
                     </div>
@@ -419,24 +431,24 @@ export default function SectionColorPaletteModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Background Gradient (CSS gradient string)
+                  <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t.modals.backgroundGradient}
                   </label>
                   <input
                     type="text"
                     value={customColors.background}
                     onChange={(e) => setCustomColors({ ...customColors, background: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
                     placeholder="linear-gradient(to bottom right, #ffffff, #f0f9ff, #e0f2fe)"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Use CSS gradient syntax or a single color (e.g., #ffffff)
+                  <p className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t.modals.gradientHelp}
                   </p>
                 </div>
 
                 {/* Preview */}
                 <div className="mt-4 p-4 rounded-lg border border-gray-300" style={{ background: customColors.background }}>
-                  <div className="flex gap-2 mb-2">
+                  <div className={`flex gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <div
                       className="w-12 h-12 rounded-lg shadow-md"
                       style={{ backgroundColor: customColors.primary }}
@@ -450,8 +462,8 @@ export default function SectionColorPaletteModal({
                       style={{ backgroundColor: customColors.accent }}
                     />
                   </div>
-                  <p style={{ color: customColors.text }} className="text-sm font-medium">
-                    Preview Text Color
+                  <p style={{ color: customColors.text }} className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t.modals.previewTextColor}
                   </p>
                 </div>
               </div>
@@ -460,13 +472,13 @@ export default function SectionColorPaletteModal({
 
           {/* Background Toggle */}
           <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
+            <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-1">
-                  Apply Background Color
+                <label className={`block text-sm font-semibold text-gray-800 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t.modals.applyBackgroundColor}
                 </label>
-                <p className="text-xs text-gray-600">
-                  Toggle whether to apply the background gradient/color to the section
+                <p className={`text-xs text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t.modals.applyBackgroundColorDesc}
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -476,30 +488,30 @@ export default function SectionColorPaletteModal({
                   onChange={(e) => setApplyBackground(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] ${isRTL ? 'after:right-[2px] peer-checked:after:-translate-x-full' : 'after:left-[2px]'} after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600`}></div>
               </label>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-200">
+        <div className={`bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <button
             type="button"
             onClick={onClose}
             className="px-5 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
           >
-            Cancel
+            {t.common.cancel}
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-5 py-2 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:via-blue-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2"
+            className={`px-5 py-2 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:via-blue-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            Save Colors
+            {t.modals.saveColors}
           </button>
         </div>
       </div>

@@ -4,7 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useLanguage } from "@/app/contexts/LanguageContext";
 import CompanyAdminRoute from "@/app/components/CompanyAdminRoute";
+import LanguageToggle from "@/app/components/LanguageToggle";
 import {
   getCompanySettings,
   updateCompanySettings,
@@ -39,6 +41,7 @@ export default function CompanySettingsPage() {
 
 function CompanySettingsContent() {
   const { user, logout } = useAuth();
+  const { t, isRTL, dir } = useLanguage();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [usage, setUsage] = useState<UsageSummary | null>(null);
@@ -99,7 +102,7 @@ function CompanySettingsContent() {
 
   const handleUpdateName = async () => {
     if (!formName.trim()) {
-      setError("Company name is required");
+      setError(t.companySettings.companyNameRequired);
       return;
     }
 
@@ -108,7 +111,7 @@ function CompanySettingsContent() {
     try {
       const updated = await updateCompanySettings(formName.trim());
       setSettings(updated);
-      setSuccess("Company name updated successfully");
+      setSuccess(t.companySettings.companyNameUpdated);
       setEditingName(false);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -170,7 +173,7 @@ function CompanySettingsContent() {
     try {
       const updated = await uploadCompanyHeaderImage(headerImageFile);
       setSettings(updated);
-      setSuccess("Header image uploaded successfully");
+      setSuccess(t.companySettings.headerImageUploaded);
       setHeaderImageFile(null);
       fetchData();
       setTimeout(() => setSuccess(""), 3000);
@@ -190,7 +193,7 @@ function CompanySettingsContent() {
     try {
       const updated = await uploadCompanyFooterImage(footerImageFile);
       setSettings(updated);
-      setSuccess("Footer image uploaded successfully");
+      setSuccess(t.companySettings.footerImageUploaded);
       setFooterImageFile(null);
       fetchData();
       setTimeout(() => setSuccess(""), 3000);
@@ -203,14 +206,14 @@ function CompanySettingsContent() {
   };
 
   const handleDeleteHeaderImage = async () => {
-    if (!confirm("Are you sure you want to delete the header image?")) return;
+    if (!confirm(t.companySettings.confirmDeleteHeader)) return;
     
     setIsUploadingImages(true);
     setError("");
     try {
       const updated = await deleteCompanyHeaderImage();
       setSettings(updated);
-      setSuccess("Header image deleted successfully");
+      setSuccess(t.companySettings.headerImageDeleted);
       fetchData();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -222,14 +225,14 @@ function CompanySettingsContent() {
   };
 
   const handleDeleteFooterImage = async () => {
-    if (!confirm("Are you sure you want to delete the footer image?")) return;
+    if (!confirm(t.companySettings.confirmDeleteFooter)) return;
     
     setIsUploadingImages(true);
     setError("");
     try {
       const updated = await deleteCompanyFooterImage();
       setSettings(updated);
-      setSuccess("Footer image deleted successfully");
+      setSuccess(t.companySettings.footerImageDeleted);
       fetchData();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -242,7 +245,7 @@ function CompanySettingsContent() {
 
   const handleAddAirlineCompany = async () => {
     if (!newAirlineCompany.trim()) {
-      setError("Airline company name is required");
+      setError(t.companySettings.airlineNameRequired);
       return;
     }
 
@@ -252,7 +255,7 @@ function CompanySettingsContent() {
       if (result && result.airline_companies) {
         setSettings({ ...settings!, airline_companies: result.airline_companies });
         setNewAirlineCompany("");
-        setSuccess("Airline company added successfully");
+        setSuccess(t.companySettings.airlineCompanyAdded);
         setTimeout(() => setSuccess(""), 3000);
       } else {
         throw new Error("Invalid response from server");
@@ -265,13 +268,13 @@ function CompanySettingsContent() {
   };
 
   const handleRemoveAirlineCompany = async (index: number) => {
-    if (!confirm("Are you sure you want to remove this airline company?")) return;
+    if (!confirm(t.companySettings.confirmRemoveAirline)) return;
 
     setError("");
     try {
       const result = await removeAirlineCompany(index);
       setSettings({ ...settings!, airline_companies: result.airline_companies });
-      setSuccess("Airline company removed successfully");
+      setSuccess(t.companySettings.airlineCompanyRemoved);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to remove airline company";
@@ -281,7 +284,7 @@ function CompanySettingsContent() {
 
   const handleAddIncludesAllOption = async () => {
     if (!newIncludesAllOption.trim()) {
-      setError("Option text is required");
+      setError(t.companySettings.optionTextRequired);
       return;
     }
 
@@ -291,7 +294,7 @@ function CompanySettingsContent() {
       if (result && result.includes_all_options) {
         setSettings({ ...settings!, includes_all_options: result.includes_all_options });
         setNewIncludesAllOption("");
-        setSuccess("Includes all option added successfully");
+        setSuccess(t.companySettings.includesAllOptionAdded);
         setTimeout(() => setSuccess(""), 3000);
       } else {
         throw new Error("Invalid response from server");
@@ -304,13 +307,13 @@ function CompanySettingsContent() {
   };
 
   const handleRemoveIncludesAllOption = async (index: number) => {
-    if (!confirm("Are you sure you want to remove this option?")) return;
+    if (!confirm(t.companySettings.confirmRemoveOption)) return;
 
     setError("");
     try {
       const result = await removeIncludesAllOption(index);
       setSettings({ ...settings!, includes_all_options: result.includes_all_options });
-      setSuccess("Includes all option removed successfully");
+      setSuccess(t.companySettings.includesAllOptionRemoved);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to remove includes all option";
@@ -319,10 +322,10 @@ function CompanySettingsContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50" dir={dir}>
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className={`max-w-7xl mx-auto px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div className="flex items-center gap-4">
             <Link href="/">
               <Image
@@ -335,12 +338,15 @@ function CompanySettingsContent() {
               />
             </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            {/* Language Toggle */}
+            <LanguageToggle variant="compact" />
+            
             {user && (
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className={`flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-full flex items-center justify-center text-white font-semibold">
                     {user.name.charAt(0).toUpperCase()}
@@ -351,15 +357,15 @@ function CompanySettingsContent() {
                   </svg>
                 </button>
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+                  <div className={`absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10 ${isRTL ? 'left-0 right-auto' : ''}`}>
                     <Link href="/" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Home
+                      {t.companySettings.home}
                     </Link>
                     <button
                       onClick={logout}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
-                      Logout
+                      {t.companySettings.logout}
                     </button>
                   </div>
                 )}
@@ -372,11 +378,11 @@ function CompanySettingsContent() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Page Header */}
-        <div className="mb-8">
+        <div className={`mb-8 ${isRTL ? 'text-right' : 'text-left'}`}>
           <h1 className="text-4xl font-bold text-black mb-2">
-            Company Settings
+            {t.companySettings.title}
           </h1>
-          <p className="text-gray-700 text-lg">Manage your company settings and view usage statistics</p>
+          <p className="text-gray-700 text-lg">{t.companySettings.subtitle}</p>
         </div>
 
         {/* Messages */}
@@ -394,25 +400,25 @@ function CompanySettingsContent() {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#C4B454]"></div>
-            <p className="mt-2 text-black font-medium">Loading settings...</p>
+            <p className="mt-2 text-black font-medium">{t.companySettings.loading}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Company Info */}
             <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200">
-              <h2 className="text-2xl font-bold text-black mb-6 flex items-center gap-3">
+              <h2 className={`text-2xl font-bold text-black mb-6 flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
-                Company Information
+                {t.companySettings.companyInfo}
               </h2>
 
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-black mb-2">
-                    Company Name
+                    {t.companySettings.companyName}
                   </label>
                   {editingName ? (
                     <div className="flex gap-2">
@@ -454,7 +460,7 @@ function CompanySettingsContent() {
 
                 <div>
                   <label className="block text-sm font-semibold text-black mb-2">
-                    Status
+                    {t.companySettings.status}
                   </label>
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <span
@@ -464,7 +470,7 @@ function CompanySettingsContent() {
                           : "bg-gray-100 text-gray-700"
                       }`}
                     >
-                      {settings?.is_active ? "Active" : "Inactive"}
+                      {settings?.is_active ? t.companySettings.active : t.companySettings.inactive}
                     </span>
                   </div>
                 </div>
@@ -472,19 +478,19 @@ function CompanySettingsContent() {
 
               {/* Branding Images Section */}
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-bold text-black mb-4">Branding Images</h3>
+                <h3 className="text-lg font-bold text-black mb-4">{t.companySettings.brandingImages}</h3>
                 <p className="text-sm text-black mb-4">
-                  Upload header and footer images that will appear on all PDF documents generated for your company.
+                  {t.companySettings.brandingDescription}
                 </p>
 
                 {/* Header Image */}
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-black mb-2">
-                    Header Image
+                    {t.companySettings.headerImage}
                   </label>
                   <div className="mb-2 p-1.5 bg-[#C4B454]/10 border border-[#C4B454]/30 rounded text-xs max-h-16 overflow-y-auto">
-                    <p className="text-black font-semibold text-xs leading-tight mb-0.5">📏 Recommended Size:</p>
-                    <p className="text-black text-xs leading-tight">1200×200px or similar wide format (16:3 ratio) for best results</p>
+                    <p className="text-black font-semibold text-xs leading-tight mb-0.5">{t.companySettings.recommendedSizeHeader}</p>
+                    <p className="text-black text-xs leading-tight">{t.companySettings.headerSizeDesc}</p>
                   </div>
                   {settings?.header_image ? (
                     <div className="space-y-2">
@@ -553,11 +559,11 @@ function CompanySettingsContent() {
                 {/* Footer Image */}
                 <div>
                   <label className="block text-sm font-semibold text-black mb-2">
-                    Footer Image
+                    {t.companySettings.footerImage}
                   </label>
                   <div className="mb-2 p-1.5 bg-[#C4B454]/10 border border-[#C4B454]/30 rounded text-xs max-h-16 overflow-y-auto">
-                    <p className="text-black font-semibold text-xs leading-tight mb-0.5">📏 Recommended Size:</p>
-                    <p className="text-black text-xs leading-tight">1200×100px or similar wide format (12:1 ratio) for best results</p>
+                    <p className="text-black font-semibold text-xs leading-tight mb-0.5">{t.companySettings.recommendedSizeHeader}</p>
+                    <p className="text-black text-xs leading-tight">{t.companySettings.footerSizeDesc}</p>
                   </div>
                   {settings?.footer_image ? (
                     <div className="space-y-2">
@@ -626,26 +632,26 @@ function CompanySettingsContent() {
 
               {/* Airline Companies Management */}
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-black">Airline Companies</h3>
+                <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <h3 className="text-lg font-bold text-black">{t.companySettings.airlineCompanies}</h3>
                   <button
                     onClick={() => setIsManagingAirlineCompanies(!isManagingAirlineCompanies)}
                     className="px-3 py-1.5 text-sm bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium"
                   >
-                    {isManagingAirlineCompanies ? "Hide" : "Manage"}
+                    {isManagingAirlineCompanies ? t.companySettings.hide : t.companySettings.manage}
                   </button>
                 </div>
                 <p className="text-sm text-black mb-4">
-                  Manage airline companies that will appear in the dropdown when adding airplane sections.
+                  {t.companySettings.airlineDescription}
                 </p>
                 {isManagingAirlineCompanies && (
                   <div className="space-y-3">
-                    <div className="flex gap-2">
+                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <input
                         type="text"
                         value={newAirlineCompany}
                         onChange={(e) => setNewAirlineCompany(e.target.value)}
-                        placeholder="Enter airline company name"
+                        placeholder={t.companySettings.enterAirlineName}
                         className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C4B454]/20 focus:border-[#C4B454] text-black"
                         onKeyPress={(e) => {
                           if (e.key === "Enter") {
@@ -657,7 +663,7 @@ function CompanySettingsContent() {
                         onClick={handleAddAirlineCompany}
                         className="px-4 py-2 bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium"
                       >
-                        Add
+                        {t.companySettings.add}
                       </button>
                     </div>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -686,26 +692,26 @@ function CompanySettingsContent() {
 
               {/* Hotel Includes All Options Management */}
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-black">Hotel Includes All Options</h3>
+                <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <h3 className="text-lg font-bold text-black">{t.companySettings.includesAllOptions}</h3>
                   <button
                     onClick={() => setIsManagingIncludesAll(!isManagingIncludesAll)}
                     className="px-3 py-1.5 text-sm bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium"
                   >
-                    {isManagingIncludesAll ? "Hide" : "Manage"}
+                    {isManagingIncludesAll ? t.companySettings.hide : t.companySettings.manage}
                   </button>
                 </div>
                 <p className="text-sm text-black mb-4">
-                  Manage options that will appear in the dropdown when adding hotel sections. "Includes All" is the default option.
+                  {t.companySettings.includesAllDescription}
                 </p>
                 {isManagingIncludesAll && (
                   <div className="space-y-3">
-                    <div className="flex gap-2">
+                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <input
                         type="text"
                         value={newIncludesAllOption}
                         onChange={(e) => setNewIncludesAllOption(e.target.value)}
-                        placeholder="Enter option text (e.g., Includes Breakfast)"
+                        placeholder={t.companySettings.enterOptionText}
                         className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C4B454]/20 focus:border-[#C4B454] text-black"
                         onKeyPress={(e) => {
                           if (e.key === "Enter") {
@@ -717,7 +723,7 @@ function CompanySettingsContent() {
                         onClick={handleAddIncludesAllOption}
                         className="px-4 py-2 bg-[#C4B454] text-white rounded-lg hover:bg-[#B8A040] font-medium"
                       >
-                        Add
+                        {t.companySettings.add}
                       </button>
                     </div>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -751,13 +757,13 @@ function CompanySettingsContent() {
 
             {/* Plan Information */}
             <div className="bg-white rounded-2xl text-black shadow-lg p-6 border-2 border-gray-200">
-              <h2 className="text-2xl font-bold text-black mb-6 flex items-center gap-3">
+              <h2 className={`text-2xl font-bold text-black mb-6 flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-                Current Plan
+                {t.companySettings.currentPlan}
               </h2>
 
               {plan?.plan ? (
@@ -806,19 +812,19 @@ function CompanySettingsContent() {
                     </div>
                   </div>
                   {plan.plan_started_at && (
-                    <div className="text-xs text-black">
-                      Started: {format(new Date(plan.plan_started_at), "MMM d, yyyy")}
+                    <div className={`text-xs text-black ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t.companySettings.started} {format(new Date(plan.plan_started_at), "MMM d, yyyy")}
                     </div>
                   )}
                   {plan.plan_expires_at && (
-                    <div className="text-xs text-black">
-                      Expires: {format(new Date(plan.plan_expires_at), "MMM d, yyyy")}
+                    <div className={`text-xs text-black ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t.companySettings.expires} {format(new Date(plan.plan_expires_at), "MMM d, yyyy")}
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No plan assigned</p>
+                <div className={`text-center py-8 text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <p>{t.companySettings.noPlanAssigned}</p>
                 </div>
               )}
             </div>
@@ -826,13 +832,13 @@ function CompanySettingsContent() {
             {/* Usage Statistics */}
             <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 lg:col-span-2">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-black flex items-center gap-3">
+                <h2 className={`text-2xl font-bold text-black flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                   </div>
-                  Usage Statistics
+                  {t.companySettings.usageStatistics}
                 </h2>
        
               </div>
@@ -1003,18 +1009,18 @@ function CompanySettingsContent() {
 
             {/* Company Users */}
             <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 lg:col-span-2">
-              <h2 className="text-2xl font-bold text-black mb-6 flex items-center gap-3">
+              <h2 className={`text-2xl font-bold text-black mb-6 flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <div className="w-10 h-10 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 </div>
-                Company Users ({companyUsers.length})
+                {t.companySettings.companyUsers} ({companyUsers.length})
               </h2>
 
               {companyUsers.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No users in this company</p>
+                <div className={`text-center py-8 text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <p>{t.companySettings.noUsersInCompany}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

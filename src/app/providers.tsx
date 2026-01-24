@@ -2,17 +2,20 @@
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { HistoryProvider } from "./contexts/HistoryContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { ToastProvider } from "./components/Toast";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <HistoryProvider>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
-      </HistoryProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <HistoryProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </HistoryProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

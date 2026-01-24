@@ -8,6 +8,8 @@ import {
   type DocumentVersion,
 } from "../services/HistoryApi";
 import { formatDistanceToNow } from "date-fns";
+import { ar } from "date-fns/locale";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ export default function VersionHistoryModal({
   onClose,
   onRestore,
 }: VersionHistoryModalProps) {
+  const { t, isRTL, dir, language } = useLanguage();
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +56,7 @@ export default function VersionHistoryModal({
   };
 
   const handleRestore = async (versionNumber: number, versionName?: string) => {
-    if (!confirm(`Are you sure you want to restore to version ${versionNumber}? This will create a new version with the restored data.`)) {
+    if (!confirm(`${t.modals.confirmRestore} ${versionNumber}? ${t.modals.confirmRestoreDetails}`)) {
       return;
     }
 
@@ -73,7 +76,7 @@ export default function VersionHistoryModal({
   };
 
   const handleResetToOriginal = async (versionName?: string) => {
-    if (!confirm("Are you sure you want to reset to the original version? This will create a new version with the original data.")) {
+    if (!confirm(t.modals.confirmReset)) {
       return;
     }
 
@@ -96,19 +99,19 @@ export default function VersionHistoryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-lg animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-scaleIn">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-scaleIn" dir={dir}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
+        <div className={`flex items-center justify-between p-6 border-b border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-gray-900">Version History</h2>
+            <div className={isRTL ? 'text-right' : ''}>
+              <h2 className="text-2xl font-black text-gray-900">{t.modals.versionHistory}</h2>
               <p className="text-sm font-medium text-gray-600 mt-0.5">
-                {totalVersions} version{totalVersions !== 1 ? "s" : ""} available
+                {totalVersions} {t.modals.versionsAvailable}
               </p>
             </div>
           </div>
@@ -144,14 +147,17 @@ export default function VersionHistoryModal({
             </div>
           ) : versions.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-600">No versions found</p>
+              <p className="text-gray-600">{t.modals.noVersionsFound}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {versions.map((version) => {
                 const isCurrent = version.version_number === currentVersion;
                 const isRestoring = restoringVersion === version.version_number;
-                const timeAgo = formatDistanceToNow(new Date(version.created_at), { addSuffix: true });
+                const timeAgo = formatDistanceToNow(new Date(version.created_at), { 
+                  addSuffix: true,
+                  locale: language === 'ar' ? ar : undefined
+                });
 
                 return (
                   <div
@@ -162,9 +168,9 @@ export default function VersionHistoryModal({
                         : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className={`flex items-start justify-between gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className={`flex items-center gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <div className={`px-3 py-1 rounded-lg font-bold text-sm ${
                             version.is_original
                               ? "bg-green-100 text-green-700"
@@ -172,11 +178,11 @@ export default function VersionHistoryModal({
                               ? "bg-indigo-100 text-indigo-700"
                               : "bg-gray-100 text-gray-700"
                           }`}>
-                            {version.is_original ? "Original" : `v${version.version_number}`}
+                            {version.is_original ? t.modals.original : `v${version.version_number}`}
                           </div>
                           {isCurrent && (
                             <span className="px-3 py-1 bg-indigo-600 text-white rounded-lg font-bold text-xs">
-                              Current
+                              {t.modals.current}
                             </span>
                           )}
                           <span className="text-xs text-gray-500 font-medium">{timeAgo}</span>
@@ -192,8 +198,8 @@ export default function VersionHistoryModal({
                           </p>
                         )}
                         {!version.change_summary && !version.version_name && version.is_original && (
-                          <p className="text-sm text-gray-600 mt-2 italic">
-                            Original version created when document was first saved
+                          <p className={`text-sm text-gray-600 mt-2 italic ${isRTL ? 'text-right' : ''}`}>
+                            {t.modals.originalVersionDesc}
                           </p>
                         )}
                         {showNameInput === version.version_number && (
@@ -202,19 +208,20 @@ export default function VersionHistoryModal({
                               type="text"
                               value={versionName}
                               onChange={(e) => setVersionName(e.target.value)}
-                              placeholder="Enter version name (optional)"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                              placeholder={t.modals.enterVersionName}
+                              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm ${isRTL ? 'text-right' : ''}`}
                               maxLength={100}
                               autoFocus
+                              dir={dir}
                             />
-                            <div className="flex gap-2 mt-2">
+                            <div className={`flex gap-2 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                               <button
                                 onClick={() => {
                                   handleRestore(version.version_number, versionName.trim() || undefined);
                                 }}
                                 className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700"
                               >
-                                Restore with Name
+                                {t.modals.restoreWithName}
                               </button>
                               <button
                                 onClick={() => {
@@ -223,7 +230,7 @@ export default function VersionHistoryModal({
                                 }}
                                 className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-300"
                               >
-                                Cancel
+                                {t.modals.cancel}
                               </button>
                             </div>
                           </div>
@@ -241,7 +248,7 @@ export default function VersionHistoryModal({
                                 disabled={isRestoring || restoringVersion !== null}
                                 className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold text-sm hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
                               >
-                                {isRestoring ? "Restoring..." : "Restore"}
+                                {isRestoring ? t.modals.restoring : t.modals.restore}
                               </button>
                             ) : null}
                           </>
@@ -263,18 +270,19 @@ export default function VersionHistoryModal({
                 type="text"
                 value={versionName}
                 onChange={(e) => setVersionName(e.target.value)}
-                placeholder="Enter version name (optional)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                placeholder={t.modals.enterVersionName}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm ${isRTL ? 'text-right' : ''}`}
                 maxLength={100}
                 autoFocus
+                dir={dir}
               />
-              <div className="flex gap-2">
+              <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <button
                   onClick={() => handleResetToOriginal(versionName.trim() || undefined)}
                   disabled={restoringVersion !== null}
                   className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold text-sm hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
                 >
-                  {restoringVersion === 0 ? "Resetting..." : "Reset with Name"}
+                  {restoringVersion === 0 ? t.modals.resetting : t.modals.resetWithName}
                 </button>
                 <button
                   onClick={() => {
@@ -283,12 +291,12 @@ export default function VersionHistoryModal({
                   }}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold text-sm hover:bg-gray-300 transition-all"
                 >
-                  Cancel
+                  {t.modals.cancel}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
+            <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
                 onClick={() => {
                   setShowNameInput(0);
@@ -297,13 +305,13 @@ export default function VersionHistoryModal({
                 disabled={restoringVersion !== null || currentVersion === 1}
                 className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold text-sm hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
               >
-                Reset to Original
+                {t.modals.resetToOriginal}
               </button>
               <button
                 onClick={onClose}
                 className="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-all"
               >
-                Close
+                {t.modals.close}
               </button>
             </div>
           )}

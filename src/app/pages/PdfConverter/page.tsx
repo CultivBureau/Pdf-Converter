@@ -24,14 +24,17 @@ import type { SeparatedStructure } from "../../types/ExtractTypes";
 import { isAuthenticated } from "../../services/AuthApi";
 import { saveDocument } from "../../services/HistoryApi";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { getCompany } from "../../services/CompanyApi";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import ErrorDialog from "../../components/ErrorDialog";
+import LanguageToggle from "../../components/LanguageToggle";
 import type { ErrorSeverity } from "../../components/ErrorDialog";
 
 const PdfConverterContent: React.FC = () => {
   const router = useRouter();
   const { user, isSuperAdmin } = useAuth();
+  const { t, isRTL, dir } = useLanguage();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -89,27 +92,27 @@ const PdfConverterContent: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedFile) {
-      setError("Please choose a PDF before submitting.");
+      setError(t.pdfConverter.pleasChoosePdf);
       return;
     }
 
     try {
       setIsProcessing(true);
       setError("");
-      setStatus("Uploading file…");
+      setStatus(t.pdfConverter.uploadingFile);
 
       // Step 1: Upload PDF
       const uploadResponse = await uploadFile(selectedFile);
       if (!uploadResponse.file_path) {
-        throw new Error("Upload failed: No file path returned.");
+        throw new Error(t.pdfConverter.uploadFailed);
       }
 
       // Step 2: Extract structured data (v2 format: { generated, user, layout, meta })
-      setStatus("Extracting content from PDF…");
+      setStatus(t.pdfConverter.extractingContent);
       const extractResponse: SeparatedStructure = await extractStructured(uploadResponse.file_path);
       
       if (!extractResponse.generated || (!extractResponse.generated.sections?.length && !extractResponse.generated.tables?.length)) {
-        throw new Error("Extraction returned no content.");
+        throw new Error(t.pdfConverter.extractionFailed);
       }
 
       // Store in sessionStorage for CodePreview page (v2 format)
@@ -134,7 +137,7 @@ const PdfConverterContent: React.FC = () => {
       // Auto-save to history if user is authenticated
       if (isAuthenticated()) {
         try {
-          setStatus("Saving to history…");
+          setStatus(t.pdfConverter.savingToHistory);
           const docTitle = uploadResponse.original_filename?.replace(/\.pdf$/i, "") || selectedFile.name.replace(/\.pdf$/i, "");
           
           const savedDoc = await saveDocument({
@@ -160,7 +163,7 @@ const PdfConverterContent: React.FC = () => {
         }
       }
 
-      setStatus("Opening editor…");
+      setStatus(t.pdfConverter.openingEditor);
       router.push("/pages/CodePreview");
     } catch (err) {
       const message =
@@ -178,7 +181,7 @@ const PdfConverterContent: React.FC = () => {
         cleanMessage = cleanMessage.replace(/Network request failed for [^:]+:\s*/i, ''); // Remove network request info
         
         showErrorDialog(
-          "Upload Limit Reached - Please Contact Support to upgrade your plan ",
+          t.pdfConverter.uploadLimitReached,
           cleanMessage,
           "warning"
         );
@@ -193,7 +196,7 @@ const PdfConverterContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-cyan-50 via-blue-50 to-lime-50">
+    <div className="min-h-screen bg-linear-to-br from-cyan-50 via-blue-50 to-lime-50" dir={dir}>
       {/* Error Dialog */}
       <ErrorDialog
         isOpen={errorDialog.isOpen}
@@ -206,7 +209,7 @@ const PdfConverterContent: React.FC = () => {
       {/* Header with Logo and Navigation */}
       <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
               <Image
                src="/logo.png"
@@ -217,16 +220,19 @@ const PdfConverterContent: React.FC = () => {
                 priority
               />
             </Link>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">PDF to Template Converter</p>
-                <p className="text-xs text-gray-500">Upload & Transform</p>
+            <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              {/* Language Toggle */}
+              <LanguageToggle variant="compact" />
+              
+              <div className={isRTL ? 'text-left' : 'text-right'}>
+                <p className="text-sm font-semibold text-gray-900">{t.pdfConverter.title}</p>
+                <p className="text-xs text-gray-500">{t.pdfConverter.subtitle}</p>
               </div>
               <Link 
                 href="/pages/CodePreview"
                 className="px-4 py-2 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white rounded-lg font-medium hover:from-[#B8A040] hover:to-[#A69035] transition-all shadow-md text-sm"
               >
-                Open Editor
+                {isRTL ? 'فتح المحرر' : 'Open Editor'}
               </Link>
             </div>
           </div>
@@ -236,16 +242,16 @@ const PdfConverterContent: React.FC = () => {
       <div className="mx-auto flex min-h-[calc(100vh-100px)] w-full max-w-4xl flex-col items-center justify-center px-6 py-16">
         {/* Hero Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/10 rounded-full shadow-md border border-[#C4B454]/20 mb-4">
+          <div className={`inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C4B454]/10 to-[#B8A040]/10 rounded-full shadow-md border border-[#C4B454]/20 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Sparkles className="w-4 h-4 text-[#B8A040]" />
-            <span className="text-sm font-medium text-[#B8A040]">AI-Powered OCR Extraction</span>
+            <span className="text-sm font-medium text-[#B8A040]">{t.home.aiPowered}</span>
           </div>
           <h1 className="text-4xl font-bold mb-3">
-            <span className="bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Transform Your </span>
-            <span className="bg-gradient-to-r from-[#C4B454] to-[#B8A040] bg-clip-text text-transparent">Documents</span>
+            <span className="bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{isRTL ? 'حوّل ' : 'Transform Your '}</span>
+            <span className="bg-gradient-to-r from-[#C4B454] to-[#B8A040] bg-clip-text text-transparent">{isRTL ? 'مستنداتك' : 'Documents'}</span>
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Upload your PDF documents and let our intelligent OCR technology extract and transform them into editable templates
+            {isRTL ? 'قم بتحميل مستندات PDF الخاصة بك ودع تقنية OCR الذكية لدينا تستخرج وتحولها إلى قوالب قابلة للتحرير' : 'Upload your PDF documents and let our intelligent OCR technology extract and transform them into editable templates'}
           </p>
         </div>
 
@@ -253,24 +259,24 @@ const PdfConverterContent: React.FC = () => {
           onSubmit={handleSubmit}
           className="w-full rounded-2xl bg-white p-10 shadow-2xl ring-1 ring-gray-200 border-t-4 border-[#C4B454]"
         >
-          <div className="flex items-center gap-3 mb-6">
+          <div className={`flex items-center gap-3 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <div className="p-3 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-xl text-white shadow-md">
               <Upload className="w-7 h-7" />
             </div>
-            <div>
+            <div className={isRTL ? 'text-right' : 'text-left'}>
               <h2 className="text-xl font-bold text-gray-900">
-                Upload Your Document
+                {isRTL ? 'ارفع مستندك' : 'Upload Your Document'}
               </h2>
               <p className="text-sm text-gray-600">
-                Supported formats: PDF, DOCX, TXT
+                {t.pdfConverter.supportedFormats}
               </p>
             </div>
           </div>
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Select File
+              <label className={`block text-sm font-semibold text-gray-700 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.pdfConverter.selectFile}
               </label>
               <div className="relative">
                 <input
@@ -308,7 +314,7 @@ const PdfConverterContent: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-semibold text-red-900">Error</h3>
+                    <h3 className="text-sm font-semibold text-red-900">{t.pdfConverter.error}</h3>
                     <p className="text-sm text-red-700 mt-1">{error}</p>
                   </div>
                 </div>
@@ -332,12 +338,12 @@ const PdfConverterContent: React.FC = () => {
               {isProcessing ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Processing Document...</span>
+                  <span>{t.pdfConverter.processing}</span>
                 </>
               ) : (
                 <>
                   <Upload className="w-5 h-5" />
-                  <span>Upload & Generate Template</span>
+                  <span>{t.pdfConverter.uploadPdf}</span>
                 </>
               )}
             </button>
@@ -353,15 +359,15 @@ const PdfConverterContent: React.FC = () => {
                 <div className="flex-1">
                   <p className="text-xs font-semibold text-gray-700">
                     {isSuperAdmin 
-                      ? "Super Admin: Uploads can be assigned to any company or no company"
+                      ? t.pdfConverter.superAdminAccess
                       : companyName 
-                      ? `Company: ${companyName}`
-                      : "Company: Loading..."}
+                      ? `${t.pdfConverter.company}: ${companyName}`
+                      : `${t.pdfConverter.company}: ${t.pdfConverter.loading}`}
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {isSuperAdmin 
-                      ? "You have full system access"
-                      : "This document will be assigned to your company"}
+                      ? t.pdfConverter.fullSystemAccess
+                      : t.pdfConverter.documentAssignedToCompany}
                   </p>
                 </div>
               </div>
@@ -376,8 +382,8 @@ const PdfConverterContent: React.FC = () => {
                   <Zap className="w-5 h-5 text-[#B8A040]" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-900">AI OCR Extraction</p>
-                  <p className="text-xs text-gray-600">Intelligent content analysis</p>
+                  <p className="text-xs font-semibold text-gray-900">{t.home.aiPowered}</p>
+                  <p className="text-xs text-gray-600">{t.home.aiPoweredDesc}</p>
                 </div>
               </div>
               <div className="flex flex-col items-center gap-2">
@@ -385,8 +391,8 @@ const PdfConverterContent: React.FC = () => {
                   <Eye className="w-5 h-5 text-[#B8A040]" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-900">Live Preview</p>
-                  <p className="text-xs text-gray-600">Real-time editing</p>
+                  <p className="text-xs font-semibold text-gray-900">{t.pdfConverter.previewDocument}</p>
+                  <p className="text-xs text-gray-600">{t.pdfConverter.realTimeEditing}</p>
                 </div>
               </div>
               <div className="flex flex-col items-center gap-2">
@@ -394,8 +400,8 @@ const PdfConverterContent: React.FC = () => {
                   <Download className="w-5 h-5 text-[#B8A040]" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-900">Easy Export</p>
-                  <p className="text-xs text-gray-600">Code or PDF format</p>
+                  <p className="text-xs font-semibold text-gray-900">{t.home.easyExport}</p>
+                  <p className="text-xs text-gray-600">{t.home.easyExportDesc}</p>
                 </div>
               </div>
             </div>
@@ -404,7 +410,7 @@ const PdfConverterContent: React.FC = () => {
 
         {/* Footer Note */}
         <p className="mt-8 text-center text-xs text-gray-500 max-w-md">
-          Your documents are processed securely. Generated templates can be further customized in the live editor after processing.
+          {isRTL ? 'تتم معالجة مستنداتك بشكل آمن. يمكن تخصيص القوالب المُنشأة في المحرر المباشر بعد المعالجة.' : 'Your documents are processed securely. Generated templates can be further customized in the live editor after processing.'}
         </p>
       </div>
     </div>

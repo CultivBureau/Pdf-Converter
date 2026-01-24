@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useLanguage } from "@/app/contexts/LanguageContext";
 import { Hotel } from '../Templates/HotelsSection';
 import { getCompanySettings, getIncludesAllOptions, addIncludesAllOptionUser } from "@/app/services/CompanySettingsApi";
 import {
@@ -39,6 +40,7 @@ export default function AddHotelModal({
   onClose,
   onSubmit,
 }: AddHotelModalProps) {
+  const { t, isRTL, dir } = useLanguage();
   const [title, setTitle] = useState("حجز الفنادق");
   const [showTitle, setShowTitle] = useState(true);
   const { user } = useAuth();
@@ -404,24 +406,25 @@ export default function AddHotelModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-lg"
       onClick={onClose}
       onKeyDown={handleKeyDown}
+      dir={dir}
     >
       <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in"
+        className={`bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in ${isRTL ? 'text-right' : 'text-left'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#3B5998] to-[#2E4A7A] px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <div className={`bg-gradient-to-r from-[#3B5998] to-[#2E4A7A] px-6 py-4 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <h2 className={`text-xl font-bold text-white flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.006 3.705a.75.75 0 00-.512-1.41L6 6.838V3a.75.75 0 00-.75-.75h-1.5A.75.75 0 003 3v4.93l-1.006.365a.75.75 0 00.512 1.41l16.5-6z" />
               <path fillRule="evenodd" d="M3.019 11.115L18 5.667V9.09l4.006 1.456a.75.75 0 11-.512 1.41l-.494-.18v8.475h.75a.75.75 0 010 1.5H2.25a.75.75 0 010-1.5H3v-9.129l.019-.007zM18 20.25v-9.565l1.5.545v9.02H18zm-9-6a.75.75 0 00-.75.75v4.5c0 .414.336.75.75.75h3a.75.75 0 00.75-.75V15a.75.75 0 00-.75-.75H9z" clipRule="evenodd" />
             </svg>
-            Add Hotel Section
+            {t.modals.addHotelSection}
           </h2>
           <button
             onClick={onClose}
             className="text-white hover:text-gray-200 transition-colors"
-            aria-label="Close"
+            aria-label={t.common.close}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -434,13 +437,13 @@ export default function AddHotelModal({
           {/* Template Selection Section */}
           {showTemplateSelection && (
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <h3 className={`text-base font-bold text-gray-800 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.006 3.705a.75.75 0 00-.512-1.41L6 6.838V3a.75.75 0 00-.75-.75h-1.5A.75.75 0 003 3v4.93l-1.006.365a.75.75 0 00.512 1.41l16.5-6z" />
                     <path fillRule="evenodd" d="M3.019 11.115L18 5.667V9.09l4.006 1.456a.75.75 0 11-.512 1.41l-.494-.18v8.475h.75a.75.75 0 010 1.5H2.25a.75.75 0 010-1.5H3v-9.129l.019-.007zM18 20.25v-9.565l1.5.545v9.02H18zm-9-6a.75.75 0 00-.75.75v4.5c0 .414.336.75.75.75h3a.75.75 0 00.75-.75V15a.75.75 0 00-.75-.75H9z" clipRule="evenodd" />
                   </svg>
-                  {language === 'ar' ? 'القوالب المحفوظة' : 'Saved Templates'}
+                  {t.modals.savedTemplates}
                 </h3>
                 {templates.length > 0 && (
                   <button
@@ -448,7 +451,7 @@ export default function AddHotelModal({
                     onClick={() => setShowTemplateSelection(false)}
                     className="text-gray-500 hover:text-gray-700 text-sm font-medium"
                   >
-                    {language === 'ar' ? 'إخفاء' : 'Hide'}
+                    {t.modals.hide}
                   </button>
                 )}
               </div>
@@ -462,20 +465,20 @@ export default function AddHotelModal({
                         className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-400 transition-all cursor-pointer group"
                         onClick={() => loadTemplate(template)}
                       >
-                        <div className="flex items-start justify-between mb-2">
+                        <div className={`flex items-start justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <div className="flex-1">
                             <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
                               {template.name}
                             </h4>
                             <p className="text-xs text-gray-500 mt-1">
-                              {(template.data as any)?.hotels?.length || 0} {language === 'ar' ? 'فنادق' : 'hotels'}
+                              {(template.data as any)?.hotels?.length || 0} {t.modals.hotelsCount}
                             </p>
                           </div>
-                          <svg className="w-5 h-5 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className={`w-5 h-5 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ${isRTL ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className={`flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -484,7 +487,7 @@ export default function AddHotelModal({
                               setShowDeleteTemplateModal(true);
                             }}
                             className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded text-xs"
-                            title={language === 'ar' ? 'حذف' : 'Delete'}
+                            title={t.common.delete}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -499,7 +502,7 @@ export default function AddHotelModal({
                     onClick={() => setShowTemplateSelection(false)}
                     className="mt-4 w-full text-sm text-blue-600 hover:text-blue-700 font-semibold py-2 rounded-lg hover:bg-blue-100/50 transition-colors"
                   >
-                    {language === 'ar' ? '+ بدء جديد' : '+ Start Fresh'}
+                    {t.modals.startFresh}
                   </button>
                 </>
               ) : (
@@ -518,30 +521,26 @@ export default function AddHotelModal({
                     </div>
                   </div>
                   <h4 className="text-sm font-semibold text-gray-700 mb-1">
-                    {language === 'ar' ? 'لا توجد قوالب محفوظة' : 'No Saved Templates'}
+                    {t.modals.noSavedTemplates}
                   </h4>
                   <p className="text-xs text-gray-500 mb-4 max-w-xs mx-auto">
-                    {language === 'ar' 
-                      ? 'ابدأ بإنشاء قسم فندق جديد وحفظه كقالب لاستخدام لاحق' 
-                      : 'Create a new hotel section and save it as a template for future use'}
+                    {t.modals.createHotelSectionDesc}
                   </p>
-                  <div className="bg-blue-100 border border-blue-300 rounded-lg p-3 text-left text-xs text-blue-800 mb-4">
-                    <p className="font-semibold mb-2 flex items-center gap-2">
+                  <div className={`bg-blue-100 border border-blue-300 rounded-lg p-3 text-xs text-blue-800 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <p className={`font-semibold mb-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2z" clipRule="evenodd" />
                       </svg>
-                      {language === 'ar' ? 'نصيحة' : 'Quick Tip'}
+                      {t.modals.quickTip}
                     </p>
-                    {language === 'ar' 
-                      ? 'ستتمكن من حفظ النماذج التي تنشئها وإعادة استخدامها بسرعة' 
-                      : 'You can save the forms you create and reuse them quickly'}
+                    {t.modals.templateTipDesc}
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowTemplateSelection(false)}
                     className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all shadow-md font-medium text-sm"
                   >
-                    {language === 'ar' ? 'إنشاء القسم الأول' : 'Create Your First'}
+                    {t.modals.createYourFirst}
                   </button>
                 </div>
               )}
@@ -551,16 +550,16 @@ export default function AddHotelModal({
           {/* Section Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Section Title
+              {t.modals.sectionTitle}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
-              placeholder="Hotel Booking"
+              placeholder={t.modals.hotelBooking}
             />
-            <div className="mt-2 flex items-center gap-2">
+            <div className={`mt-2 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <input
                 type="checkbox"
                 id="showTitle"
@@ -569,7 +568,7 @@ export default function AddHotelModal({
                 className="w-4 h-4 text-[#3B5998] rounded focus:ring-[#3B5998]"
               />
               <label htmlFor="showTitle" className="text-sm text-gray-700">
-                Show Title
+                {t.modals.showTitle}
               </label>
             </div>
           </div>
@@ -578,7 +577,7 @@ export default function AddHotelModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Language
+                {t.modals.language}
               </label>
               <select
                 value={language}
@@ -590,55 +589,55 @@ export default function AddHotelModal({
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
               >
-                <option value="ar">Arabic</option>
-                <option value="en">English</option>
+                <option value="ar">{t.modals.arabic}</option>
+                <option value="en">{t.modals.english}</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Direction
+                {t.modals.direction}
               </label>
               <select
                 value={direction}
                 onChange={(e) => setDirection(e.target.value as "rtl" | "ltr")}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
               >
-                <option value="rtl">Right to Left (RTL)</option>
-                <option value="ltr">Left to Right (LTR)</option>
+                <option value="rtl">{t.modals.rtl}</option>
+                <option value="ltr">{t.modals.ltr}</option>
               </select>
             </div>
           </div>
 
           {/* Hotels */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <label className="block text-sm font-semibold text-gray-700">
-                Hotels ({hotels.length})
+                {t.modals.hotels} ({hotels.length})
               </label>
               <button
                 type="button"
                 onClick={addHotel}
-                className="px-3 py-1.5 bg-[#3B5998] text-white rounded-lg hover:bg-[#2E4A7A] transition-colors text-sm flex items-center gap-2"
+                className={`px-3 py-1.5 bg-[#3B5998] text-white rounded-lg hover:bg-[#2E4A7A] transition-colors text-sm flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add Hotel
+                {t.modals.addHotel}
               </button>
             </div>
             
             <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
               {hotels.map((hotel, index) => (
                 <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold text-gray-700">Hotel {index + 1}</span>
+                  <div className={`flex items-center justify-between mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <span className="text-sm font-semibold text-gray-700">{t.modals.hotel} {index + 1}</span>
                     {hotels.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeHotel(index)}
                         className="text-red-600 hover:text-red-700 text-sm"
                       >
-                        Remove
+                        {t.modals.removeHotel}
                       </button>
                     )}
                   </div>
@@ -646,7 +645,7 @@ export default function AddHotelModal({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        City
+                        {t.modals.city}
                       </label>
                       <input
                         type="text"
@@ -655,7 +654,7 @@ export default function AddHotelModal({
                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent text-sm ${
                           errors[`hotel_${index}_city`] ? "border-red-500" : "border-gray-300"
                         }`}
-                        placeholder="City name..."
+                        placeholder={t.modals.cityPlaceholder}
                       />
                       {errors[`hotel_${index}_city`] && (
                         <p className="text-red-500 text-xs mt-1">{errors[`hotel_${index}_city`]}</p>
@@ -664,7 +663,7 @@ export default function AddHotelModal({
                     
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Nights
+                        {t.modals.nights}
                       </label>
                       <input
                         type="number"
@@ -683,20 +682,20 @@ export default function AddHotelModal({
 
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      City Badge (Optional)
+                      {t.modals.cityBadge}
                     </label>
                     <input
                       type="text"
                       value={hotel.cityBadge || ""}
                       onChange={(e) => updateHotel(index, 'cityBadge', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent text-sm"
-                      placeholder="المدينة الاولى"
+                      placeholder={t.modals.cityBadgePlaceholder}
                     />
                   </div>
 
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Hotel Name
+                      {t.modals.hotelName}
                     </label>
                     <input
                       type="text"
@@ -705,7 +704,7 @@ export default function AddHotelModal({
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent text-sm ${
                         errors[`hotel_${index}_hotelName`] ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="Hotel name..."
+                      placeholder={t.modals.hotelNamePlaceholder}
                     />
                     {errors[`hotel_${index}_hotelName`] && (
                       <p className="text-red-500 text-xs mt-1">{errors[`hotel_${index}_hotelName`]}</p>
@@ -715,7 +714,7 @@ export default function AddHotelModal({
                   <div className="mt-3 grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Check-in Date
+                        {t.modals.checkInDate}
                       </label>
                       <input
                         type="date"
@@ -731,7 +730,7 @@ export default function AddHotelModal({
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Check-out Date
+                        {t.modals.checkOutDate}
                       </label>
                       <input
                         type="date"
@@ -750,33 +749,33 @@ export default function AddHotelModal({
                   <div className="mt-3 grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Check-in Day
+                        {t.modals.checkInDay}
                       </label>
                       <input
                         type="text"
                         value={hotel.dayInfo.checkInDay}
                         onChange={(e) => updateHotel(index, 'dayInfo', { ...hotel.dayInfo, checkInDay: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent text-sm"
-                        placeholder="اليوم الاول"
+                        placeholder={t.modals.checkInDayPlaceholder}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Check-out Day
+                        {t.modals.checkOutDay}
                       </label>
                       <input
                         type="text"
                         value={hotel.dayInfo.checkOutDay}
                         onChange={(e) => updateHotel(index, 'dayInfo', { ...hotel.dayInfo, checkOutDay: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent text-sm"
-                        placeholder="اليوم الثاني"
+                        placeholder={t.modals.checkOutDayPlaceholder}
                       />
                     </div>
                   </div>
 
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Includes All
+                      {t.modals.includesAll}
                     </label>
                     <div className="relative">
                       <select
@@ -796,7 +795,7 @@ export default function AddHotelModal({
                           type="button"
                           onClick={() => setShowAddOptionModal(true)}
                           className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-[#4A5568] text-white rounded-lg hover:bg-[#2D3748] transition-colors text-xs flex items-center gap-1"
-                          title={language === 'ar' ? 'إضافة خيار جديد' : 'Add new option'}
+                          title={t.modals.addNewOption}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -806,38 +805,38 @@ export default function AddHotelModal({
                     </div>
                     {includesAllOptions.length === 0 && (
                       <p className="text-xs text-gray-500 mt-1">
-                        No options available. Click the + button to add one.
+                        {t.modals.noOptionsAvailable}
                       </p>
                     )}
                   </div>
 
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Room Type (Optional)
+                      {t.modals.roomType}
                     </label>
                     <input
                       type="text"
                       value={hotel.roomDescription.roomType || ""}
                       onChange={(e) => updateHotel(index, 'roomDescription', { ...hotel.roomDescription, roomType: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent text-sm"
-                      placeholder="غرفة ميليا"
+                      placeholder={t.modals.roomTypePlaceholder}
                     />
                   </div>
 
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Bed Type
+                      {t.modals.bedType}
                     </label>
                     <input
                       type="text"
                       value={hotel.roomDescription.bedType}
                       onChange={(e) => updateHotel(index, 'roomDescription', { ...hotel.roomDescription, bedType: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent text-sm"
-                      placeholder="سرير اضافي/ عدد: 2"
+                      placeholder={t.modals.bedTypePlaceholder}
                     />
                   </div>
 
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className={`mt-3 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <input
                       type="checkbox"
                       id={`hasDetailsLink_${index}`}
@@ -846,14 +845,14 @@ export default function AddHotelModal({
                       className="w-4 h-4 text-[#3B5998] rounded focus:ring-[#3B5998]"
                     />
                     <label htmlFor={`hasDetailsLink_${index}`} className="text-xs text-gray-700">
-                      Has Details Link
+                      {t.modals.hasDetailsLink}
                     </label>
                   </div>
 
                   {hotel.hasDetailsLink && (
                     <div className="mt-3">
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Details Link URL
+                        {t.modals.detailsLinkUrl}
                       </label>
                       <input
                         type="url"
@@ -874,59 +873,59 @@ export default function AddHotelModal({
         </form>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-          <div className="flex items-center gap-2">
+        <div className={`bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
               type="button"
               onClick={handleExportJSON}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
-              title={language === 'ar' ? 'تصدير JSON' : 'Export JSON'}
+              className={`px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.exportJson}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {language === 'ar' ? 'تصدير' : 'Export'}
+              {t.modals.export}
             </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
-              title={language === 'ar' ? 'استيراد JSON' : 'Import JSON'}
+              className={`px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.importJson}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              {language === 'ar' ? 'استيراد' : 'Import'}
+              {t.modals.import}
             </button>
             <button
               type="button"
               onClick={() => setShowSaveTemplateModal(true)}
-              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
-              title={language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+              className={`px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.saveAsTemplate}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              {language === 'ar' ? 'حفظ' : 'Save'}
+              {t.common.save}
             </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
               type="button"
               onClick={onClose}
               className="px-5 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
-              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              {t.common.cancel}
             </button>
             <button
               type="submit"
               onClick={handleSubmit}
-              className="px-5 py-2 bg-gradient-to-r from-[#3B5998] to-[#2E4A7A] text-white rounded-lg hover:from-[#2E4A7A] hover:to-[#1E3A5A] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2"
+              className={`px-5 py-2 bg-gradient-to-r from-[#3B5998] to-[#2E4A7A] text-white rounded-lg hover:from-[#2E4A7A] hover:to-[#1E3A5A] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              {language === 'ar' ? 'إضافة القسم' : 'Add Section'}
+              {t.modals.addSection}
             </button>
           </div>
         </div>
@@ -969,13 +968,13 @@ export default function AddHotelModal({
       {showSaveTemplateModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSaveTemplateModal(false)} />
-          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in" onClick={(e) => e.stopPropagation()} dir={dir}>
+            <h3 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.modals.saveAsTemplate}
             </h3>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {language === 'ar' ? 'اسم القالب' : 'Template Name'}
+              <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.modals.templateName}
               </label>
               <input
                 type="text"
@@ -987,23 +986,23 @@ export default function AddHotelModal({
                     handleSaveTemplate();
                   }
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent"
-                placeholder={language === 'ar' ? 'أدخل اسم القالب' : 'Enter template name'}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3B5998] focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                placeholder={t.modals.enterTemplateName}
                 autoFocus
               />
             </div>
-            <div className="flex gap-3">
+            <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
                 onClick={() => setShowSaveTemplateModal(false)}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                {t.common.cancel}
               </button>
               <button
                 onClick={handleSaveTemplate}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#3B5998] rounded-lg hover:bg-[#2E4A7A] transition-colors"
               >
-                {language === 'ar' ? 'حفظ' : 'Save'}
+                {t.common.save}
               </button>
             </div>
           </div>
@@ -1022,9 +1021,9 @@ export default function AddHotelModal({
             handleDeleteTemplate(templateToDelete);
           }
         }}
-        title={language === 'ar' ? 'حذف القالب' : 'Delete Template'}
-        message={language === 'ar' ? 'هل أنت متأكد من حذف هذا القالب؟ لا يمكن التراجع عن هذا الإجراء.' : 'Are you sure you want to delete this template? This action cannot be undone.'}
-        confirmButtonText={language === 'ar' ? 'حذف' : 'Delete'}
+        title={t.modals.deleteTemplate}
+        message={t.modals.deleteTemplateConfirm}
+        confirmButtonText={t.common.delete}
       />
     </div>
   );
