@@ -711,6 +711,7 @@ function CodePageContent() {
     showNotice?: boolean;
     direction?: "rtl" | "ltr";
     language?: "ar" | "en";
+    flights?: FlightData[]; // Add flights data
   } | null => {
     if (!editingAirplaneId) {
       return null;
@@ -732,7 +733,8 @@ function CodePageContent() {
         noticeMessage: element.data.noticeMessage,
         showNotice: element.data.showNotice,
         direction: element.data.direction,
-        language: element.data.language
+        language: element.data.language,
+        flights: element.data.flights // Include flights data for template saving
       };
     } catch (error) {
       console.error('Error extracting section data:', error);

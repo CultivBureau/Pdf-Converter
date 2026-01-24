@@ -1,6 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { saveAirplaneTemplate } from "@/app/services/TemplatesApi";
+import DeleteConfirmationModal from "./DeleteConfirmationModal";
+import { FlightData } from './AddAirplaneModal';
 
 interface EditAirplaneSectionModalProps {
   isOpen: boolean;
@@ -20,6 +23,7 @@ interface EditAirplaneSectionModalProps {
     showNotice?: boolean;
     direction?: "rtl" | "ltr";
     language?: "ar" | "en";
+    flights?: FlightData[]; // Add flights data
   } | null;
 }
 
@@ -35,6 +39,14 @@ export default function EditAirplaneSectionModal({
   const [showNotice, setShowNotice] = useState(true);
   const [direction, setDirection] = useState<"rtl" | "ltr">("rtl");
   const [language, setLanguage] = useState<"ar" | "en">("ar");
+  
+  // Store flights data for template saving
+  const [flights, setFlights] = useState<FlightData[]>([]);
+  
+  // Template-related state
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Populate form when modal opens or initialData changes
   useEffect(() => {
@@ -45,6 +57,7 @@ export default function EditAirplaneSectionModal({
       setShowNotice(initialData.showNotice !== undefined ? initialData.showNotice : true);
       setDirection(initialData.direction || "rtl");
       setLanguage(initialData.language || "ar");
+      setFlights(initialData.flights || []); // Store flights data
     }
   }, [isOpen, initialData]);
 
@@ -61,6 +74,98 @@ export default function EditAirplaneSectionModal({
     });
 
     onClose();
+  };
+
+  // Save current form as template
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      alert(language === 'ar' ? 'يرجى إدخال اسم القالب' : 'Please enter a template name');
+      return;
+    }
+
+    try {
+      const templateData = {
+        title,
+        showTitle,
+        noticeMessage,
+        showNotice,
+        flights: flights, // Use actual flights data instead of empty array
+        direction,
+        language,
+      };
+
+      await saveAirplaneTemplate(templateName.trim(), templateData);
+      setShowSaveTemplateModal(false);
+      setTemplateName("");
+      alert(language === 'ar' ? 'تم حفظ القالب بنجاح' : 'Template saved successfully');
+    } catch (err) {
+      console.error("Failed to save template:", err);
+      alert(language === 'ar' ? 'فشل حفظ القالب' : 'Failed to save template');
+    }
+  };
+
+  // Export current form as JSON
+  const handleExportJSON = () => {
+    const exportData = {
+      name: title || "Airplane Section",
+      template_type: "airplane",
+      data: {
+        title,
+        showTitle,
+        noticeMessage,
+        showNotice,
+        flights: flights, // Use actual flights data
+        direction,
+        language,
+      },
+      exported_at: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `airplane-section-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import template from JSON file
+  const handleImportJSON = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const importData = JSON.parse(text);
+
+      if (!importData.data) {
+        alert(language === 'ar' ? 'ملف JSON غير صالح' : 'Invalid JSON file');
+        return;
+      }
+
+      // Load imported data into form
+      const data = importData.data;
+      if (data.title !== undefined) setTitle(data.title || "حجز الطيران");
+      if (data.showTitle !== undefined) setShowTitle(data.showTitle);
+      if (data.noticeMessage !== undefined) setNoticeMessage(data.noticeMessage || "");
+      if (data.showNotice !== undefined) setShowNotice(data.showNotice);
+      if (data.direction) setDirection(data.direction);
+      if (data.language) setLanguage(data.language);
+      if (data.flights && Array.isArray(data.flights)) setFlights(data.flights); // Import flights data
+
+      alert(language === 'ar' ? 'تم استيراد القالب بنجاح' : 'Template imported successfully');
+    } catch (err) {
+      console.error("Failed to import template:", err);
+      alert(language === 'ar' ? 'فشل استيراد القالب' : 'Failed to import template');
+    } finally {
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -191,25 +296,71 @@ export default function EditAirplaneSectionModal({
         </form>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="px-5 py-2 bg-gradient-to-r from-[#4A5568] to-[#2D3748] text-white rounded-lg hover:from-[#2D3748] hover:to-[#1A202C] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            Save Changes
-          </button>
+        <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportJSON}
+              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
+              title={language === 'ar' ? 'تصدير JSON' : 'Export JSON'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {language === 'ar' ? 'تصدير' : 'Export'}
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
+              title={language === 'ar' ? 'استيراد JSON' : 'Import JSON'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              {language === 'ar' ? 'استيراد' : 'Import'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSaveTemplateModal(true)}
+              className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
+              title={language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              className="px-5 py-2 bg-gradient-to-r from-[#4A5568] to-[#2D3748] text-white rounded-lg hover:from-[#2D3748] hover:to-[#1A202C] transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+            </button>
+          </div>
         </div>
+        
+        {/* Hidden file input for JSON import */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleImportJSON}
+          className="hidden"
+        />
       </div>
 
       <style jsx>{`
@@ -227,6 +378,51 @@ export default function EditAirplaneSectionModal({
           animation: scale-in 0.2s ease-out;
         }
       `}</style>
+      
+      {/* Save Template Modal */}
+      {showSaveTemplateModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSaveTemplateModal(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+            </h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {language === 'ar' ? 'اسم القالب' : 'Template Name'}
+              </label>
+              <input
+                type="text"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveTemplate();
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A5568] focus:border-transparent"
+                placeholder={language === 'ar' ? 'أدخل اسم القالب' : 'Enter template name'}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSaveTemplateModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#4A5568] rounded-lg hover:bg-[#2D3748] transition-colors"
+              >
+                {language === 'ar' ? 'حفظ' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
