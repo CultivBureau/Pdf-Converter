@@ -568,6 +568,114 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
 
+  // Handle center text formatting
+  const handleCenterText = () => {
+    if (!selectedText || typeof content !== 'string') {
+      setShowSplitButton(false);
+      return;
+    }
+    
+    const trimmedText = selectedText.trim();
+    if (trimmedText.length === 0) {
+      setShowSplitButton(false);
+      return;
+    }
+    
+    // Check if text is already centered
+    const alreadyCenteredPattern = new RegExp(`\\[CENTER\\]${escapeRegExp(trimmedText)}\\[\\/CENTER\\]`, 'g');
+    if (alreadyCenteredPattern.test(content)) {
+      // Remove center markers
+      const newContent = content.replace(`[CENTER]${trimmedText}[/CENTER]`, trimmedText);
+      lastContentRef.current = newContent;
+      if (onContentChange) {
+        onContentChange(newContent);
+      }
+    } else {
+      // Need to find the correct occurrence to center
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        setShowSplitButton(false);
+        return;
+      }
+      
+      const range = selection.getRangeAt(0);
+      
+      // Find the closest LI or P parent to get context
+      let contextNode: Node | null = range.startContainer;
+      while (contextNode && contextNode.nodeType !== Node.ELEMENT_NODE) {
+        contextNode = contextNode.parentNode;
+      }
+      
+      let contextElement = contextNode as HTMLElement;
+      while (contextElement && 
+             contextElement !== contentContainerRef.current &&
+             !['LI', 'P'].includes(contextElement.tagName)) {
+        contextElement = contextElement.parentElement as HTMLElement;
+      }
+      
+      if (contextElement && contextElement !== contentContainerRef.current) {
+        // We're inside a specific LI or P element
+        const elementText = contextElement.textContent || '';
+        
+        // Find which bullet/paragraph this corresponds to in the original content
+        const lines = content.split('\n');
+        let targetLineIndex = -1;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          // Remove bullet markers and formatting markers for comparison
+          const cleanLine = line.replace(/^[\s]*[•\-\*]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+          const cleanLineNoFormatting = cleanLine.replace(/\*\*/g, '').replace(/__/g, '').replace(/\[CENTER\]/g, '').replace(/\[\/CENTER\]/g, '');
+          
+          if (cleanLineNoFormatting === elementText.trim() || cleanLine === elementText.trim()) {
+            targetLineIndex = i;
+            break;
+          }
+        }
+        
+        if (targetLineIndex >= 0) {
+          // Found the line, now center the selected text within this line only
+          const originalLine = lines[targetLineIndex];
+          
+          // Check if this specific occurrence is already centered
+          if (originalLine.includes(`[CENTER]${trimmedText}[/CENTER]`)) {
+            // Remove center
+            lines[targetLineIndex] = originalLine.replace(`[CENTER]${trimmedText}[/CENTER]`, trimmedText);
+          } else if (originalLine.includes(trimmedText)) {
+            // Add center - replace only in this line
+            lines[targetLineIndex] = originalLine.replace(trimmedText, `[CENTER]${trimmedText}[/CENTER]`);
+          }
+          
+          const newContent = lines.join('\n');
+          lastContentRef.current = newContent;
+          if (onContentChange) {
+            onContentChange(newContent);
+          }
+        } else {
+          // Fallback: just replace first occurrence in full content
+          const newContent = content.replace(trimmedText, `[CENTER]${trimmedText}[/CENTER]`);
+          lastContentRef.current = newContent;
+          if (onContentChange) {
+            onContentChange(newContent);
+          }
+        }
+      } else {
+        // Not in a specific element, use simple replacement
+        const newContent = content.replace(trimmedText, `[CENTER]${trimmedText}[/CENTER]`);
+        lastContentRef.current = newContent;
+        if (onContentChange) {
+          onContentChange(newContent);
+        }
+      }
+    }
+    
+    // Clear selection
+    window.getSelection()?.removeAllRanges();
+    setShowSplitButton(false);
+    setSelectedText("");
+    setSelectionRange(null);
+  };
+
   // Handle underline text formatting - Simple and robust approach
   const handleUnderlineText = () => {
     if (!selectedText || typeof content !== 'string') {
@@ -701,11 +809,12 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     return tempDiv.textContent || tempDiv.innerText || '';
   };
   
-  // Helper function to convert markdown-style bold (**text**) and underline (__text__) to HTML
+  // Helper function to convert markdown-style bold (**text**), underline (__text__), and center ([CENTER]text[/CENTER]) to HTML
   const convertBoldMarkersToHTML = (text: string): string => {
-    // Replace **text** with <strong> tags and __text__ with <u> tags
+    // Replace **text** with <strong> tags, __text__ with <u> tags, and [CENTER]text[/CENTER] with centered div
     let result = text.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 900">$1</strong>');
     result = result.replace(/__(.*?)__/g, '<u style="text-decoration: underline">$1</u>');
+    result = result.replace(/\[CENTER\](.*?)\[\/CENTER\]/g, '<div style="text-align: center; width: 100%;">$1</div>');
     return result;
   };
   
@@ -714,15 +823,20 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
     return /\*\*.*?\*\*/.test(text) || /__.*?__/.test(text);
   };
   
+  // Helper function to check if text contains center markers
+  const hasCenterMarkers = (text: string): boolean => {
+    return /\[CENTER\].*?\[\/CENTER\]/.test(text);
+  };
+  
   // Helper function to find and preserve formatting markers when rebuilding content from DOM
   // This maps displayed text back to original formatted text
   const preserveFormattingMarkers = (displayedText: string, originalContent: string): string => {
-    if (!hasBoldMarkers(originalContent)) {
+    if (!hasBoldMarkers(originalContent) && !hasCenterMarkers(originalContent)) {
       return displayedText;
     }
     
     // Build a map of plain text positions to formatted text
-    // This helps us preserve ** and __ markers
+    // This helps us preserve **, __, and [CENTER] markers
     let result = displayedText;
     
     // Find all bold sections in original
@@ -742,6 +856,15 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
       const underlineText = match[1];
       if (result.includes(underlineText) && !result.includes(`__${underlineText}__`)) {
         result = result.replace(underlineText, `__${underlineText}__`);
+      }
+    }
+    
+    // Find all center sections in original
+    const centerRegex = /\[CENTER\]([^\[]+)\[\/CENTER\]/g;
+    while ((match = centerRegex.exec(originalContent)) !== null) {
+      const centerText = match[1];
+      if (result.includes(centerText) && !result.includes(`[CENTER]${centerText}[/CENTER]`)) {
+        result = result.replace(centerText, `[CENTER]${centerText}[/CENTER]`);
       }
     }
     
@@ -876,13 +999,14 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                   
                   if (!cleanItem) return null;
                   
-                  // Check for bold markers or HTML
+                  // Check for bold markers, center markers, or HTML
                   const itemHasBoldMarkers = hasBoldMarkers(cleanItem);
+                  const itemHasCenterMarkers = hasCenterMarkers(cleanItem);
                   const itemHasHTML = hasHTML(cleanItem);
                   
-                  // Convert bold markers to HTML if present
-                  const displayItem = itemHasBoldMarkers ? convertBoldMarkersToHTML(cleanItem) : cleanItem;
-                  const shouldUseHTML = itemHasHTML || itemHasBoldMarkers;
+                  // Convert markers to HTML if present
+                  const displayItem = (itemHasBoldMarkers || itemHasCenterMarkers) ? convertBoldMarkersToHTML(cleanItem) : cleanItem;
+                  const shouldUseHTML = itemHasHTML || itemHasBoldMarkers || itemHasCenterMarkers;
                   
                   return (
                     <li 
@@ -988,9 +1112,10 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                       {trimmed.split(/\n/).filter(p => p.trim()).map((p, idx) => {
                         const pText = p.trim();
                         const pHasBoldMarkers = hasBoldMarkers(pText);
+                        const pHasCenterMarkers = hasCenterMarkers(pText);
                         const pHasHTML = hasHTML(pText);
-                        const displayPText = pHasBoldMarkers ? convertBoldMarkersToHTML(pText) : pText;
-                        const shouldUsePHTML = pHasHTML || pHasBoldMarkers;
+                        const displayPText = (pHasBoldMarkers || pHasCenterMarkers) ? convertBoldMarkersToHTML(pText) : pText;
+                        const shouldUsePHTML = pHasHTML || pHasBoldMarkers || pHasCenterMarkers;
                         
                         // Get all lines for merge functionality
                         const allLines = trimmed.split(/\n/).filter(p => p.trim());
@@ -1044,9 +1169,10 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 
                 // Regular paragraph
                 const paragraphHasBoldMarkers = hasBoldMarkers(trimmed);
+                const paragraphHasCenterMarkers = hasCenterMarkers(trimmed);
                 const paragraphHasHTML = hasHTML(trimmed);
-                const displayParagraph = paragraphHasBoldMarkers ? convertBoldMarkersToHTML(trimmed) : trimmed;
-                const shouldUseParagraphHTML = paragraphHasHTML || paragraphHasBoldMarkers;
+                const displayParagraph = (paragraphHasBoldMarkers || paragraphHasCenterMarkers) ? convertBoldMarkersToHTML(trimmed) : trimmed;
+                const shouldUseParagraphHTML = paragraphHasHTML || paragraphHasBoldMarkers || paragraphHasCenterMarkers;
                 
                 return (
                   <p
@@ -1110,10 +1236,11 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
         displayContent = formatted.join('\n');
       }
       
-      // Convert bold markers to HTML for display
+      // Convert bold and center markers to HTML for display
       const contentHasBoldMarkers = hasBoldMarkers(displayContent);
-      const finalDisplayContent = contentHasBoldMarkers ? convertBoldMarkersToHTML(displayContent) : displayContent;
-      const shouldUseHTML = containsHTML || contentHasBoldMarkers;
+      const contentHasCenterMarkers = hasCenterMarkers(displayContent);
+      const finalDisplayContent = (contentHasBoldMarkers || contentHasCenterMarkers) ? convertBoldMarkersToHTML(displayContent) : displayContent;
+      const shouldUseHTML = containsHTML || contentHasBoldMarkers || contentHasCenterMarkers;
       
       return (
         <div 
@@ -1465,6 +1592,49 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 <path d="M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z"/>
               </svg>
               <span className="underline">Underline</span>
+              <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+            </button>
+            
+            {/* Center Button - Enhanced design with better colors */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCenterText();
+              }}
+              onMouseDown={(e) => e.preventDefault()} // Prevent losing selection
+              className="group relative px-4 py-3 rounded-xl shadow-xl active:scale-95 transition-all duration-200 flex items-center gap-2 text-sm font-semibold cursor-pointer backdrop-blur-sm border border-white/20"
+              style={{
+                background: getPaletteColor('secondary')
+                  ? `linear-gradient(135deg, ${getPaletteColor('secondary')}, ${getPaletteColor('primary') || getPaletteColor('secondary')})`
+                  : 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                color: '#ffffff',
+              }}
+              onMouseEnter={(e) => {
+                const hoverColor = getPaletteColor('secondary') || '#2563EB';
+                e.currentTarget.style.background = `linear-gradient(135deg, ${hoverColor}, ${getPaletteColor('primary') || hoverColor})`;
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = getPaletteColor('secondary')
+                  ? `linear-gradient(135deg, ${getPaletteColor('secondary')}, ${getPaletteColor('primary') || getPaletteColor('secondary')})`
+                  : 'linear-gradient(135deg, #3B82F6, #2563EB)';
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+              }}
+              title="Center text"
+              aria-label="Center selected text"
+            >
+              <svg 
+                className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span>Center</span>
               <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </button>
           </div>

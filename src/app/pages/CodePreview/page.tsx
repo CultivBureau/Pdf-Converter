@@ -1802,10 +1802,8 @@ function CodePageContent() {
       return;
     }
     
-    if (!hasChanges) {
-      // No changes to save
-      return;
-    }
+    // Allow save even if no changes detected (user might want to force save)
+    // The button will be disabled if no changes, but if somehow clicked, allow it
 
     setIsSaving(true);
     setSaveStatus("idle");
@@ -1860,11 +1858,12 @@ function CodePageContent() {
     } catch (err) {
       console.error("Save failed:", err);
       setSaveStatus("error");
+      alert(`Failed to save document: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setTimeout(() => setSaveStatus("idle"), 3000);
     } finally {
       setIsSaving(false);
     }
-  }, [structure, documentId, sourceMetadata]);
+  }, [structure, documentId, sourceMetadata, hasChanges]);
 
   const handleExportPDFWithPlaywright = useCallback(async () => {
     // Ensure document is saved first
