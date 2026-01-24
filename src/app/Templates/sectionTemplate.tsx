@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import SectionColorPaletteModal, { ColorPalette, PREDEFINED_PALETTES, ColorPaletteType } from "../components/SectionColorPaletteModal";
 
 /**
  * Customizable Section Template Component
@@ -72,6 +73,10 @@ export interface SectionTemplateProps {
   
   // Text Splitting Configuration
   enableTextSplitting?: boolean;
+  
+  // Color Palette Configuration
+  colorPalette?: ColorPalette;
+  onColorPaletteChange?: (palette: ColorPalette) => void;
 }
 
 const SectionTemplate: React.FC<SectionTemplateProps> = ({
@@ -122,6 +127,9 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
   style,
   // Text Splitting
   enableTextSplitting = true,
+  // Color Palette
+  colorPalette,
+  onColorPaletteChange,
 }) => {
   // Text selection and splitting state
   const [selectedText, setSelectedText] = useState<string>("");
@@ -133,6 +141,12 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   
+  // Color palette modal state
+  const [showColorPaletteModal, setShowColorPaletteModal] = useState(false);
+  
+  // Current color palette (use provided or default)
+  const currentPalette = colorPalette || PREDEFINED_PALETTES.default;
+  
   // Track if user is typing (to distinguish from programmatic changes)
   const [userIsTyping, setUserIsTyping] = useState(false);
   const lastContentRef = useRef<string>("");
@@ -140,55 +154,115 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
   // Determine heading tag
   const HeadingTag = `h${titleLevel}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
-  // Build title classes - Compact for perfect UI
+  // Build title classes - Enhanced typography with better hierarchy
   const titleClasses = [
-    "text-sm",
-    `font-${titleWeight}`,
-    titleColor,
-    titleMarginBottom || "mb-3",
+    "text-lg font-bold",
+    titleColor || "text-gray-900",
+    titleMarginBottom || "mb-4",
     "tracking-tight",
+    "leading-tight",
     titleClassName,
   ].filter(Boolean).join(" ");
 
-  // Build content classes - Compact text
+  // Build content classes - Improved readability
   const contentClasses = [
     contentClassName,
     "text-sm",
-    contentColor,
+    contentColor || "text-gray-700",
     `text-${contentAlignment}`,
-    "leading-snug",
+    "leading-relaxed",
     preserveWhitespace && "whitespace-pre-wrap",
     contentMarginTop,
   ].filter(Boolean).join(" ");
 
-  // Build container classes with type-based styling - Clean borders like design
+  // Build container classes with type-based styling - Enhanced modern design with better colors
   const getSectionClasses = () => {
     const baseClasses = [
       "section-template",
-      "mb-5",
+      "mb-6",
       "last:mb-0",
+      "transition-all",
+      "duration-300",
+      "hover:shadow-xl",
+      "relative",
       containerClassName,
       className,
     ];
 
-    // Type-specific styling - Clean bordered sections
-    if (type === 'day') {
-      baseClasses.push("border-2 border-[#A4C639] rounded-lg p-4 bg-white");
-    } else if (type === 'included' || type === 'excluded') {
-      baseClasses.push("border-2 border-blue-400 rounded-lg p-4 bg-white");
-    } else if (backgroundColor && !backgroundColor.startsWith("bg-")) {
-      baseClasses.push("border border-gray-200 rounded-lg p-4");
-    } else if (backgroundColor) {
-      baseClasses.push(backgroundColor, "border border-gray-200 rounded-lg p-4");
+    // Apply color palette if provided
+    if (currentPalette && currentPalette.type !== 'default') {
+      // Use custom background from palette
+      baseClasses.push(
+        "rounded-2xl", "p-8",
+        "shadow-lg",
+        "border", "border-gray-200/60",
+        "overflow-hidden",
+        "backdrop-blur-sm"
+      );
     } else {
-      // Default clean section with subtle border
-      baseClasses.push("border border-gray-200 rounded-lg p-4 bg-white");
+      // Type-specific styling - Modern enhanced sections with better color schemes
+      if (type === 'day') {
+        baseClasses.push(
+          "bg-gradient-to-br", "from-cyan-50", "to-blue-50",
+          "border-l-4", "border-cyan-400",
+          "rounded-2xl", "p-8",
+          "shadow-lg",
+          "hover:from-cyan-100", "hover:to-blue-100",
+          "hover:border-cyan-500",
+          "overflow-hidden",
+          "backdrop-blur-sm"
+        );
+      } else if (type === 'included' || type === 'excluded') {
+        const colorScheme = type === 'included' 
+          ? ["from-emerald-50", "to-green-50", "border-emerald-400", "hover:from-emerald-100", "hover:to-green-100", "hover:border-emerald-500"]
+          : ["from-rose-50", "to-pink-50", "border-rose-400", "hover:from-rose-100", "hover:to-pink-100", "hover:border-rose-500"];
+        
+        baseClasses.push(
+          "bg-gradient-to-br", ...colorScheme,
+          "border-l-4",
+          "rounded-2xl", "p-8",
+          "shadow-lg",
+          "overflow-hidden",
+          "backdrop-blur-sm"
+        );
+      } else if (backgroundColor && !backgroundColor.startsWith("bg-")) {
+        baseClasses.push(
+          "rounded-2xl", "p-8",
+          "shadow-lg",
+          "border", "border-gray-200",
+          "bg-white",
+          "backdrop-blur-sm",
+          "hover:shadow-xl"
+        );
+      } else if (backgroundColor) {
+        baseClasses.push(
+          backgroundColor,
+          "rounded-2xl", "p-8",
+          "shadow-lg",
+          "border", "border-gray-200",
+          "backdrop-blur-sm",
+          "hover:shadow-xl"
+        );
+      } else {
+        // Default enhanced section with modern styling and better colors
+        baseClasses.push(
+          "bg-gradient-to-br", "from-white", "via-gray-50/50", "to-blue-50/30",
+          "border", "border-gray-200/60",
+          "rounded-2xl", "p-8",
+          "shadow-lg",
+          "hover:shadow-xl",
+          "hover:from-blue-50/30", "hover:via-white", "hover:to-purple-50/20",
+          "hover:border-blue-200/40",
+          "overflow-hidden",
+          "backdrop-blur-sm"
+        );
+      }
     }
 
     if (border && !baseClasses.some(c => c.includes('border-'))) {
       baseClasses.push(`border ${borderColor}`);
     }
-    if (shadow) baseClasses.push("shadow-md");
+    if (shadow) baseClasses.push("shadow-2xl");
 
     return baseClasses.filter(Boolean).join(" ");
   };
@@ -792,7 +866,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
           
           return (
             <div className="content">
-              <ul className="list-disc list-inside space-y-1 text-gray-700">
+              <ul className="space-y-2 text-gray-700">
                 {items.map((item, index) => {
                   // Remove bullet markers and clean
                   const cleanItem = item
@@ -813,35 +887,83 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                   return (
                     <li 
                       key={index} 
-                      className="text-sm leading-snug" 
-                      style={{ fontSize: '11px', lineHeight: '1.4' }}
-                      contentEditable={editable}
-                      suppressContentEditableWarning={true}
-                      {...(shouldUseHTML ? { dangerouslySetInnerHTML: { __html: displayItem } } : { children: cleanItem })}
-                      onKeyDown={(e) => {
-                        if (editable) {
-                          handleKeyDownForMerge(e, index, items, true);
-                        }
-                      }}
-                      onBlur={(e) => {
-                        if (editable && onContentChange && userIsTyping) {
-                          // Get all list items and reconstruct content with preserved formatting
-                          const ul = e.currentTarget.parentElement;
-                          if (ul) {
-                            const newItems = Array.from(ul.children).map((li, idx) => {
-                              const text = (li as HTMLElement).textContent || (li as HTMLElement).innerText || '';
-                              // Try to preserve formatting from original item
-                              const originalItem = items[idx] || '';
-                              const preservedText = preserveFormattingMarkers(text, originalItem);
-                              return `• ${preservedText}`;
-                            }).join('\n');
-                            onContentChange(newItems);
+                      className="flex items-start space-x-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-white/80 hover:to-cyan-50/30 transition-all duration-300 group border border-transparent hover:border-cyan-200/50 hover:shadow-sm" 
+                      style={{ fontSize: '15px', lineHeight: '1.7' }}
+                    >
+                      {/* Enhanced bullet point with better colors - Use palette colors if available */}
+                      <div className="flex-shrink-0 mt-1.5">
+                        <div 
+                          className="w-2.5 h-2.5 rounded-full shadow-md ring-2"
+                          style={{
+                            background: getPaletteColor('primary') && getPaletteColor('secondary')
+                              ? `linear-gradient(to bottom right, ${getPaletteColor('primary')}, ${getPaletteColor('secondary')})`
+                              : 'linear-gradient(to bottom right, #06B6D4, #3B82F6)',
+                            boxShadow: getPaletteColor('primary')
+                              ? `0 0 0 2px ${getPaletteColor('primary')}40`
+                              : '0 0 0 2px #06B6D440',
+                          }}
+                        ></div>
+                      </div>
+                      <div
+                        className={`flex-1 ${editable ? 'cursor-text hover:bg-blue-50/50 rounded-lg px-2 py-1.5 transition-all duration-200 min-h-[2em] border border-transparent hover:border-blue-200/30' : ''} text-gray-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-300/30 focus:border-blue-300`}
+                        contentEditable={editable}
+                        suppressContentEditableWarning={true}
+                        {...(shouldUseHTML ? { dangerouslySetInnerHTML: { __html: displayItem } } : { children: cleanItem })}
+                        onKeyDown={(e) => {
+                          if (editable) {
+                            // Enhanced merge functionality
+                            if (e.key === 'Backspace' && isCursorAtStart() && index > 0) {
+                              e.preventDefault();
+                              const currentText = e.currentTarget.textContent || '';
+                              const previousItem = items[index - 1];
+                              const mergedItems = [...items];
+                              
+                              // Smart merge - combine with previous item
+                              const prevContent = previousItem.replace(/^[\s]*[•\-\*]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+                              const currContent = currentText.trim();
+                              mergedItems[index - 1] = `• ${prevContent} ${currContent}`.trim();
+                              mergedItems.splice(index, 1);
+                              
+                              if (onContentChange) {
+                                onContentChange(mergedItems.join('\n'));
+                              }
+                              return;
+                            }
+                            
+                            // Enter key creates new bullet point
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              const currentText = e.currentTarget.textContent || '';
+                              const newItems = [...items];
+                              newItems[index] = `• ${currentText}`;
+                              newItems.splice(index + 1, 0, '• ');
+                              
+                              if (onContentChange) {
+                                onContentChange(newItems.join('\n'));
+                              }
+                            }
                           }
-                          setUserIsTyping(false);
-                        }
-                      }}
-                      onInput={() => setUserIsTyping(true)}
-                    />
+                        }}
+                        onBlur={(e) => {
+                          if (editable && onContentChange && userIsTyping) {
+                            // Get all list items and reconstruct content with preserved formatting
+                            const ul = e.currentTarget.closest('ul');
+                            if (ul) {
+                              const newItems = Array.from(ul.children).map((li, idx) => {
+                                const text = (li as HTMLElement).textContent || (li as HTMLElement).innerText || '';
+                                // Try to preserve formatting from original item
+                                const originalItem = items[idx] || '';
+                                const preservedText = preserveFormattingMarkers(text, originalItem);
+                                return `• ${preservedText}`;
+                              }).join('\n');
+                              onContentChange(newItems);
+                            }
+                            setUserIsTyping(false);
+                          }
+                        }}
+                        onInput={() => setUserIsTyping(true)}
+                      />
+                    </li>
                   );
                 })}
               </ul>
@@ -862,7 +984,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 // If paragraph has single newlines, split into multiple paragraphs
                 if (trimmed.includes('\n') && !hasBullets) {
                   return (
-                    <div key={pIndex} className="mb-2 last:mb-0">
+                    <div key={pIndex} className="mb-1 last:mb-0">
                       {trimmed.split(/\n/).filter(p => p.trim()).map((p, idx) => {
                         const pText = p.trim();
                         const pHasBoldMarkers = hasBoldMarkers(pText);
@@ -876,14 +998,25 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                         return (
                           <p 
                             key={idx} 
-                            className="mb-1 last:mb-0 text-sm leading-snug text-gray-700" 
-                            style={{ fontSize: '11px', lineHeight: '1.4' }}
+                            className={`mb-3 last:mb-0 text-gray-700 leading-relaxed transition-all duration-200 ${editable ? 'cursor-text hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/20 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300/30 focus:border-blue-300 border border-transparent hover:border-blue-200/30 min-h-[2.5em]' : ''}`}
+                            style={{ fontSize: '15px', lineHeight: '1.7' }}
                             contentEditable={editable}
                             suppressContentEditableWarning={true}
                             {...(shouldUsePHTML ? { dangerouslySetInnerHTML: { __html: displayPText } } : { children: pText })}
                             onKeyDown={(e) => {
                               if (editable) {
-                                handleKeyDownForMerge(e, idx, allLines, false);
+                                // Enhanced merge functionality for paragraphs
+                                if (e.key === 'Backspace' && isCursorAtStart() && idx > 0) {
+                                  e.preventDefault();
+                                  const currentText = e.currentTarget.textContent || '';
+                                  const mergedLines = [...allLines];
+                                  mergedLines[idx - 1] = mergedLines[idx - 1] + ' ' + currentText;
+                                  mergedLines.splice(idx, 1);
+                                  
+                                  if (onContentChange) {
+                                    onContentChange(mergedLines.join('\n'));
+                                  }
+                                }
                               }
                             }}
                             onInput={() => setUserIsTyping(true)}
@@ -918,7 +1051,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 return (
                   <p
                     key={pIndex}
-                    className="mb-2 last:mb-0 text-sm leading-snug text-gray-700"
+                    className="mb-1 last:mb-0 text-sm leading-snug text-gray-700"
                     style={{ fontSize: '11px', lineHeight: '1.4' }}
                     contentEditable={editable}
                     suppressContentEditableWarning={true}
@@ -984,8 +1117,8 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
       
       return (
         <div 
-          className={`${preserveWhitespace ? "whitespace-pre-wrap leading-snug" : ""} ${editable ? 'cursor-text hover:bg-gray-50 rounded px-1 py-0.5 transition-colors min-h-[1.5em]' : ''}`}
-          style={{ fontSize: '11px', lineHeight: '1.4' }}
+          className={`${preserveWhitespace ? "whitespace-pre-wrap leading-relaxed" : ""} ${editable ? 'cursor-text hover:bg-blue-50/30 rounded-lg px-2 py-1.5 transition-all duration-200 min-h-[1.8em]' : ''}`}
+          style={{ fontSize: '14px', lineHeight: '1.6' }}
           contentEditable={editable}
           suppressContentEditableWarning={true}
           {...(shouldUseHTML ? { dangerouslySetInnerHTML: { __html: finalDisplayContent } } : { children: displayContent })}
@@ -1043,12 +1176,52 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
   const containerStyle: React.CSSProperties = {
     position: 'relative',
     ...(backgroundColor && !backgroundColor.startsWith("bg-") && { backgroundColor }),
+    // Apply color palette background if provided and applyBackground is true
+    ...(currentPalette && currentPalette.type !== 'default' && currentPalette.applyBackground !== false && {
+      background: currentPalette.colors.background,
+    }),
     ...style,
+  };
+  
+  // Get colors from palette for decorative elements
+  const getPaletteColor = (colorType: 'primary' | 'secondary' | 'accent' | 'text') => {
+    if (currentPalette && currentPalette.type !== 'default') {
+      return currentPalette.colors[colorType];
+    }
+    return undefined;
   };
 
   return (
     <section className={containerClasses} style={containerStyle}>
-      {/* Delete Button - Top Right */}
+      {/* Edit Color Palette Button - Top Left */}
+      {editable && onColorPaletteChange && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowColorPaletteModal(true);
+          }}
+          className="absolute top-3 left-3 p-2 rounded-full transition-all duration-200 hover:bg-blue-500 group no-pdf-export bg-white shadow-md border border-gray-200 hover:shadow-lg hover:scale-105 z-10"
+          title="Edit color palette"
+          aria-label="Edit color palette"
+        >
+          <svg
+            className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+            />
+          </svg>
+        </button>
+      )}
+
+      {/* Delete Button - Top Right - Enhanced styling */}
       {editable && onDelete && (
         <>
           <button
@@ -1057,12 +1230,12 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
               e.stopPropagation();
               setShowDeleteModal(true);
             }}
-            className="absolute top-2 right-2 p-1.5 rounded-lg transition-all duration-200 hover:bg-red-50 group no-pdf-export"
+            className="absolute top-3 right-3 p-2 rounded-full transition-all duration-200 hover:bg-red-500 group no-pdf-export bg-white shadow-md border border-gray-200 hover:shadow-lg hover:scale-105 z-10"
             title="Delete section"
             aria-label="Delete this section"
           >
             <svg
-              className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors"
+              className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1091,12 +1264,12 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
         <div className={`border-t ${borderColor} mb-6`} />
       )}
 
-      {/* Section Title */}
+      {/* Section Title - Enhanced with centered layout and modern styling */}
       {showTitle && title && (
-        <div className="mb-3">
+        <div className="mb-6 text-center relative">
           <h2 
-            className={`${titleClasses} ${editable ? 'cursor-text hover:bg-gray-50 rounded px-1 py-0.5 transition-colors' : ''}`}
-            style={{ fontSize: '13px', lineHeight: '1.3' }}
+            className={`${titleClasses} ${editable ? 'cursor-text hover:bg-blue-50 rounded-lg px-4 py-3 transition-all duration-200 inline-block' : ''} relative z-10 mx-auto`}
+            style={{ fontSize: '20px', lineHeight: '1.3', letterSpacing: '0.5px' }}
             contentEditable={editable}
             suppressContentEditableWarning={true}
             onBlur={(e) => {
@@ -1112,8 +1285,42 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
           >
             {title}
           </h2>
-          {/* Thin decorative line matching the design */}
-          <div className="h-0.5 w-12 bg-[#A4C639] mt-1"></div>
+          {/* Enhanced decorative elements with better colors - Use palette colors if available */}
+          <div className="flex items-center justify-center space-x-3 mt-4">
+            <div 
+              className="h-0.5 w-12 bg-gradient-to-r from-transparent rounded-full"
+              style={{
+                background: getPaletteColor('primary') 
+                  ? `linear-gradient(to right, transparent, ${getPaletteColor('primary')})`
+                  : 'linear-gradient(to right, transparent, #06B6D4)'
+              }}
+            ></div>
+            <div 
+              className="h-1.5 w-20 rounded-full shadow-lg"
+              style={{
+                background: getPaletteColor('primary') && getPaletteColor('secondary') && getPaletteColor('accent')
+                  ? `linear-gradient(to right, ${getPaletteColor('primary')}, ${getPaletteColor('secondary')}, ${getPaletteColor('accent')})`
+                  : 'linear-gradient(to right, #06B6D4, #3B82F6, #8B5CF6)'
+              }}
+            ></div>
+            <div 
+              className="h-0.5 w-12 bg-gradient-to-r rounded-full"
+              style={{
+                background: getPaletteColor('accent')
+                  ? `linear-gradient(to right, ${getPaletteColor('accent')}, transparent)`
+                  : 'linear-gradient(to right, #8B5CF6, transparent)'
+              }}
+            ></div>
+          </div>
+          {/* Subtle background accent with better positioning */}
+          <div 
+            className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 w-12 h-12 rounded-full opacity-40 blur-sm"
+            style={{
+              background: getPaletteColor('primary') && getPaletteColor('secondary') && getPaletteColor('accent')
+                ? `linear-gradient(to bottom right, ${getPaletteColor('primary')}40, ${getPaletteColor('secondary')}40, ${getPaletteColor('accent')}40)`
+                : 'linear-gradient(to bottom right, #06B6D440, #3B82F640, #8B5CF640)'
+            }}
+          ></div>
         </div>
       )}
 
@@ -1143,7 +1350,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
               transform: 'translateX(-50%)',
             }}
           >
-            {/* Split Button */}
+            {/* Split Button - Enhanced design with better colors */}
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -1151,32 +1358,39 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 handleSplitText();
               }}
               onMouseDown={(e) => e.preventDefault()} // Prevent losing selection
-              className="p-2 rounded-lg shadow-lg active:scale-95 transition-all duration-200 flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              className="group relative px-4 py-3 rounded-xl shadow-xl active:scale-95 transition-all duration-200 flex items-center gap-2 text-sm font-semibold cursor-pointer backdrop-blur-sm border border-white/20"
               style={{
-                backgroundColor: '#A4C639', // Use inline style instead of Tailwind class to avoid lab() colors
+                background: getPaletteColor('primary')
+                  ? `linear-gradient(135deg, ${getPaletteColor('primary')}, ${getPaletteColor('secondary') || getPaletteColor('primary')})`
+                  : 'linear-gradient(135deg, #06B6D4, #0891B2)',
                 color: '#ffffff',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#8FB02E';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #0891B2, #0E7490)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#A4C639';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #06B6D4, #0891B2)';
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
               }}
               title="Split into bullet points"
               aria-label="Split selected text into bullet points"
             >
               <svg 
-                className="w-4 h-4" 
+                className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
               <span>Split</span>
+              <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </button>
             
-            {/* Bold Button */}
+            {/* Bold Button - Enhanced design with better colors */}
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -1184,31 +1398,40 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 handleBoldText();
               }}
               onMouseDown={(e) => e.preventDefault()} // Prevent losing selection
-              className="p-2 rounded-lg shadow-lg active:scale-95 transition-all duration-200 flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              className="group relative px-4 py-3 rounded-xl shadow-xl active:scale-95 transition-all duration-200 flex items-center gap-2 text-sm font-semibold cursor-pointer backdrop-blur-sm border border-white/20"
               style={{
-                backgroundColor: '#A4C639',
+                background: getPaletteColor('accent')
+                  ? `linear-gradient(135deg, ${getPaletteColor('accent')}, ${getPaletteColor('secondary') || getPaletteColor('accent')})`
+                  : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
                 color: '#ffffff',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#8FB02E';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #7C3AED, #6D28D9)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#A4C639';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #8B5CF6, #7C3AED)';
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
               }}
               title="Make text bold (font-weight: 900)"
               aria-label="Make selected text bold"
             >
               <svg 
-                className="w-4 h-4" 
-                fill="currentColor" 
+                className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" 
+                fill="none" 
+                stroke="currentColor" 
                 viewBox="0 0 24 24"
               >
-                <path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
               </svg>
-              <span>Bold</span>
+              <span className="font-black">Bold</span>
+              <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </button>
             
-            {/* Underline Button */}
+            {/* Underline Button - Enhanced design with better colors */}
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -1216,28 +1439,33 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 handleUnderlineText();
               }}
               onMouseDown={(e) => e.preventDefault()} // Prevent losing selection
-              className="p-2 rounded-lg shadow-lg active:scale-95 transition-all duration-200 flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              className="group relative px-4 py-3 rounded-xl shadow-xl active:scale-95 transition-all duration-200 flex items-center gap-2 text-sm font-semibold cursor-pointer backdrop-blur-sm border border-white/20"
               style={{
-                backgroundColor: '#A4C639',
+                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                 color: '#ffffff',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#8FB02E';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #D97706, #B45309)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#A4C639';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #F59E0B, #D97706)';
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
               }}
               title="Underline text"
               aria-label="Underline selected text"
             >
               <svg 
-                className="w-4 h-4" 
+                className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" 
                 fill="currentColor" 
                 viewBox="0 0 24 24"
               >
                 <path d="M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z"/>
               </svg>
-              <span>Underline</span>
+              <span className="underline">Underline</span>
+              <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </button>
           </div>
         )}
@@ -1248,32 +1476,65 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
         <div className={`border-t ${borderColor} mt-6`} />
       )}
       
-      {/* Add Section Button - Bottom Center */}
-      {editable && onAddAfter && (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onAddAfter();
+            {/* Color Palette Modal */}
+      {editable && onColorPaletteChange && (
+        <SectionColorPaletteModal
+          isOpen={showColorPaletteModal}
+          onClose={() => setShowColorPaletteModal(false)}
+          onSave={(palette) => {
+            onColorPaletteChange(palette);
+            setShowColorPaletteModal(false);
           }}
-          className="absolute -bottom-3 left-1/2 transform -translate-x-1/2  w-6 h-6 rounded-full bg-white border-2 border-[#A4C639] flex items-center justify-center transition-all duration-200 hover:bg-[#A4C639] hover:scale-110 group no-pdf-export shadow-md"
-          title="Add section below"
-          aria-label="Add new section after this one"
-        >
-          <svg
-            className="w-3.5 h-3.5 text-[#A4C639] group-hover:text-white transition-colors"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          currentPalette={currentPalette}
+        />
+      )}
+
+      {/* Add Section Button - Enhanced modern design with better positioning */}
+      {editable && onAddAfter && (
+        <div className="flex justify-center mt-6 mb-2">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onAddAfter();
+            }}
+            className="group relative px-6 py-3 rounded-2xl border-4 border-white flex items-center justify-center transition-all duration-300 hover:scale-105 hover:-translate-y-1 no-pdf-export shadow-xl hover:shadow-2xl overflow-hidden"
+            style={{
+              background: getPaletteColor('primary') && getPaletteColor('secondary') && getPaletteColor('accent')
+                ? `linear-gradient(to right, ${getPaletteColor('primary')}, ${getPaletteColor('secondary')}, ${getPaletteColor('accent')})`
+                : 'linear-gradient(to right, #06B6D4, #3B82F6, #8B5CF6)',
+            }}
+            title="Add section below"
+            aria-label="Add new section after this one"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={3}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-        </button>
+            {/* Background shimmer effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+            
+            {/* Icon with enhanced animation */}
+            <svg
+              className="w-5 h-5 text-white transition-all duration-300 group-hover:scale-125 group-hover:rotate-90 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={3}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            
+            {/* Text with better typography */}
+            <span className="text-white font-semibold text-sm tracking-wide relative z-10">
+              Add Section Below
+            </span>
+            
+            {/* Pulse rings for attention */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-400 to-purple-400 animate-ping opacity-20"></div>
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-300 to-purple-300 animate-pulse opacity-10"></div>
+          </button>
+        </div>
       )}
     </section>
   );

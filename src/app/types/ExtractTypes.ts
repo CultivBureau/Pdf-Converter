@@ -9,6 +9,18 @@ export interface Section {
   content: string;
   order: number;
   parent_id: string | null;
+  colorPalette?: {
+    type: 'default' | 'warm' | 'cool' | 'nature' | 'professional' | 'vibrant' | 'custom';
+    name: string;
+    colors: {
+      primary: string;
+      secondary: string;
+      accent: string;
+      background: string;
+      text: string;
+    };
+    applyBackground?: boolean;
+  };
 }
 
 export interface Table {

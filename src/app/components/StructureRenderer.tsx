@@ -115,11 +115,15 @@ export default function StructureRenderer({
             content={section.content}
             type={section.type || 'section'}
             editable={editable}
+            colorPalette={(section as any).colorPalette}
             onTitleChange={onSectionEdit ? (newTitle: string) => {
               onSectionEdit({ ...section, title: newTitle });
             } : undefined}
             onContentChange={onSectionEdit ? (newContent: string) => {
               onSectionEdit({ ...section, content: newContent });
+            } : undefined}
+            onColorPaletteChange={onSectionEdit ? (palette: any) => {
+              onSectionEdit({ ...section, colorPalette: palette });
             } : undefined}
             onDelete={onSectionDelete ? () => {
               onSectionDelete(section.id);
