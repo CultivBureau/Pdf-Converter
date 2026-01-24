@@ -1,6 +1,6 @@
 // Templates API client
 import { getToken } from "./AuthApi";
-import { AirplaneSectionData, HotelsSectionData } from "../types/ExtractTypes";
+import { AirplaneSectionData, HotelsSectionData, TransportSectionData } from "../types/ExtractTypes";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
@@ -62,7 +62,7 @@ export interface Template {
   company_id: string;
   template_type: "airplane" | "hotel" | "transport";
   name: string;
-  data: AirplaneSectionData | HotelsSectionData;
+  data: AirplaneSectionData | HotelsSectionData | TransportSectionData;
   created_at: string;
   updated_at: string;
 }
@@ -76,7 +76,7 @@ export interface TemplateListResponse {
 export interface ExportTemplateData {
   name: string;
   template_type: "airplane" | "hotel" | "transport";
-  data: AirplaneSectionData | HotelsSectionData;
+  data: AirplaneSectionData | HotelsSectionData | TransportSectionData;
   exported_at: string;
 }
 
@@ -248,6 +248,95 @@ export async function importHotelTemplate(
   data: HotelsSectionData
 ): Promise<Template> {
   return authRequest("/templates/hotel/import", {
+    method: "POST",
+    body: JSON.stringify({
+      name,
+      data,
+    }),
+  });
+}
+
+// Transport Template Functions
+
+/**
+ * Get all transport templates for the current user
+ */
+export async function getTransportTemplates(): Promise<TemplateListResponse> {
+  return authRequest("/templates/transport", {
+    method: "GET",
+  });
+}
+
+/**
+ * Save a new transport template
+ */
+export async function saveTransportTemplate(
+  name: string,
+  data: TransportSectionData
+): Promise<Template> {
+  return authRequest("/templates/transport", {
+    method: "POST",
+    body: JSON.stringify({
+      template_type: "transport",
+      name,
+      data,
+    }),
+  });
+}
+
+/**
+ * Get a specific transport template
+ */
+export async function getTransportTemplate(templateId: string): Promise<Template> {
+  return authRequest(`/templates/transport/${templateId}`, {
+    method: "GET",
+  });
+}
+
+/**
+ * Delete a transport template
+ */
+export async function deleteTransportTemplate(templateId: string): Promise<void> {
+  return authRequest(`/templates/transport/${templateId}`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Update a transport template
+ */
+export async function updateTransportTemplate(
+  templateId: string,
+  name?: string,
+  data?: TransportSectionData
+): Promise<Template> {
+  const updateData: any = {};
+  if (name !== undefined) updateData.name = name;
+  if (data !== undefined) updateData.data = data;
+
+  return authRequest(`/templates/transport/${templateId}`, {
+    method: "PUT",
+    body: JSON.stringify(updateData),
+  });
+}
+
+/**
+ * Export a transport template as JSON
+ */
+export async function exportTransportTemplate(templateId: string): Promise<ExportTemplateData> {
+  return authRequest(`/templates/transport/${templateId}/export`, {
+    method: "GET",
+  });
+}
+
+/**
+ * Import a transport template from JSON
+ */
+export async function importTransportTemplate(
+  name: string,
+  data: TransportSectionData
+): Promise<Template> {
+  return authRequest("/templates/transport/import", {
     method: "POST",
     body: JSON.stringify({
       name,

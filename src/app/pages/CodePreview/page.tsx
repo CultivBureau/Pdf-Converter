@@ -1359,7 +1359,13 @@ function CodePageContent() {
   }, [editingTransportId, editingTransportTableIndex, structure]);
 
   // Get initial transport section data for edit modal - Updated to read from JSON structure
-  const getInitialTransportSectionData = useCallback(() => {
+  const getInitialTransportSectionData = useCallback((): {
+    title?: string;
+    showTitle?: boolean;
+    direction?: "rtl" | "ltr";
+    language?: "ar" | "en";
+    tables?: any[];
+  } | null => {
     if (!editingTransportId) {
       return null;
     }
@@ -1377,7 +1383,8 @@ function CodePageContent() {
         title: element.data.title,
         showTitle: element.data.showTitle,
         direction: element.data.direction,
-        language: element.data.language
+        language: element.data.language,
+        tables: element.data.tables || []
       };
     } catch (error) {
       console.error('Error getting initial transport section data:', error);

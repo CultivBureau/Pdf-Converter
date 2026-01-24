@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { TransportTable } from '../types/TransportTypes';
+import { saveTransportTemplate } from "@/app/services/TemplatesApi";
 
 interface EditTransportSectionModalProps {
   isOpen: boolean;
@@ -33,6 +34,11 @@ export default function EditTransportSectionModal({
   const [showTitle, setShowTitle] = useState(true);
   const [direction, setDirection] = useState<"rtl" | "ltr">("rtl");
   const [language, setLanguage] = useState<"ar" | "en">("ar");
+  
+  // Template-related state
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Populate form when modal opens or initialData changes
   useEffect(() => {
@@ -66,6 +72,100 @@ export default function EditTransportSectionModal({
     }
   };
 
+  // Save current section settings as template
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      alert(language === 'ar' ? 'يرجى إدخال اسم القالب' : 'Please enter a template name');
+      return;
+    }
+
+    try {
+      const templateData = {
+        title: title.trim() || undefined,
+        showTitle,
+        tables: initialData?.tables || [],
+        direction,
+        language,
+      };
+
+      await saveTransportTemplate(templateName.trim(), templateData);
+      setShowSaveTemplateModal(false);
+      setTemplateName("");
+      alert(language === 'ar' ? 'تم حفظ القالب بنجاح' : 'Template saved successfully');
+    } catch (err) {
+      console.error("Failed to save template:", err);
+      alert(language === 'ar' ? 'فشل حفظ القالب' : 'Failed to save template');
+    }
+  };
+
+  // Export current section settings as JSON
+  const handleExportJSON = () => {
+    const exportData = {
+      name: title || "Transport Section",
+      template_type: "transport",
+      data: {
+        title: title.trim() || undefined,
+        showTitle,
+        tables: initialData?.tables || [],
+        direction,
+        language,
+      },
+      exported_at: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transport-section-template-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import section settings from JSON file
+  const handleImportJSON = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const importData = JSON.parse(text);
+
+      if (!importData.data) {
+        alert(language === 'ar' ? 'ملف JSON غير صالح' : 'Invalid JSON file');
+        return;
+      }
+
+      // Load imported data into form
+      const data = importData.data;
+      if (data.title !== undefined) setTitle(data.title || "المواصلات");
+      if (data.showTitle !== undefined) setShowTitle(data.showTitle);
+      if (data.direction) setDirection(data.direction);
+      if (data.language) setLanguage(data.language);
+      
+      // Note: Tables data is imported but we can't update the structure from here
+      // The user would need to manually add tables or we'd need to pass a callback
+      // For now, we just update the section settings
+      if (data.tables && data.tables.length > 0) {
+        alert(language === 'ar' 
+          ? 'تم استيراد إعدادات القسم. ملاحظة: يجب إضافة الجداول يدوياً أو استخدام قالب كامل.' 
+          : 'Section settings imported. Note: Tables need to be added manually or use a full template.');
+      } else {
+        alert(language === 'ar' ? 'تم استيراد القالب بنجاح' : 'Template imported successfully');
+      }
+    } catch (err) {
+      console.error("Failed to import template:", err);
+      alert(language === 'ar' ? 'فشل استيراد القالب' : 'Failed to import template');
+    } finally {
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       onClose();
@@ -92,16 +192,59 @@ export default function EditTransportSectionModal({
             </svg>
             {language === 'ar' ? 'تعديل قسم المواصلات' : 'Edit Transport Section'}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-gray-200 transition-colors"
-            aria-label="Close"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Save, Export, Import buttons */}
+            <button
+              type="button"
+              onClick={handleExportJSON}
+              className="flex flex-col items-center gap-1 p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-colors group"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-xs font-medium">{language === 'ar' ? 'تصدير' : 'Export'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center gap-1 p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-colors group"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <span className="text-xs font-medium">{language === 'ar' ? 'استيراد' : 'Import'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSaveTemplateModal(true)}
+              className="flex flex-col items-center gap-1 p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-colors group"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-xs font-medium">{language === 'ar' ? 'حفظ' : 'Save'}</span>
+            </button>
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
+        
+        {/* Hidden file input for JSON import */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleImportJSON}
+          className="hidden"
+        />
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -230,6 +373,51 @@ export default function EditTransportSectionModal({
           animation: scale-in 0.2s ease-out;
         }
       `}</style>
+
+      {/* Save Template Modal */}
+      {showSaveTemplateModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSaveTemplateModal(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {language === 'ar' ? 'حفظ كقالب' : 'Save as Template'}
+            </h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {language === 'ar' ? 'اسم القالب' : 'Template Name'}
+              </label>
+              <input
+                type="text"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveTemplate();
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent"
+                placeholder={language === 'ar' ? 'أدخل اسم القالب' : 'Enter template name'}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSaveTemplateModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#1E3A8A] rounded-lg hover:bg-[#1E40AF] transition-colors"
+              >
+                {language === 'ar' ? 'حفظ' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
