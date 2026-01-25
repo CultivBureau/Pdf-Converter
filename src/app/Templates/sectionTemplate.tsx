@@ -196,7 +196,6 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
         "rounded-2xl", "p-8",
         "shadow-lg",
         "border", "border-gray-200/60",
-        "overflow-hidden",
         "backdrop-blur-sm"
       );
     } else {
@@ -209,7 +208,6 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
           "shadow-lg",
           "hover:from-cyan-100", "hover:to-blue-100",
           "hover:border-cyan-500",
-          "overflow-hidden",
           "backdrop-blur-sm"
         );
       } else if (type === 'included' || type === 'excluded') {
@@ -222,7 +220,6 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
           "border-l-4",
           "rounded-2xl", "p-8",
           "shadow-lg",
-          "overflow-hidden",
           "backdrop-blur-sm"
         );
       } else if (backgroundColor && !backgroundColor.startsWith("bg-")) {
@@ -253,7 +250,6 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
           "hover:shadow-xl",
           "hover:from-blue-50/30", "hover:via-white", "hover:to-purple-50/20",
           "hover:border-blue-200/40",
-          "overflow-hidden",
           "backdrop-blur-sm"
         );
       }
@@ -1470,14 +1466,16 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
         {/* Hide during PDF export to avoid color parsing issues */}
         {enableTextSplitting && showSplitButton && selectedText && !document.querySelector('.pdf-exporting') && (
           <div
-            className="absolute z-50 flex items-center gap-2 no-pdf-export"
+            className="absolute flex items-center gap-1 no-pdf-export"
             style={{
               top: `${Math.max(0, splitButtonPosition.top)}px`,
               left: `${splitButtonPosition.left}px`,
               transform: 'translateX(-50%)',
+              zIndex: 99999,
+              pointerEvents: 'auto',
             }}
           >
-            {/* Split Button - Enhanced design with better colors */}
+            {/* Split Button - Compact design */}
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -1485,7 +1483,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 handleSplitText();
               }}
               onMouseDown={(e) => e.preventDefault()} // Prevent losing selection
-              className="group relative px-4 py-3 rounded-xl shadow-xl active:scale-95 transition-all duration-200 flex items-center gap-2 text-sm font-semibold cursor-pointer backdrop-blur-sm border border-white/20"
+              className="group relative px-2 py-1.5 rounded-lg shadow-2xl active:scale-95 transition-all duration-200 flex items-center gap-1 text-xs font-semibold cursor-pointer backdrop-blur-sm border border-white/30"
               style={{
                 background: getPaletteColor('primary')
                   ? `linear-gradient(135deg, ${getPaletteColor('primary')}, ${getPaletteColor('secondary') || getPaletteColor('primary')})`
@@ -1494,19 +1492,17 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #0891B2, #0E7490)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #06B6D4, #0891B2)';
                 e.currentTarget.style.transform = 'translateY(0px)';
-                e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
               }}
               title="Split into bullet points"
               aria-label="Split selected text into bullet points"
             >
               <svg 
-                className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" 
+                className="w-3 h-3" 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -1514,10 +1510,9 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
               <span>Split</span>
-              <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </button>
             
-            {/* Bold Button - Enhanced design with better colors */}
+            {/* Bold Button - Compact design */}
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -1525,7 +1520,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 handleBoldText();
               }}
               onMouseDown={(e) => e.preventDefault()} // Prevent losing selection
-              className="group relative px-4 py-3 rounded-xl shadow-xl active:scale-95 transition-all duration-200 flex items-center gap-2 text-sm font-semibold cursor-pointer backdrop-blur-sm border border-white/20"
+              className="group relative px-2 py-1.5 rounded-lg shadow-2xl active:scale-95 transition-all duration-200 flex items-center gap-1 text-xs font-semibold cursor-pointer backdrop-blur-sm border border-white/30"
               style={{
                 background: getPaletteColor('accent')
                   ? `linear-gradient(135deg, ${getPaletteColor('accent')}, ${getPaletteColor('secondary') || getPaletteColor('accent')})`
@@ -1534,19 +1529,17 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #7C3AED, #6D28D9)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #8B5CF6, #7C3AED)';
                 e.currentTarget.style.transform = 'translateY(0px)';
-                e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
               }}
               title="Make text bold (font-weight: 900)"
               aria-label="Make selected text bold"
             >
               <svg 
-                className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" 
+                className="w-3 h-3" 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -1555,10 +1548,9 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
               </svg>
               <span className="font-black">Bold</span>
-              <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </button>
             
-            {/* Underline Button - Enhanced design with better colors */}
+            {/* Underline Button - Compact design */}
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -1566,36 +1558,33 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 handleUnderlineText();
               }}
               onMouseDown={(e) => e.preventDefault()} // Prevent losing selection
-              className="group relative px-4 py-3 rounded-xl shadow-xl active:scale-95 transition-all duration-200 flex items-center gap-2 text-sm font-semibold cursor-pointer backdrop-blur-sm border border-white/20"
+              className="group relative px-2 py-1.5 rounded-lg shadow-2xl active:scale-95 transition-all duration-200 flex items-center gap-1 text-xs font-semibold cursor-pointer backdrop-blur-sm border border-white/30"
               style={{
                 background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                 color: '#ffffff',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #D97706, #B45309)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #F59E0B, #D97706)';
                 e.currentTarget.style.transform = 'translateY(0px)';
-                e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
               }}
               title="Underline text"
               aria-label="Underline selected text"
             >
               <svg 
-                className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" 
+                className="w-3 h-3" 
                 fill="currentColor" 
                 viewBox="0 0 24 24"
               >
                 <path d="M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z"/>
               </svg>
               <span className="underline">Underline</span>
-              <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </button>
             
-            {/* Center Button - Enhanced design with better colors */}
+            {/* Center Button - Compact design */}
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -1603,7 +1592,7 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 handleCenterText();
               }}
               onMouseDown={(e) => e.preventDefault()} // Prevent losing selection
-              className="group relative px-4 py-3 rounded-xl shadow-xl active:scale-95 transition-all duration-200 flex items-center gap-2 text-sm font-semibold cursor-pointer backdrop-blur-sm border border-white/20"
+              className="group relative px-2 py-1.5 rounded-lg shadow-2xl active:scale-95 transition-all duration-200 flex items-center gap-1 text-xs font-semibold cursor-pointer backdrop-blur-sm border border-white/30"
               style={{
                 background: getPaletteColor('secondary')
                   ? `linear-gradient(135deg, ${getPaletteColor('secondary')}, ${getPaletteColor('primary') || getPaletteColor('secondary')})`
@@ -1613,21 +1602,19 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
               onMouseEnter={(e) => {
                 const hoverColor = getPaletteColor('secondary') || '#2563EB';
                 e.currentTarget.style.background = `linear-gradient(135deg, ${hoverColor}, ${getPaletteColor('primary') || hoverColor})`;
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = getPaletteColor('secondary')
                   ? `linear-gradient(135deg, ${getPaletteColor('secondary')}, ${getPaletteColor('primary') || getPaletteColor('secondary')})`
                   : 'linear-gradient(135deg, #3B82F6, #2563EB)';
                 e.currentTarget.style.transform = 'translateY(0px)';
-                e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
               }}
               title="Center text"
               aria-label="Center selected text"
             >
               <svg 
-                className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" 
+                className="w-3 h-3" 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -1635,7 +1622,6 @@ const SectionTemplate: React.FC<SectionTemplateProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
               <span>Center</span>
-              <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </button>
           </div>
         )}
