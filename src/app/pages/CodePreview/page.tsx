@@ -23,6 +23,7 @@ import EditTransportRowModal from "../../components/EditTransportRowModal";
 import EditTransportTableModal from "../../components/EditTransportTableModal";
 import EditTransportSectionModal from "../../components/EditTransportSectionModal";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
+import ComponentSuggestionModal from "../../components/ComponentSuggestionModal";
 import { Hotel } from "../../Templates/HotelsSection";
 import { isAuthenticated } from "../../services/AuthApi";
 import { saveDocument, updateDocument, getDocument } from "../../services/HistoryApi";
@@ -31,7 +32,7 @@ import { getCompany } from "../../services/CompanyApi";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import VersionHistoryModal from "../../components/VersionHistoryModal";
 import { useLanguage } from "../../contexts/LanguageContext";
-import type { SeparatedStructure, UserElement, Table, Section } from "../../types/ExtractTypes";
+import type { SeparatedStructure, UserElement, Table, Section, ComponentSuggestion } from "../../types/ExtractTypes";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
@@ -48,6 +49,41 @@ const defaultStructure: SeparatedStructure = {
   },
   layout: [],
   meta: {}
+};
+
+// Utility function to remove duplicates from structure
+const deduplicateStructure = (structure: SeparatedStructure): SeparatedStructure => {
+  // Deduplicate user elements by ID
+  const seenIds = new Set<string>();
+  const uniqueElements = structure.user.elements.filter(el => {
+    if (seenIds.has(el.id)) {
+      console.log('[Deduplication] Removing duplicate element:', el.id);
+      return false;
+    }
+    seenIds.add(el.id);
+    return true;
+  });
+  
+  // Deduplicate layout array
+  const uniqueLayout = Array.from(new Set(structure.layout));
+  
+  // Remove IDs from layout that don't exist in elements
+  const allElementIds = new Set([
+    ...uniqueElements.map(el => el.id),
+    ...structure.generated.sections.map(s => s.id),
+    ...structure.generated.tables.map(t => t.id)
+  ]);
+  
+  const validLayout = uniqueLayout.filter(id => allElementIds.has(id));
+  
+  return {
+    ...structure,
+    user: {
+      elements: uniqueElements
+    },
+    layout: validLayout,
+    suggestions: structure.suggestions // Explicitly preserve suggestions
+  };
 };
 
 function CodePageContent() {
@@ -89,6 +125,10 @@ function CodePageContent() {
   const [isExportingPlaywright, setIsExportingPlaywright] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   
+  // Component suggestions state
+  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
+  const [pendingSuggestions, setPendingSuggestions] = useState<ComponentSuggestion[]>([]);
+  
   // Track changes for Save button
   const [hasChanges, setHasChanges] = useState(false);
   const initialStructureRef = useRef<SeparatedStructure | null>(null);
@@ -96,6 +136,18 @@ function CodePageContent() {
   // Company branding state
   const [headerImage, setHeaderImage] = useState<string | undefined>(undefined);
   const [footerImage, setFooterImage] = useState<string | undefined>(undefined);
+  
+  // Load saved suggestions when document ID changes
+  // Load suggestions from document structure
+  useEffect(() => {
+    if (structure.suggestions && structure.suggestions.length > 0) {
+      setPendingSuggestions(structure.suggestions);
+      // Show the suggestion modal if there are pending suggestions
+      setShowSuggestionModal(true);
+    } else {
+      setPendingSuggestions([]);
+    }
+  }, [structure.suggestions]);
   
   // Event delegation for airplane section actions
   useEffect(() => {
@@ -1463,20 +1515,29 @@ function CodePageContent() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Check if we're loading a specific document
+    // First, check if we have fresh data from sessionStorage (from upload flow)
+    // This takes priority over loading from database
+    const storedExtractedData = sessionStorage.getItem("codePreview.extractedData");
+    const hasSessionStorageData = !!storedExtractedData;
+    
+    // Check if we're loading a specific document from URL (e.g., from history)
     const docIdParam = searchParams?.get("docId");
-    if (docIdParam && isAuthenticated()) {
-      loadDocument(docIdParam);
-      return;
-    }
-
-    // Load from sessionStorage (from upload flow)
+    
+    // Load from sessionStorage (from upload flow) - FIRST
     const storedDocId = sessionStorage.getItem("codePreview.documentId");
     if (storedDocId) {
       setDocumentId(storedDocId);
       sessionStorage.removeItem("codePreview.documentId");
-      // Load document to get company_id and fetch branding
-      loadDocument(storedDocId);
+      // Only load metadata/branding from document, not structure (since we have sessionStorage data)
+      if (!hasSessionStorageData) {
+        loadDocument(storedDocId);
+      } else {
+        // Load only company branding without overwriting structure
+        loadDocumentMetadataOnly(storedDocId);
+      }
+    } else if (docIdParam && isAuthenticated() && !hasSessionStorageData) {
+      // Loading from history (no sessionStorage data) - load full document from database
+      loadDocument(docIdParam);
     }
 
     const storedMetadata = sessionStorage.getItem("codePreview.metadata");
@@ -1490,8 +1551,7 @@ function CodePageContent() {
       sessionStorage.removeItem("codePreview.metadata");
     }
 
-    // Load structured data from sessionStorage (v2 format)
-    const storedExtractedData = sessionStorage.getItem("codePreview.extractedData");
+    // Load structured data from sessionStorage (v2 format) - has priority over database
     if (storedExtractedData) {
       try {
         const parsed = JSON.parse(storedExtractedData);
@@ -1499,6 +1559,13 @@ function CodePageContent() {
         if (parsed && parsed.generated && parsed.user && parsed.layout) {
           const loadedStructure = parsed as SeparatedStructure;
           setStructure(loadedStructure);
+          
+          // Check for suggestions and show modal
+          if (parsed.suggestions && Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0) {
+            setPendingSuggestions(parsed.suggestions);
+            setShowSuggestionModal(true);
+          }
+          
           // Store as initial structure after load
           setTimeout(() => {
             initialStructureRef.current = JSON.parse(JSON.stringify(loadedStructure));
@@ -1595,7 +1662,9 @@ function CodePageContent() {
         // Ensure it's v2 format
         if (extractedData.generated && extractedData.user && extractedData.layout) {
           loadedStructure = extractedData as SeparatedStructure;
-          setStructure(loadedStructure);
+          // Apply deduplication to clean up any duplicate entries
+          const cleanedStructure = deduplicateStructure(loadedStructure);
+          setStructure(cleanedStructure);
         } else if (extractedData.sections || extractedData.tables) {
           // Legacy format - migrate to v2
           loadedStructure = {
@@ -1667,6 +1736,59 @@ function CodePageContent() {
     } catch (err) {
       console.error("Failed to load document:", err);
       alert("Failed to load document");
+    }
+  };
+
+  // Load only metadata and branding without overwriting structure
+  // Used when we have fresh data from sessionStorage and don't want to overwrite it
+  const loadDocumentMetadataOnly = async (docId: string) => {
+    try {
+      const response = await getDocument(docId);
+      const doc = response.document;
+      
+      setDocumentId(doc.id);
+      setCurrentVersion(doc.current_version || 1);
+      setTotalVersions(doc.total_versions || 1);
+      
+      if (doc.metadata) {
+        setSourceMetadata({
+          filename: doc.metadata.filename || doc.original_filename,
+          uploadedAt: doc.created_at,
+        });
+      }
+      
+      // Fetch company branding if document has company_id
+      if (doc.company_id) {
+        try {
+          const company = await getCompany(doc.company_id);
+          if (company.header_image) {
+            const headerUrl = company.header_image.startsWith("http")
+              ? company.header_image
+              : `${API_BASE_URL}${company.header_image}`;
+            setHeaderImage(headerUrl);
+          } else {
+            setHeaderImage(undefined);
+          }
+          
+          if (company.footer_image) {
+            const footerUrl = company.footer_image.startsWith("http")
+              ? company.footer_image
+              : `${API_BASE_URL}${company.footer_image}`;
+            setFooterImage(footerUrl);
+          } else {
+            setFooterImage(undefined);
+          }
+        } catch (err) {
+          console.error("Failed to fetch company branding:", err);
+          setHeaderImage(undefined);
+          setFooterImage(undefined);
+        }
+      } else {
+        setHeaderImage(undefined);
+        setFooterImage(undefined);
+      }
+    } catch (err) {
+      console.error("Failed to load document metadata:", err);
     }
   };
 
@@ -2066,8 +2188,6 @@ function CodePageContent() {
     direction?: "rtl" | "ltr";
     language?: "ar" | "en";
   }) => {
-    console.log('[CodePreview] handleAddTransportSubmit called with data:', data);
-    
     // Generate unique ID for user element
     const elementId = `user_transport_${Date.now()}`;
     
@@ -2084,10 +2204,7 @@ function CodePageContent() {
       }
     };
     
-    console.log('[CodePreview] New transport element:', newElement);
-    
     setStructure(prev => {
-      console.log('[CodePreview] Previous structure:', prev);
       const newStructure = {
         ...prev,
         user: {
@@ -2095,7 +2212,6 @@ function CodePageContent() {
         },
         layout: [elementId, ...prev.layout]
       };
-      console.log('[CodePreview] New structure:', newStructure);
       return newStructure;
     });
     
@@ -2103,6 +2219,189 @@ function CodePageContent() {
     
     /* OLD JSX CODE REMOVED - Now works with JSON structure */
   }, []);
+
+  // Component suggestion handlers
+  const handleApproveSuggestion = useCallback(async (suggestion: ComponentSuggestion) => {
+    // Generate unique ID for user element
+    const elementId = `user_${suggestion.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create UserElement from suggestion
+    const newElement: UserElement = {
+      id: elementId,
+      type: suggestion.type,
+      data: suggestion.data,
+      created_at: new Date().toISOString()
+    };
+    
+    // Remove from suggestions
+    const remaining = pendingSuggestions.filter(s => s.id !== suggestion.id);
+    
+    // Build new structure outside of setState
+    let newStructure: SeparatedStructure | null = null;
+    
+    // Update structure: add element and update suggestions
+    setStructure(prev => {
+      // Check if element with same data already exists
+      const existingElement = prev.user.elements.find(el => 
+        el.type === newElement.type && 
+        JSON.stringify(el.data) === JSON.stringify(newElement.data)
+      );
+      
+      if (existingElement) {
+        // Still update suggestions
+        newStructure = {
+          ...prev,
+          suggestions: remaining.length > 0 ? remaining : undefined
+        };
+        return newStructure;
+      }
+      
+      newStructure = {
+        ...prev,
+        user: {
+          elements: [...prev.user.elements, newElement]
+        },
+        layout: [elementId, ...prev.layout],
+        suggestions: remaining.length > 0 ? remaining : undefined
+      };
+      
+      return newStructure;
+    });
+    
+    // Save to database after state update
+    if (documentId && newStructure) {
+      try {
+        await updateDocument(documentId, {
+          extracted_data: newStructure,
+          metadata: {
+            ...sourceMetadata,
+            lastSaved: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        console.error('[CodePreview] Failed to save changes:', error);
+      }
+    }
+  }, [documentId, pendingSuggestions, sourceMetadata]);
+
+  const handleRejectSuggestion = useCallback(async (suggestionId: string) => {
+    // Remove from pending suggestions
+    const remaining = pendingSuggestions.filter(s => s.id !== suggestionId);
+    
+    // Build new structure
+    let newStructure: SeparatedStructure | null = null;
+    
+    // Update structure with remaining suggestions
+    setStructure(prev => {
+      newStructure = {
+        ...prev,
+        suggestions: remaining.length > 0 ? remaining : undefined
+      };
+      return newStructure;
+    });
+    
+    // Save to database after state update
+    if (documentId && newStructure) {
+      try {
+        await updateDocument(documentId, {
+          extracted_data: newStructure,
+          metadata: {
+            ...sourceMetadata,
+            lastSaved: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        console.error('[CodePreview] Failed to save changes:', error);
+      }
+    }
+  }, [documentId, pendingSuggestions, sourceMetadata]);
+
+  const handleApproveAllSuggestions = useCallback(async () => {
+    // Create all new elements
+    const newElements: UserElement[] = [];
+    const newLayoutIds: string[] = [];
+    
+    pendingSuggestions.forEach(suggestion => {
+      const elementId = `user_${suggestion.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      newElements.push({
+        id: elementId,
+        type: suggestion.type,
+        data: suggestion.data,
+        created_at: new Date().toISOString()
+      });
+      newLayoutIds.push(elementId);
+    });
+    
+    // Build new structure
+    let newStructure: SeparatedStructure | null = null;
+    
+    // Update structure: add all elements and clear suggestions
+    setStructure(prev => {
+      newStructure = {
+        ...prev,
+        user: {
+          elements: [...prev.user.elements, ...newElements]
+        },
+        layout: [...newLayoutIds, ...prev.layout],
+        suggestions: undefined
+      };
+      return newStructure;
+    });
+    
+    // Save to database after state update
+    if (documentId && newStructure) {
+      try {
+        await updateDocument(documentId, {
+          extracted_data: newStructure,
+          metadata: {
+            ...sourceMetadata,
+            lastSaved: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        console.error('[CodePreview] Failed to save changes:', error);
+      }
+    }
+  }, [documentId, pendingSuggestions, sourceMetadata]);
+
+  const handleRejectAllSuggestions = useCallback(async () => {
+    // Build new structure
+    let newStructure: SeparatedStructure | null = null;
+    
+    // Update structure: clear all suggestions
+    setStructure(prev => {
+      newStructure = {
+        ...prev,
+        suggestions: undefined
+      };
+      return newStructure;
+    });
+    
+    // Save to database after state update
+    if (documentId && newStructure) {
+      try {
+        await updateDocument(documentId, {
+          extracted_data: newStructure,
+          metadata: {
+            ...sourceMetadata,
+            lastSaved: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        console.error('[CodePreview] Failed to save changes:', error);
+      }
+    }
+  }, [documentId, sourceMetadata]);
+
+  const handleCloseSuggestionModal = useCallback(() => {
+    setShowSuggestionModal(false);
+    // Clear suggestions after a delay to allow animations
+    setTimeout(() => {
+      if (pendingSuggestions.length === 0) {
+        setPendingSuggestions([]);
+      }
+    }, 300);
+  }, [pendingSuggestions.length]);
 
   const header = useMemo(() => (
     <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-md">
@@ -2334,6 +2633,25 @@ function CodePageContent() {
                         </button>
                       </>
                     )}
+                    
+                    {/* AI Suggestions */}
+                    <button
+                      onClick={() => {
+                        setShowSuggestionModal(true);
+                        setShowMenuDropdown(false);
+                      }}
+                      className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
+                    >
+                      <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      <span>{t.modals.aiSuggestions}</span>
+                      {pendingSuggestions.length > 0 && (
+                        <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-semibold`}>
+                          {pendingSuggestions.length}
+                        </span>
+                      )}
+                    </button>
                   </div>
                 </>
               )}
@@ -2658,6 +2976,17 @@ function CodePageContent() {
         onConfirm={confirmDeleteSection}
         title="Delete Section"
         message="Are you sure you want to delete this section? This action cannot be undone."
+      />
+
+      {/* Component Suggestion Modal */}
+      <ComponentSuggestionModal
+        isOpen={showSuggestionModal}
+        onClose={handleCloseSuggestionModal}
+        suggestions={pendingSuggestions}
+        onApprove={handleApproveSuggestion}
+        onReject={handleRejectSuggestion}
+        onApproveAll={handleApproveAllSuggestions}
+        onRejectAll={handleRejectAllSuggestions}
       />
 
       <style jsx>{`

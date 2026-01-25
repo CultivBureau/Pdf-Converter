@@ -303,6 +303,7 @@ export default function StructureRenderer({
             if (!element) return null;
             const isFirst = index === 0;
             const isLast = index === separatedStructure.layout.length - 1;
+            const uniqueKey = `${id}-${index}`; // Create unique key combining ID and index
 
             // For sections, render with hierarchy if they have children
             if (element.type === 'section') {
@@ -311,16 +312,16 @@ export default function StructureRenderer({
               const children = separatedStructure.generated.sections.filter(s => s.parent_id === section.id);
               if (children.length > 0) {
                 return (
-                  <React.Fragment key={section.id}>
+                  <React.Fragment key={uniqueKey}>
                     <SectionTemplate
                       title={section.title}
                       content={section.content}
                       type={section.type || 'section'}
                       editable={false}
                     />
-                    {children.map((child) => (
+                    {children.map((child, childIndex) => (
                       <SectionTemplate
-                        key={child.id}
+                        key={`${child.id}-${childIndex}`}
                         title={child.title}
                         content={child.content}
                         type={child.type || 'section'}
@@ -333,7 +334,7 @@ export default function StructureRenderer({
             }
             
             return (
-              <div key={id} className="relative group mb-6">
+              <div key={uniqueKey} className="relative group mb-6">
                 {/* Reorder Controls */}
                 {(onMoveUp || onMoveDown) && (
                   <div className="absolute -left-12 top-4 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity ">

@@ -202,6 +202,18 @@ export interface UserElement {
   order?: number;
 }
 
+// Component Suggestion Types
+export type ComponentType = "airplane" | "hotel" | "transport";
+
+export interface ComponentSuggestion {
+  id: string;
+  type: ComponentType;
+  confidence: number; // 0.0 to 1.0
+  data: AirplaneSectionData | HotelsSectionData | TransportSectionData;
+  source_text?: string;
+  reasoning?: string;
+}
+
 export interface SeparatedStructure {
   generated: {
     sections: Section[];
@@ -218,5 +230,6 @@ export interface SeparatedStructure {
     structure_version?: number;
     [key: string]: any;
   };
+  suggestions?: ComponentSuggestion[]; // AI-generated component suggestions
 }
 
