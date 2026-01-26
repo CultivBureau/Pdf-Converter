@@ -105,8 +105,7 @@ export default function AddAirplaneModal({
     try {
       const result = await getAirplaneTemplates();
       setTemplates(result.templates || []);
-      // Always show template selection UI (including empty state)
-      setShowTemplateSelection(true);
+      // Don't auto-show template selection - user clicks button to show
     } catch (err) {
       console.error("Failed to fetch templates:", err);
       setTemplates([]);
@@ -406,15 +405,43 @@ export default function AddAirplaneModal({
             </svg>
             {t.modals.addAirplaneSection}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-gray-200 transition-colors"
-            aria-label={t.common.close}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            {/* Saved Templates Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTemplateSelection(!showTemplateSelection);
+              }}
+              className={`px-4 py-2 rounded-lg transition-all font-medium text-sm flex items-center gap-2 ${
+                showTemplateSelection 
+                  ? 'bg-white text-[#4A5568] shadow-lg' 
+                  : 'bg-white/20 text-white hover:bg-white/30'
+              } ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={t.modals.savedTemplates}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+              <span>{t.modals.savedTemplates}</span>
+              {templates.length > 0 && (
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                  showTemplateSelection ? 'bg-[#4A5568] text-white' : 'bg-white/30 text-white'
+                }`}>
+                  {templates.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className="text-white hover:text-gray-200 transition-colors"
+              aria-label={t.common.close}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Content */}
