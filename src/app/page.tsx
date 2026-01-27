@@ -24,7 +24,8 @@ import {
   Zap,
   Eye,
   Download,
-  Sparkles
+  Sparkles,
+  LifeBuoy
 } from "lucide-react";
 
 function HomeContent() {
@@ -444,6 +445,62 @@ function HomeContent() {
                   </p>
                   <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
                     <span>{t.home.viewSettings}</span>
+                    <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
+                  </div>
+                </div>
+              </Link>
+            )}
+
+            {/* Support Tickets - Available to non-superadmin users only */}
+            {user && !isSuperAdmin && (
+              <Link
+                href="/pages/Tickets"
+                className="group block rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-[#C4B454] hover:-translate-y-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#C4B454]/50 relative overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#C4B454] to-[#B8A040]"></div>
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-4 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                      <LifeBuoy className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900">{t.home.supportTickets}</h2>
+                  </div>
+                  <p className="text-gray-600 mb-4 grow leading-relaxed">
+                    {t.home.supportTicketsDesc}
+                  </p>
+                  <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
+                    <span>{t.home.submitTicket}</span>
+                    <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
+                  </div>
+                </div>
+              </Link>
+            )}
+
+            {/* Ticket Management - Super Admin Only */}
+            {isSuperAdmin && (
+              <Link
+                href="/pages/Tickets/admin"
+                className="group block rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-[#C4B454] hover:-translate-y-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#C4B454]/50 relative overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#C4B454] to-[#B8A040]"></div>
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-4 bg-gradient-to-br from-[#C4B454] to-[#B8A040] rounded-2xl text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                      <LifeBuoy className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900">{t.home.ticketManagement}</h2>
+                  </div>
+                  <div className="mb-4">
+                    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-[#C4B454] to-[#B8A040] text-white text-xs font-bold rounded-full mb-3 shadow-md">
+                      <Shield className="w-3 h-3" />
+                      {t.home.superAdminOnly}
+                    </span>
+                    <p className="text-gray-600 grow leading-relaxed">
+                      {t.home.ticketManagementDesc}
+                    </p>
+                  </div>
+                  <div className="flex items-center text-[#B8A040] font-bold group-hover:gap-3 transition-all">
+                    <span>{t.home.manageTickets}</span>
                     <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300" />
                   </div>
                 </div>
